@@ -1,0 +1,8 @@
+{
+  "name": "Miami Beach Drive",
+  "short_name": "Miami Drive",
+  "display": "fullscreen",
+  "background_color": "#7fd3f0",
+  "theme_color": "#0f8fc0",
+  "start_url": "."
+}

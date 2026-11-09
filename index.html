@@ -4,7 +4,7 @@
 <meta name="color-scheme" content="light dark">
 <title>Miami Beach Drive</title>
 <meta name="theme-color" content="#0f8fc0"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Miami Beach Drive","short_name":"Miami Drive","display":"fullscreen","background_color":"#7fd3f0","theme_color":"#0f8fc0","start_url":"."}'>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
 <style>
 :root{--btn:rgba(20,30,50,.5);--btnb:rgba(255,255,255,.65);--fg:#fff;box-sizing:border-box}
@@ -478,7 +478,7 @@ function rig(col,ty){const g=new T.Group(),b=M(col),dk=M(0x1b1b1b),gl=M(0x223344
  g.wh=[];[[1,1.35],[-1,1.35],[1,-1.35],[-1,-1.35]].forEach(a=>{const p=new T.Group();p.position.set(a[0]*1.05,R,a[1]);g.add(p);add(p,CY,dk,0,0,0,[R,.35,R]).rotation.z=Math.PI/2;add(p,CY,M(0xcccccc),0,0,0,[R*.5,.38,R*.5]).rotation.z=Math.PI/2;g.wh.push(p)});shd(g,1.2,2.6);sc.add(g);return g}
 [[0xff7a1a,'j'],[0x2e7d32,'j'],[0xfdd835,'j'],[0xe53935,'t'],[0x1e88e5,'t']].forEach((a,i)=>{addV(rig(a[0],a[1]),152,150+i*6.5,{mx:42,ac:22,tn:2.1,nos:1,rl:1});const o=cars[cars.length-1];o.h=Math.PI/2;o.g.rotation.y=o.h});
 [0xd81b60,0x00acc1,0x7cb342].forEach((c,i)=>{addV(rig(c,i==1?'t':'j'),RS[0].x,RS[0].z,{mx:42,ac:22,tn:2.1,rl:1,ai:i*.09})});
-function rAI(dt){cars.forEach(c=>{if(c.ai==null||pl.on===c)return;c.ai=(c.ai+dt*21/RL)%1;const p=RC.getPointAt(c.ai),t=RC.getTangentAt(c.ai);c.g.position.set(p.x,RY,p.z);c.h=Math.atan2(t.x,t.z);c.g.rotation.y=c.h;c.v=0;c.g.wh.forEach(w=>w.rotation.x+=21*dt/.38)})}
+function rAI(dt){cars.forEach(c=>{if(c.ai==null||pl.on===c)return;c.ai=((c.ai+dt*21/RL)%1+1)%1;const u=c.ai<1e-4||c.ai>1-1e-4?1e-4:c.ai;let p,t;try{p=RC.getPointAt(u);t=RC.getTangentAt(u)}catch(e){return}if(!p||p.x==null||!t||t.x==null)return;c.g.position.set(p.x,RY,p.z);c.h=Math.atan2(t.x,t.z);c.g.rotation.y=c.h;c.v=0;c.g.wh.forEach(w=>w.rotation.x+=21*dt/.38)})}
 function railz(c){const p=c.g.position;let bd=1e9,bq=null;for(const q of RS){const d=(q.x-p.x)**2+(q.z-p.z)**2;if(d<bd){bd=d;bq=q}}bd=Math.sqrt(bd);if(bd<HW+1.2)p.y+=(RY-p.y)*.25;else if(p.x>182){const k=(HW+1.2)/bd;p.x=bq.x+(p.x-bq.x)*k;p.z=bq.z+(p.z-bq.z)*k;c.v*=.96;p.y=RY}else p.y+=(0-p.y)*.25}
 // camera 1a/3a pessoa
 let CAMV=0;SCR.cv=0;
@@ -488,11 +488,12 @@ let DEF=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEF=e
 if(CAMV){cam.fov=72;cam.updateProjectionMatrix()}
 // junta objetos parados em poucas peças (menos trabalho para o celular)
 function mergeStatic(){try{
+ const can=m=>{const g=m.geometry;return !!(g&&g.index&&g.attributes.position&&g.attributes.normal&&g.attributes.uv&&m.material)};
  const ex=new Set([sunM,moonM,water,gb,sBall,ball,...foams,...coins,...kites.map(k=>k.g)]);
  const an=new Set([P,plane,heli,fw,cr,sw,jpk,...npcs.map(n=>n.g),...cars.map(c=>c.g),...tr.map(o=>o.g),...clouds,...gulls.map(o=>o.g),...boats.map(b=>b.g),...riders.map(r=>r.g),...bob,...trainers,...vp,...eaters,...socP.map(p=>p.g),...planes2.map(p=>p.g),...bal.map(b=>b.g)]);
  sc.updateMatrixWorld(true);const meshes=[],rm=[];
- sc.children.forEach(o=>{if(an.has(o)||ex.has(o))return;if(o.isMesh){meshes.push(o);rm.push(o)}else if(o.isGroup){o.traverse(m=>{if(m.isMesh)meshes.push(m)});rm.push(o)}});
- const bk={};meshes.forEach(m=>{const g=m.geometry;if(!g||!g.index||!g.attributes.position||!g.attributes.normal||!g.attributes.uv)throw new Error('geo');const k=m.material.uuid+'|'+(m.castShadow?1:0)+(m.receiveShadow?1:0);(bk[k]||(bk[k]={m:m.material,c:m.castShadow,r:m.receiveShadow,l:[]})).l.push(m)});
+ sc.children.forEach(o=>{if(an.has(o)||ex.has(o))return;if(o.isMesh){if(!can(o))return;meshes.push(o);rm.push(o)}else if(o.isGroup){const ms=[];o.traverse(m=>{if(m.isMesh)ms.push(m)});if(!ms.length||ms.some(m=>!can(m)))return;ms.forEach(m=>meshes.push(m));rm.push(o)}});
+ const bk={};meshes.forEach(m=>{const k=m.material.uuid+'|'+(m.castShadow?1:0)+(m.receiveShadow?1:0);(bk[k]||(bk[k]={m:m.material,c:m.castShadow,r:m.receiveShadow,l:[]})).l.push(m)});
  const out=[];for(const k in bk){const b=bk[k];let nv=0,ni=0;b.l.forEach(m=>{nv+=m.geometry.attributes.position.count;ni+=m.geometry.index.count});
   const P3=new Float32Array(nv*3),N3=new Float32Array(nv*3),U2=new Float32Array(nv*2),I=new Uint32Array(ni);let vo=0,io=0;
   b.l.forEach(m=>{const g=m.geometry,pa=g.attributes.position.array,na=g.attributes.normal.array,ua=g.attributes.uv.array,ix=g.index.array,e=m.matrixWorld.elements,nm=new T.Matrix3().getNormalMatrix(m.matrixWorld).elements,c=g.attributes.position.count;
@@ -501,7 +502,7 @@ function mergeStatic(){try{
    for(let i=0;i<ix.length;i++)I[io+i]=ix[i]+vo;vo+=c;io+=ix.length});
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(P3,3));geo.setAttribute('normal',new T.BufferAttribute(N3,3));geo.setAttribute('uv',new T.BufferAttribute(U2,2));geo.setIndex(new T.BufferAttribute(I,1));
   const mm=new T.Mesh(geo,b.m);mm.castShadow=b.c;mm.receiveShadow=b.r;out.push(mm)}
- out.forEach(o=>sc.add(o));rm.forEach(o=>sc.remove(o))}catch(e){console.error('merge',e)}}
+ out.forEach(o=>sc.add(o));rm.forEach(o=>sc.remove(o))}catch(e){/* merge opcional: ignora geometrias incompatíveis */}}
 // áudio
 let AC,mg,eo,eo2,eg,wg,muted=0;
 function initAudio(){if(AC){if(AC.state=='suspended')AC.resume();return}
