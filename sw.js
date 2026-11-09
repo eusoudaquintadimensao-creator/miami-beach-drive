@@ -1,9 +1,13 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v2-2026-11-09';
+const VERSION = 'solara-v4-2026-11-09-herois';
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
   'src/style.css', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',
   'src/missions.js', 'src/ui.js', 'src/recorder.js', 'src/install.js', 'src/garage.js', 'src/rivals.js',
+  'src/avatar.js', 'src/device.js', 'src/heli.js', 'src/talk.js', 'src/phrases.js', 'src/heroes.js', 'src/powers.js',
+  'assets/avatars/ela.glb', 'assets/avatars/ele.glb', 'assets/avatars/ela.webp', 'assets/avatars/ele.webp',
+  'assets/avatars/teia.webp', 'assets/avatars/solar.webp', 'assets/avatars/colosso.webp', 'assets/avatars/sentinela.webp', 'assets/avatars/ferreo.webp', 'assets/avatars/tita.webp',
+  'vendor/three/addons/loaders/GLTFLoader.js', 'vendor/three/addons/utils/SkeletonUtils.js',
   'vendor/three/three.module.min.js', 'vendor/three/addons/objects/Sky.js', 'vendor/three/addons/postprocessing/EffectComposer.js',
   'vendor/three/addons/postprocessing/MaskPass.js', 'vendor/three/addons/postprocessing/OutputPass.js', 'vendor/three/addons/postprocessing/Pass.js',
   'vendor/three/addons/postprocessing/RenderPass.js', 'vendor/three/addons/postprocessing/ShaderPass.js', 'vendor/three/addons/postprocessing/UnrealBloomPass.js',

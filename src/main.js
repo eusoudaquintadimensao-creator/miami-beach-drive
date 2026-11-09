@@ -10,6 +10,8 @@ import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlo
 import { createEnv } from './env.js';
 import { Vehicle, SPECS, setVehicleLights } from './vehicles.js';
 import { Crowd, Hero } from './people.js';
+import { Avatar, AVATARS, AVATAR_IDS, preloadAvatars } from './avatar.js';
+import { DEVICE } from './device.js';
 import { Traffic } from './traffic.js';
 import { AudioSys, STATIONS } from './audio.js';
 import { Missions } from './missions.js';
@@ -18,16 +20,19 @@ import { Recorder } from './recorder.js';
 import { initInstall, promptInstall } from './install.js';
 import { Garage } from './garage.js';
 import { Rivals } from './rivals.js';
+import { Heli, HeliFleet, buildHelipad, HELIPAD } from './heli.js';
+import { Talk } from './talk.js';
+import { Powers, roofAt } from './powers.js';
 
 const SAVE_KEY = 'mbd-solara-v1';
 const $ = (id) => document.getElementById(id);
-const touch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+const touch = DEVICE.touch;
 if (touch) document.body.classList.add('touch');
 initInstall({ toast: (t) => G.ui ? G.ui.toast(t, 4000) : null });
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
 // ---------------- progresso salvo
-const save = Object.assign({ money: 0, followers: 0, shells: [], photos: [], done: 0, best: {}, hour: 17.4, weather: 'limpo', station: 0, quality: 'auto', muted: false, sens: 1, pos: null }, (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); } catch (e) { return {}; } })());
+const save = Object.assign({ money: 0, followers: 0, shells: [], photos: [], done: 0, best: {}, hour: 17.4, weather: 'limpo', station: 0, quality: 'auto', muted: false, sens: 1, pos: null, avatar: null }, (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); } catch (e) { return {}; } })());
 
 // ---------------- qualidade
 function detectQuality() {
@@ -35,19 +40,29 @@ function detectQuality() {
   try { const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl'); const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); gpu = gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : ''; } catch (e) { }
   const weak = /swiftshader|llvmpipe|software|mali-[4t]|adreno \(tm\) [3-5]\d\d|powervr|intel\(r\) hd graphics [2-5]/i.test(gpu);
   const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
-  if (weak || (touch && (cores <= 4 || mem <= 3))) return 'low';
-  if (touch) return 'medium';
+  if (weak || (DEVICE.mobile && (cores <= 4 || mem <= 3))) return 'low';
+  if (DEVICE.mobile) return 'medium';
   if (/apple m\d|rtx|gtx|radeon|nvidia|geforce|arc /i.test(gpu)) return 'high';
   return 'medium';
 }
 const PRESETS = {
-  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 18, traffic: 9, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170 },
-  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 40, traffic: 16, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220 },
-  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 64, traffic: 22, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280 },
+  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 18, traffic: 9, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
+  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 40, traffic: 16, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
+  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 64, traffic: 22, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
 };
+// celular/tablet: menos pixels, sombras menores, menos gente e carros, menos distância de desenho
+function forDevice(P) {
+  const q = Object.assign({}, P, { device: DEVICE.label });
+  if (DEVICE.mobile) {
+    q.prMax = Math.min(q.prMax, q.level === 'low' ? 1 : DEVICE.ios ? 1.4 : 1.3); q.shadowSize = Math.min(q.shadowSize, 1024); q.msaa = 0;
+    q.peds = Math.round(q.peds * 0.75); q.traffic = Math.round(q.traffic * 0.8); q.viewHide = Math.min(q.viewHide, 200);
+    q.detail = Math.min(q.detail, q.level === 'low' ? 320 : 480); q.helis = Math.min(q.helis, 2); q.talkers = Math.min(q.talkers, 6); q.animDist = Math.min(q.animDist, 55);
+  }
+  return q;
+}
 const urlQ = new URLSearchParams(location.search).get('q');
 const qName = (urlQ && PRESETS[urlQ]) ? urlQ : save.quality !== 'auto' && PRESETS[save.quality] ? save.quality : detectQuality();
-const Q = PRESETS[qName];
+const Q = forDevice(PRESETS[qName]);
 $('qsel').value = save.quality || 'auto';
 $('qsel').onchange = (e) => { save.quality = e.target.value; persist(); location.reload(); };
 
@@ -113,12 +128,12 @@ G.addFollowers = (n) => { save.followers += n; G.ui.stats(save.money, save.follo
 async function boot() {
   const status = (t) => { $('play').textContent = t; };
   status('Construindo a cidade…'); await nextFrame();
-  G.world = buildWorld(scene, Q);
+  G.world = buildWorld(scene, Q); G.helipad = buildHelipad(scene, Q);
   status('Acendendo o neon…'); await nextFrame();
   G.env = createEnv(scene, renderer, Q); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
   setupComposer();
   status('Chamando os moradores…'); await nextFrame();
-  G.hero = new Hero(scene, Q);
+  G.hero = new Avatar(scene, Q, save.avatar || 'ela');
   G.crowd = new Crowd(scene, Q, Q.peds);
   G.traffic = new Traffic(scene, Q, Q.traffic);
   for (const c of G.traffic.cars) if (c.type === 'moto') addRider(c);
@@ -129,11 +144,14 @@ async function boot() {
   });
   for (const s of SPAWNS.taxiStands) { const v = new Vehicle('taxi', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
   for (const s of SPAWNS.boats) { const v = new Vehicle('boat', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
+  G.heli = new Heli(scene, Q, { color: 0xff2d55, stripe: 0xffffff }); G.heli.place(HELIPAD.x, HELIPAD.z, -Math.PI / 2); G.vehicles.push(G.heli);
+  G.helis = new HeliFleet(G, Q.helis);
   G.audio = new AudioSys(); G.audio.muted = !!save.muted; G.audio.station = save.station || 0;
   G.ui = new UI(G);
   G.rivals = new Rivals(G);
   G.missions = new Missions(G);
   G.garage = new Garage(G);
+  G.talk = new Talk(G); G.powers = new Powers(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -149,8 +167,21 @@ async function boot() {
   updateCamera(0.016, true);
   renderer.compile(scene, camera);
   $('play').disabled = false; status('▶  JOGAR');
-  G.ready = true; window.MBD_READY = true;
+  G.ready = true; window.MBD_READY = true; G.loadMs = Math.round(performance.now());
+  // depois de pronto: personagens que conversam (modelo 3D carregado sob demanda)
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+  idle(() => { preloadAvatars(); G.talk.spawnCast(Q.talkers).then(n => { G.castReady = n; }); });
 }
+G.setAvatar = (id) => { if (!AVATARS[id]) return; save.avatar = id; persist(); if (G.powers) G.powers.reset(); G.hero.setAvatar(id); updatePowBtn(); if (G.player.vehicle) seatHero(G.player.vehicle); markAvatar(); };
+function markAvatar() { const cur = save.avatar || 'ela'; document.querySelectorAll('#avPick .avCard').forEach(b => { const on = b.dataset.av === cur; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on); }); }
+// cartões do seletor (Ela, Ele e os heróis originais)
+export function avatarCards(cur) { return AVATAR_IDS.map(id => { const A = AVATARS[id]; return `<button class="avCard${A.hero ? ' hero' : ''}${cur === id ? ' sel' : ''}" data-av="${id}" data-a="av" data-v="${id}" role="radio" aria-checked="${cur === id}" title="${A.hero ? A.label + ': ' + A.powerTxt : A.label}"><img src="assets/avatars/${id}.webp" alt="${A.label}" width="96" height="128" loading="lazy"><b>${A.hero ? A.emoji + ' ' : ''}${A.label}</b><small>${A.name}</small></button>`; }).join(''); }
+G.avatarCards = avatarCards; G.touch = touch;
+$('avPick').innerHTML = avatarCards(save.avatar || 'ela');
+function updatePowBtn() { const A = AVATARS[save.avatar || 'ela']; const b = $('bPow'); if (b) { b.hidden = !A.hero || !touch; b.textContent = A.hero ? A.emoji : '⚡'; } }
+document.querySelectorAll('#avPick .avCard').forEach(b => b.onclick = () => { if (G.hero) G.setAvatar(b.dataset.av); else { save.avatar = b.dataset.av; persist(); markAvatar(); } });
+markAvatar();
+$('devInfo').textContent = `${DEVICE.label} · gráficos ${qName === 'low' ? 'leves' : qName === 'medium' ? 'médios' : 'altos'} (ajuste automático)`;
 G.replaceVehicle = (v, tune, color) => {
   const nv = new Vehicle(v.type, scene, Q, tune ? undefined : (color ?? v.color), tune);
   nv.place(v.x, v.z, v.h); nv.nitro = v.nitro ?? 1; nv.mine = !!tune || v.mine;
@@ -198,6 +229,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyE' || e.code === 'KeyF' && false) action();
   if (e.code === 'Enter') startNear();
   if (e.code === 'KeyF') photo();
+  if (e.code === 'KeyX' && G.started && !G.paused) G.powers.trigger();
   if (e.code === 'KeyH') horn();
   if (e.code === 'KeyR') G.radioSet(G.audio.station + 1);
   if (e.code === 'KeyM') { $('bigmap').hidden ? G.ui.openMap() : G.ui.closeMap(); }
@@ -229,6 +261,8 @@ const hold = (id, on, off) => { const b = $(id); b.addEventListener('pointerdown
 hold('bAct', () => action()); hold('bJump', () => { input.jump = true; input.hb = true; }, () => { input.hb = false; });
 hold('bPhoto', () => photo()); hold('bHorn', () => horn()); hold('bStart', () => startNear());
 hold('bNitro', () => { input.nitro = true; }, () => { input.nitro = false; });
+hold('bDown', () => { input.down = true; }, () => { input.down = false; });
+hold('bPow', () => G.powers.trigger());
 $('bRec').onclick = () => { G.audio.init(); G.rec.toggle(); };
 $('rpClose').onclick = () => { $('recPanel').hidden = true; G.paused = false; };
 $('bPhone').onclick = () => G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); $('bMap').onclick = () => G.ui.openMap(); $('bRadio').onclick = () => { G.audio.init(); G.radioSet(G.audio.station + 1); }; $('bCam').onclick = () => cycleCam();
@@ -248,25 +282,35 @@ function action() {
   if (!G.started || G.paused) return; G.audio.init();
   const p = G.player;
   if (p.vehicle) return exitVehicle();
-  const v = nearestVehicle(); if (!v) { G.ui.toast('Nenhum veículo perto. Procure um carro estacionado 🚗', 2000); return; }
+  if (G.talk.cur) { G.talk.next(); return; }
+  const v = nearestVehicle(); const npc = G.talk.cool > 0 ? null : G.talk.nearest();
+  if (npc && (!v || Math.hypot(npc.x - p.x, npc.z - p.z) < Math.hypot(v.x - p.x, v.z - p.z) - 1)) { G.talk.open(npc); return; }
+  if (!v) { G.ui.toast('Ninguém nem nenhum veículo por perto. Procure um carro 🚗 ou alguém com 💬', 2000); return; }
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
-  if (v.type === 'moto' || v.spec.boat) { v.body.add(G.hero.g); if (v.type === 'moto') G.hero.g.position.set(0, 0.5, -0.3); else G.hero.g.position.set(0, 0.82, -0.2); G.hero.g.rotation.set(0, 0, 0); }
-  else G.hero.g.visible = false;
-  G.ui.toast(`${SPECS[v.type].name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : ''}`, 2400);
+  seatHero(v);
+  G.ui.toast(v.type === 'heli' ? '🚁 <b>Helicóptero</b> · ' + (touch ? 'joystick anda e gira · ⤒ sobe · ⤓ desce' : 'W/S frente e ré · A/D gira · Espaço sobe · Shift desce') : `${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : ''}`, v.type === 'heli' ? 5000 : 2400);
   if (STATIONS[G.audio.station].bpm) G.ui.radio(STATIONS[G.audio.station]);
   G.camYaw = v.h;
 }
+// avatar sentado no banco do motorista (visível pelos vidros), em pé na lancha
+const SEAT = { sport: [0.4, -0.3, -0.45], sedan: [0.4, -0.12, -0.35], taxi: [0.4, -0.12, -0.35], classic: [0.36, -0.12, -0.3], suv: [0.42, 0.15, -0.2], moto: [0, 0.42, -0.32], heli: [0.42, 0.62, 0.55] };
+function seatHero(v) {
+  const g = G.hero.g; v.body.add(g); g.rotation.set(0, 0, 0); g.visible = true; G.powers.reset(); g.scale.setScalar(Math.min(1, 1.8 / ((G.hero.def && G.hero.def.height) || 1.75)));
+  if (v.spec.boat) g.position.set(0, 0.82, -0.2); else { const s = SEAT[v.type] || SEAT.sedan; g.position.set(s[0], s[1], s[2]); }
+  G.hero.pose(v.spec.boat ? 'idle' : 'drive', 0, 0.3);
+}
 function exitVehicle() {
   const p = G.player, v = p.vehicle; if (!v) return;
-  if (v.speed > 6 && !v.spec.boat) { G.ui.toast('Pare o veículo para descer', 1500); return; }
+  if (v.type === 'heli') { if (v.air || v.speed > 3) { G.ui.toast('Pouse primeiro: segure ' + (touch ? '⤓' : 'Shift') + ' para descer 🚁', 1800); return; } }
+  else if (v.speed > 6 && !v.spec.boat) { G.ui.toast('Pare o veículo para descer', 1500); return; }
   const [fx, fz] = v.fwd(); let spot = null;
-  const tries = v.spec.boat ? [] : [[-fz * -1.8, fx * -1.8], [fz * -1.8, -fx * -1.8], [fx * 3.2, fz * 3.2], [-fx * 3.4, -fz * 3.4]];
+  const sd = v.type === 'heli' ? 2.6 : 1.8; const tries = v.spec.boat ? [] : [[-fz * -sd, fx * -sd], [fz * -sd, -fx * -sd], [fx * 3.2, fz * 3.2], [-fx * 3.4, -fz * 3.4], [-fx * 7.5, -fz * 7.5]];
   for (const [ox, oz] of tries) { const x = v.x + ox, z = v.z + oz; if (walkable(x, z)) { spot = [x, z]; break; } }
   if (v.spec.boat) { for (let r = 3; r < 12 && !spot; r += 1) for (let a = 0; a < 16; a++) { const x = v.x + Math.cos(a / 16 * Math.PI * 2) * r, z = v.z + Math.sin(a / 16 * Math.PI * 2) * r; if (walkable(x, z)) { spot = [x, z]; break; } } }
   if (!spot) { G.ui.toast(v.spec.boat ? 'Encoste a lancha num píer ou na praia para descer ⚓' : 'Sem espaço para descer aqui', 2200); return; }
   if (G.missions.active && (G.missions.active.type === 'corrida' || G.missions.active.type === 'taxi')) G.missions.cancel(G.missions.active.type === 'taxi' ? 'Corrida de táxi encerrada' : 'Corrida cancelada');
-  scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0);
-  p.x = spot[0]; p.z = spot[1]; p.y = surfaceY(p.x, p.z); p.h = v.h; v.driver = null; v.parked = true; p.vehicle = null; v.brakeOn = false; v.steer = 0;
+  scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0); G.hero.g.scale.setScalar(1);
+  p.x = spot[0]; p.z = spot[1]; p.y = surfaceY(p.x, p.z); p.h = v.h; v.driver = null; v.parked = true; p.vehicle = null; v.brakeOn = false; v.steer = 0; p.vx = p.vz = 0;
   if (!v.spec.boat) { v.vx = v.vz = v.vf = 0; }
 }
 function startableNear() {
@@ -278,7 +322,7 @@ function startNear() { if (!G.started || G.paused) return; const s = startableNe
 
 // ---------------- atualização do jogador
 const tmp = new THREE.Vector3();
-let shake = 0;
+let shake = 0; G.shake = (v) => { shake = Math.max(shake, v); };
 function updatePlayer(dt) {
   const p = G.player, v = p.vehicle, hero = G.hero;
   let mx = 0, my = 0;
@@ -290,35 +334,70 @@ function updatePlayer(dt) {
     let steer = mx, thr = my;
     if (fromStick) { steer = Math.sign(mx) * Math.min(1, Math.abs(mx) * 1.25) ** 1.4; thr = Math.abs(my) < 0.18 ? 0 : my; }
     const hb = keys.has('Space') || input.hb; const nitro = keys.has('ShiftLeft') || keys.has('ShiftRight') || input.nitro;
+    if (v.type === 'heli') {
+      const down = nitro || keys.has('ControlLeft') || keys.has('KeyQ') || input.down; const up = hb || keys.has('KeyE') && false;
+      const impact = v.drive(dt, { x: steer, y: fromStick ? (Math.abs(my) < 0.15 ? 0 : my) : thr, up, down });
+      if (impact > 3) { G.audio.thud(impact); shake = Math.min(0.5, impact * 0.03); }
+      p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; hero.pose('drive', 0, dt);
+      G.engine = { type: 'heli', rpm: v.spool, thr: Math.abs(thr) }; G.skid = 0; return;
+    }
     const n = Math.ceil(dt / (1 / 60)); let impact = 0;
     const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars);
     for (let i = 0; i < n; i++) impact = Math.max(impact, v.drive(dt / n, { x: steer, y: thr, hb, nitro }, others, G.t));
     if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
     if (impact > 2.5) { G.audio.thud(impact); shake = Math.min(0.6, impact * 0.03); }
     p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h;
-    if (v.type === 'moto' || v.spec.boat) { hero.pose(v.type === 'moto' ? 'drive' : 'idle', 0, dt); }
+    hero.pose(v.spec.boat ? 'idle' : 'drive', 0, dt);
     G.engine = { type: v.type, rpm: v.rpm, thr: Math.max(0, thr) };
     G.skid = !v.spec.boat && v.drift > 3.5 ? v.drift : 0;
     return;
   }
   G.engine = null; G.skid = 0;
+  // física a pé: aceleração e inércia, giro suave, degraus, rampas, pulo com gravidade e sem atravessar paredes
+  if (G.talk.cur) { mx = my = 0; mag = 0; }
   const run = fromStick ? mag > 0.85 : keys.has('ShiftLeft') || keys.has('ShiftRight');
   const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw), rx = -fz, rz = fx;
   let dx = fx * my + rx * mx, dz = fz * my + rz * mx; const dl = Math.hypot(dx, dz);
-  const speed = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0));
-  if (dl > 0.05) { dx /= dl; dz /= dl; p.h += angDiff(p.h, Math.atan2(dx, dz)) * Math.min(1, dt * 12); }
-  const nx = p.x + dx * speed * dt, nz = p.z + dz * speed * dt;
-  if (walkable(nx, p.z)) p.x = nx; if (walkable(p.x, nz)) p.z = nz;
-  tmp.set(p.x, 0, p.z); collide(tmp, 0.35, false, p.y + 0.2); p.x = tmp.x; p.z = tmp.z;
+  const maxS = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0));
+  p.vx = p.vx || 0; p.vz = p.vz || 0;
+  let tvx = 0, tvz = 0; if (dl > 0.05) { dx /= dl; dz /= dl; tvx = dx * maxS; tvz = dz * maxS; }
+  // virada brusca correndo: freia um pouco antes de mudar de direção (inércia)
+  const cs = Math.hypot(p.vx, p.vz); if (cs > 4 && dl > 0.05 && (p.vx * dx + p.vz * dz) / cs < -0.2) { tvx *= 0.3; tvz *= 0.3; }
+  const accel = p.grounded ? (dl > 0.05 ? 20 : 26) : 4; const ax = tvx - p.vx, az = tvz - p.vz, al = Math.hypot(ax, az), md = accel * dt;
+  if (al > md) { p.vx += ax / al * md; p.vz += az / al * md; } else { p.vx = tvx; p.vz = tvz; }
+  const speed = Math.hypot(p.vx, p.vz);
+  if (speed > 0.25) p.h += angDiff(p.h, Math.atan2(p.vx, p.vz)) * Math.min(1, dt * (p.grounded ? 10 : 3));
+  // rampas: subir cansa um pouco, descer embala
+  const ahead = surfaceY(p.x + p.vx * 0.15, p.z + p.vz * 0.15) - surfaceY(p.x, p.z); const slope = speed > 0.1 ? clamp(1 - ahead / (speed * 0.15) * 0.6, 0.65, 1.15) : 1;
+  const stepMax = p.grounded ? 1.0 : 0.6; // degraus e bordas de píer até ~1 m (sobe com uma "escalada" suave)
+  const supY = (x, z) => { const sy = surfaceY(x, z); if (p.y - sy < 1) return [sy, walkable(x, z)]; const r = roofAt(x, z, p.y); return r > sy ? [r, true] : [sy, walkable(x, z)]; }; // telhados também são chão
+  const tryMove = (x, z) => { const [sy, ok] = supY(x, z); return ok && sy - p.y <= stepMax; };
+  const nx = p.x + p.vx * slope * dt, nz = p.z + p.vz * slope * dt;
+  let blocked = null;
+  if (tryMove(nx, p.z)) p.x = nx; else { if (Math.abs(p.vx) > 0.3) blocked = { x: -Math.sign(p.vx), z: 0 }; p.vx = 0; }
+  if (tryMove(p.x, nz)) p.z = nz; else { if (Math.abs(p.vz) > 0.3) blocked = { x: 0, z: -Math.sign(p.vz) }; p.vz = 0; }
+  tmp.set(p.x, 0, p.z); const wall = collide(tmp, 0.35, false, p.y + 0.2); p.x = tmp.x; p.z = tmp.z;
+  if (wall) { const vn = p.vx * wall.x + p.vz * wall.z; if (vn < 0) { p.vx -= vn * wall.x; p.vz -= vn * wall.z; } } // desliza rente à parede, sem atravessar
   for (const o of G.vehicles.concat(G.traffic.cars, G.rivals.cars)) { if (o.npc && !o.active) continue; for (const c of o.circles()) { const ex = p.x - c[0], ez = p.z - c[1], d = Math.hypot(ex, ez), rr = o.r + 0.35; if (d < rr && d > 1e-4) { p.x = c[0] + ex / d * rr; p.z = c[1] + ez / d * rr; } } }
-  const gy = surfaceY(p.x, p.z);
-  if ((keys.has('Space') || input.jump) && p.grounded) { p.vy = 5.2; p.grounded = false; }
+  const gy = supY(p.x, p.z)[0]; let jumped = false;
+  if ((keys.has('Space') || input.jump) && p.grounded && !G.talk.cur && !G.powers.fly && !G.powers.lev) { p.vy = 5.4; p.grounded = false; p.jumpT = 0; jumped = true; }
+  const powered = G.powers.foot(dt, p, { keys, input, gy, dx, dz, dl, run, wall: wall || blocked, jumped });
   input.jump = false;
-  p.vy -= 16 * dt; p.y += p.vy * dt; if (p.y <= gy) { p.y = gy; p.vy = 0; p.grounded = true; } else if (p.y - gy > 0.05) p.grounded = false;
-  if (p.grounded && Math.abs(p.y - gy) < 0.3) p.y = lerp(p.y, gy, Math.min(1, dt * 20));
+  if (powered) { /* o poder controla a altura */ }
+  else if (p.grounded && gy > p.y + 0.02) { p.y = lerp(p.y, gy, Math.min(1, dt * 14)); if (gy - p.y < 0.02) p.y = gy; p.vy = 0; } // subindo degrau
+  else {
+    p.vy -= 16 * dt; p.y += p.vy * dt;
+    if (p.y <= gy) { p.y = gy; p.vy = 0; p.grounded = true; } else if (p.y - gy > 0.25) p.grounded = false; else if (p.vy <= 0) { p.y = lerp(p.y, gy, Math.min(1, dt * 20)); p.grounded = true; } // desce degraus sem "voar"
+  }
+  p.jumpT = (p.jumpT || 0) + dt;
   hero.g.position.set(p.x, p.y, p.z); hero.g.rotation.y = p.h;
-  hero.ph += dt * (run ? 11 : 7.5) * (speed > 0.1 ? 1 : 0);
-  hero.pose(!p.grounded ? 'jump' : speed > 0.1 ? 'walk' : 'idle', run ? 0.95 : 0.6 * Math.min(1, speed / 3), dt);
+  hero.ph += dt * (speed > 5 ? 11 : 7.5) * (speed > 0.1 ? 1 : 0);
+  const ap = G.powers.airPose; const sp2 = Math.hypot(p.vx, p.vz);
+  hero.g.rotation.x = lerp(hero.g.rotation.x, ap === 'fly' ? Math.min(1.1, sp2 * 0.045) : ap === 'dash' ? 0.25 : 0, Math.min(1, dt * 5));
+  if (ap === 'climb') hero.pose('walk', 0.6, dt);
+  else if (ap === 'fly' || ap === 'lev') hero.pose('idle', 0, dt);
+  else if (ap === 'dash') hero.pose('walk', 0.95, dt);
+  else hero.pose(!p.grounded && p.jumpT < 1 ? 'jump' : speed > 0.3 ? 'walk' : 'idle', speed > 5.2 ? 0.95 : 0.6 * Math.min(1, speed / 4.2), dt);
 }
 
 // ---------------- câmera
@@ -330,9 +409,9 @@ function updateCamera(dt, snap) {
   const mult = [1, 1.45, 0.7][G.camMode];
   let D, H, focusY;
   if (v) {
-    D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
-    if (lookT <= 0 && v.speed > 2) { const target = v.vf < -1 ? v.h : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * 2.6); G.camPitch = lerp(G.camPitch, 0.16, dt * 1.5); }
-  } else { D = 4.3 * mult; focusY = 1.55; }
+    D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
+    if (lookT <= 0 && v.speed > 2) { const target = v.vf < -1 ? v.h : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.type === 'heli' ? 1.6 : 2.6)); G.camPitch = lerp(G.camPitch, v.type === 'heli' && v.air ? 0.3 : 0.16, dt * 1.5); }
+  } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly ? 1.5 : 1); focusY = 1.55 * hk; }
   const yaw = G.camYaw, pit = G.camPitch;
   const fx = p.x, fz = p.z, fy = p.y + focusY;
   let cx = fx - Math.sin(yaw) * Math.cos(pit) * D, cz = fz - Math.cos(yaw) * Math.cos(pit) * D, cy = fy + Math.sin(pit) * D + (v ? 0.6 : 0.15);
@@ -351,20 +430,24 @@ function updateCamera(dt, snap) {
 let headlight = null;
 function updatePrompts() {
   const p = G.player, v = p.vehicle; const ui = G.ui;
-  const s = startableNear(); const near = !v && nearestVehicle();
+  const s = startableNear(); const near = !v && nearestVehicle(); let talkNear = null;
   const lm = LANDMARKS.find(l => Math.hypot(l.x - p.x, l.z - p.z) < l.r);
   let html = '';
   if (s) html = touch ? `Toque em ▶ para iniciar: <b>${s.name}</b>` : `<kbd>Enter</kbd> iniciar: <b>${s.name}</b>`;
   else if (near && near.mine) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>seu carro tunado</b>`;
-  else if (near) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>${SPECS[near.type].name}</b>`;
-  else if (lm && !G.save.photos.includes(lm.id)) html = `<kbd>F</kbd> 📷 Ponto de foto: <b>${lm.name}</b>`;
+  else if (near) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>${near.spec.name}</b>`;
+  if (!v && !G.talk.cur) { const npc = G.talk.cool > 0 ? null : G.talk.nearest(); if (npc && (!near || Math.hypot(npc.x - p.x, npc.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z) - 1)) { const W = G.talk.whoOf(npc); talkNear = W; if (!s) html = `<kbd>E</kbd> ${touch ? 'Toque em 💬 para ' : ''}conversar com <b>${W.emoji} ${W.name}</b>`; } else talkNear = null; } else talkNear = null;
+  if (!html && v && v.type === 'heli') html = v.air ? '' : (touch ? 'Segure ⤒ para decolar 🚁' : 'Segure <kbd>Espaço</kbd> para decolar · <kbd>Shift</kbd> desce');
+  if (!html && lm && !G.save.photos.includes(lm.id)) html = `<kbd>F</kbd> 📷 Ponto de foto: <b>${lm.name}</b>`;
   ui.prompt(html);
   const nw = $('nitroW'); const hasN = !!(v && v.tune); if (nw.hidden === hasN) nw.hidden = !hasN;
   if (hasN) { $('nitroF').style.transform = `scaleX(${v.nitro.toFixed(3)})`; nw.classList.toggle('on', v.boosting); }
   if (touch) {
-    const act = $('bAct'); const lbl = v ? '🚶<small>Sair</small>' : '🚗<small>Entrar</small>'; if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; }
-    act.style.opacity = v || near ? 1 : 0.45;
-    $('bStart').hidden = !s; $('bHorn').hidden = !v; $('bNitro').hidden = !(v && v.tune); if (!v || !v.tune) input.nitro = false; $('bJump').innerHTML = v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>';
+    const act = $('bAct'); const lbl = v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : talkNear ? '💬<small>Conversar</small>' : '🚗<small>Entrar</small>'; if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; }
+    act.style.opacity = v || near || talkNear || G.talk.cur ? 1 : 0.45;
+    const heli = v && v.type === 'heli';
+    $('bStart').hidden = !s; $('bHorn').hidden = !v || heli; $('bNitro').hidden = !(v && v.tune); if (!v || !v.tune) input.nitro = false; const flyP = !v && (G.powers.fly || G.powers.lev); $('bDown').hidden = !heli && !flyP; if (!heli && !flyP) input.down = false; $('bPow').hidden = !!v || !(G.hero.def && G.hero.def.hero);
+    const jl = heli || flyP ? '⤒<small>Subir</small>' : v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>'; const bj = $('bJump'); if (bj._l !== jl) { bj.innerHTML = jl; bj._l = jl; }
   }
 }
 
@@ -381,7 +464,7 @@ function recCap() { if (!G.recording) return 99; const maxSide = touch ? 1280 : 
 function setPR(v) { const lo = G.recording ? Math.min(Math.max(Q.prMin, 0.9), recCap(), devicePixelRatio || 1) : Q.prMin; pr = clamp(v, lo, Math.max(lo, Math.min(Q.prMax, devicePixelRatio || 1, recCap()))); renderer.setPixelRatio(pr); if (composer) composer.setPixelRatio(pr); resize(); }
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)) || 0; last = now;
   if (!G.ready) return;
   if (G.started && !G.paused) step(dt);
   else if (G.started && G.garageOpen) { G.t += dt; G.garage.frame(dt, camera); G.env.update(dt * 0.3, G.t, camera.position); G.world.setNight(G.env.night, G.env.wet); setVehicleLights(G.env.night); G.world.update(G.t, dt); const gv = G.player.vehicle; if (gv) gv.sync(0); }
@@ -403,16 +486,19 @@ function step(dt) {
   const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt));
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
+  G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t);
   G.missions.update(dt, t);
   updateCamera(dt);
   const K = G.env.update(dt, t, camera.position);
   G.world.setNight(G.env.night, G.env.wet); setVehicleLights(G.env.night); G.world.update(t, dt);
+  updateHelis(dt, t);
+  G._lodT = (G._lodT || 0) - dt; if (G._lodT <= 0) { G._lodT = 0.5; G.lodHidden = G.world.lod(camera.position.x, camera.position.z, Q.detail); }
   if (grade) { grade.uniforms.uWarm.value = 0.4 + (1 - G.env.night) * 0.4; grade.uniforms.uSat.value = 1.15 + G.env.night * 0.1 - G.env.rain * 0.15; }
   if (zoomBlur) { const bv = G.player.vehicle; const want = bv && bv.boosting ? Math.min(1, bv.speed / 40) : 0; zoomBlur.uniforms.uAmt.value += (want - zoomBlur.uniforms.uAmt.value) * Math.min(1, dt * 6); zoomBlur.enabled = zoomBlur.uniforms.uAmt.value > 0.02; }
   if (bloom) { bloom.strength = 0.32 + G.env.night * 0.55 + G.env.wet * 0.1; bloom.threshold = 2.4 - G.env.night * 1.4; }
   // farol do jogador à noite
   const v = G.player.vehicle;
-  if (Q.level !== 'low' && v && !v.spec.boat && G.env.night > 0.3) {
+  if (Q.level !== 'low' && v && !v.spec.boat && v.type !== 'heli' && G.env.night > 0.3) {
     if (!headlight) { headlight = new THREE.SpotLight(0xfff2d8, 0, 70, 0.55, 0.5, 1.2); scene.add(headlight, headlight.target); }
     const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 60 * G.env.night;
   } else if (headlight) headlight.intensity = 0;
@@ -424,10 +510,30 @@ function step(dt) {
   // áudio
   const p = G.player; const sea = Math.max(smooth(140, 10, Math.abs(p.x - 390)), p.x > -300 && p.x < 70 ? smooth(80, 0, Math.min(Math.abs(p.x + 260), Math.abs(p.x - 30))) * 0.6 : 0);
   const city = p.x > -680 && p.x < 330 ? 1 : 0.3;
-  G.audio.update(dt, { inVehicle: !!v, engine: G.engine, skid: G.skid, sea, city, rain: G.env.rain, boost: !!(v && v.boosting) });
+  G.audio.update(dt, { inVehicle: !!v, engine: G.engine, skid: G.skid, sea, city, rain: G.env.rain, boost: !!(v && v.boosting), heliFar: G.heliFar || 0 });
   if (G.env.flash > 0.95) G.audio.thunder();
   G.ui.frame(dt, camera); updatePrompts();
   saveT += dt; if (saveT > 8) { saveT = 0; persist(); }
+}
+// helicópteros: o seu (holofote real à noite) e os que fazem rota pela cidade
+let heliSpot = null;
+function updateHelis(dt, t) {
+  const H = G.heli, night = G.env.night;
+  if (!H.driver && (H.spool > 0 || H.air)) H.drive(dt, { x: 0, y: 0 });
+  if (H.driver) { const [fx, fz] = H.fwd(); const alt = Math.max(4, H.y - groundY(H.x, H.z)); const ahead = clamp(alt / 0.7, 10, 120); H.searchT.set(H.x + fx * ahead, 0, H.z + fz * ahead); }
+  else H.searchT.set(H.x + Math.sin(H.h) * 12, 0, H.z + Math.cos(H.h) * 12);
+  H.lights(night, t, H.driver ? true : false);
+  G.helis.update(dt, t, night, camera); G.helipad.update(night, t);
+  // luz de verdade só para o helicóptero mais relevante (custa caro em celular)
+  if (Q.level !== 'low') {
+    const near = G.helis.nearest(camera.position.x, camera.position.z); const src = H.lightOn > 0.1 ? H : near.h && near.d < 260 && near.h.lightOn > 0.1 ? near.h : null;
+    if (src) { if (!heliSpot) { heliSpot = new THREE.SpotLight(0xfff4dc, 0, 320, 0.2, 0.6, 1.1); scene.add(heliSpot, heliSpot.target); }
+      heliSpot.position.set(src.x + Math.sin(src.h) * 2, src.y + 0.6, src.z + Math.cos(src.h) * 2); heliSpot.target.position.copy(src.searchT); heliSpot.intensity = 900 * src.lightOn; }
+    else if (heliSpot) heliSpot.intensity = 0;
+  }
+  // som de rotor de um helicóptero passando perto
+  const nn = G.helis.nearest(G.player.x, G.player.z); G.heliFar = nn.h ? clamp(1 - Math.hypot(nn.d, nn.h.y) / 260, 0, 1) : 0;
+  if (!H.driver && H.spool > 0.05) G.heliFar = Math.max(G.heliFar, H.spool * clamp(1 - Math.hypot(H.x - G.player.x, H.z - G.player.z) / 80, 0, 1));
 }
 function render() {
   renderer.info.reset();
@@ -469,8 +575,8 @@ addEventListener('pagehide', persist);
 
 // ---------------- API de teste (somente leitura/ações do próprio jogo)
 window.MBD = {
-  get state() { const p = G.player; return { x: p.x, z: p.z, inVehicle: !!p.vehicle, vehicle: p.vehicle && p.vehicle.type, speed: p.vehicle ? p.vehicle.speed : 0, hour: G.env.hour, money: save.money, mission: G.missions.active && G.missions.active.type, fps, pr, quality: Q.level, draws: renderer.info.render.calls, tris: renderer.info.render.triangles, done: save.done }; },
-  teleport(x, z, h = 0) { const p = G.player; if (p.vehicle) { p.vehicle.place(x, z, h); } p.x = x; p.z = z; p.h = h; p.y = surfaceY(x, z); G.camYaw = h; camInit = false; },
+  get state() { const p = G.player; return { x: p.x, z: p.z, y: p.y, inVehicle: !!p.vehicle, vehicle: p.vehicle && p.vehicle.type, speed: p.vehicle ? p.vehicle.speed : Math.hypot(p.vx || 0, p.vz || 0), hour: G.env.hour, money: save.money, mission: G.missions.active && G.missions.active.type, fps, pr, quality: Q.level, draws: renderer.info.render.calls, tris: renderer.info.render.triangles, done: save.done, avatar: G.hero.id, avatar3d: !!G.hero.rig, anim: G.hero.cur ? G.hero.cur.getClip().name : G.hero.mode, grounded: p.grounded, device: Q.device, prMax: Q.prMax, peds: Q.peds, detail: Q.detail, lodHidden: G.lodHidden || 0, talkers: G.talk.talkers.length, talking: !!G.talk.cur, heliAlt: G.heli.y - groundY(G.heli.x, G.heli.z), heliAir: G.heli.air, helisFlying: G.helis.list.filter(h => h.root.visible).length, loadMs: G.loadMs }; },
+  teleport(x, z, h = 0) { const p = G.player; if (p.vehicle) { p.vehicle.place(x, z, h); } p.vx = p.vz = p.vy = 0; p.x = x; p.z = z; p.h = h; p.y = surfaceY(x, z); G.camYaw = h; camInit = false; },
   setHour(h) { G.env.setTime(h); G.env.update(0.001, G.t, camera.position); G.env.updateEnv(); },
   weather(w) { G.env.setWeather(w); G.env.rain = w === 'chuva' ? 1 : 0; G.env.cloud = w === 'chuva' ? 0.85 : 0.25; G.env.wet = w === 'chuva' ? 1 : 0; },
   action, startNear, keys, nearestVehicle: () => { const v = nearestVehicle(); return v && v.type; },
@@ -478,6 +584,7 @@ window.MBD = {
   fpsHist,
   rec: () => G.rec, garage: () => G.garage, rivals: () => G.rivals, nitro: (on) => { input.nitro = !!on; },
   tuneCar: (t) => { const v = G.player.vehicle; if (v) G.replaceVehicle(v, t); },
+  avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
 
 boot().catch(e => { console.error(e); $('play').textContent = 'Erro ao carregar: ' + e.message; });

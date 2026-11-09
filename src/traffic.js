@@ -62,7 +62,7 @@ export class Traffic {
       const look = (ox, oz, rad) => { const dx = ox - v.x, dz = oz - v.z; const a = dx * fx + dz * fz, l = Math.abs(dx * rx + dz * rz); if (a > 0 && a < 26 && l < rad) target = Math.min(target, Math.max(0, (a - 6.5) * 0.8)); return a > 0 && a < 9 && l < rad; };
       for (const o of this.cars) if (o !== v && o.active && Math.abs(o.x - v.x) < 28 && Math.abs(o.z - v.z) < 28) look(o.x, o.z, 2.3);
       let blockedByPlayer = false;
-      if (pv) blockedByPlayer = look(pv.x, pv.z, 2.6); else blockedByPlayer = look(px, pz, 2.0);
+      if (pv) { if (!pv.air) blockedByPlayer = look(pv.x, pv.z, 2.6); } else blockedByPlayer = look(px, pz, 2.0);
       for (const p of crowd.peds) if (Math.abs(p.x - v.x) < 14 && Math.abs(p.z - v.z) < 14) look(p.x, p.z, 1.8);
       if (v.bumped > 0) { v.bumped -= dt; target = 0; }
       if (blockedByPlayer && v.vf < 0.5) { v.wait += dt; if (v.wait > 2.5) { v.wait = -3; honk = v; } } else if (v.wait > 0) v.wait = 0; else v.wait = Math.min(0, v.wait + dt);

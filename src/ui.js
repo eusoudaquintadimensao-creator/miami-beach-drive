@@ -41,7 +41,9 @@ export class UI {
   radio(st) { const r = $('radio'); r.innerHTML = `${st.name}<small>${st.tag || ''}</small>`; r.classList.add('on'); clearTimeout(this._rt); this._rt = setTimeout(() => r.classList.remove('on'), 2600); }
   phoneNote(user, text) { const n = $('note'); $('noteU').textContent = user + ' · Vibez'; $('noteT').textContent = text; n.hidden = false; clearTimeout(this._nt); this._nt = setTimeout(() => n.hidden = true, 5200); this.G.audio.chime('coin'); this.G.feed.unshift([user, text, 'agora']); }
   bubbleText(who, text) { const s = $('say'); s.className = 'top'; s.textContent = `${who}: ${text}`; s.hidden = false; this._sayP = null; clearTimeout(this._st); this._st = setTimeout(() => s.hidden = true, 4200); }
-  pedBubble(p, text) { const s = $('say'); s.className = ''; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); this._st = setTimeout(() => { s.hidden = true; this._sayP = null; }, 2600); }
+  talkBubble(p, text) { const s = $('say'); s.className = 'talk'; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); }
+  hideBubble(p) { if (this._sayP === p || !p) { $('say').hidden = true; this._sayP = null; } }
+  pedBubble(p, text) { if (this.G.talk && this.G.talk.cur) return; const s = $('say'); s.className = ''; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); this._st = setTimeout(() => { s.hidden = true; this._sayP = null; }, 2600); }
   stats(money, fol) { $('money').textContent = '$' + money.toLocaleString('pt-BR'); $('fol').textContent = '♥ ' + fol.toLocaleString('pt-BR') + ' seguidores'; }
   frame(dt, cam) {
     const G = this.G; const pl = G.player; const E = G.env;
@@ -56,7 +58,7 @@ export class UI {
       if (key !== this.lastArea) { this.lastArea = key; $('area').innerHTML = `${dn}<small>${street}</small>`; $('area').classList.add('on'); this.areaT = 3.5; } }
     if (this.areaT <= 0) $('area').classList.remove('on');
     // balão do pedestre
-    if (this._sayP) { const p = this._sayP; const vpos = G.tmpV.set(p.x, 2.2, p.z).project(cam); const s = $('say'); if (vpos.z > 1) s.style.display = 'none'; else { s.style.display = ''; s.style.left = ((vpos.x + 1) / 2 * innerWidth) + 'px'; s.style.top = ((1 - vpos.y) / 2 * innerHeight) + 'px'; } }
+    if (this._sayP) { const p = this._sayP; const vpos = G.tmpV.set(p.x, (p.kind === 'talker' ? p.rig.model.position.y + 2.1 : 2.25), p.z).project(cam); const s = $('say'); if (vpos.z > 1) s.style.display = 'none'; else { s.style.display = ''; s.style.left = ((vpos.x + 1) / 2 * innerWidth) + 'px'; s.style.top = ((1 - vpos.y) / 2 * innerHeight) + 'px'; } }
     this.drawMini(cam);
   }
   blips(ctx, X, Z, scale, mini) {
@@ -112,7 +114,7 @@ export class UI {
   phoneHome() {
     const G = this.G; const h = Math.floor(G.env.hour), m = Math.floor((G.env.hour % 1) * 60); $('phClock').textContent = `${h}:${String(m).padStart(2, '0')}`;
     $('phBack').hidden = true;
-    const apps = [['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
+    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
     const saved = G.savedAt ? `✅ Salvo às ${G.savedAt}` : '💾 Salvar progresso';
     $('phBody').innerHTML = `<div class="saveRow"><button class="saveBtn${G.savedAt ? ' ok' : ''}" id="phSaveG">${saved}</button><button class="saveBtn inst" id="phInst">📲 Instalar</button></div><div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
     $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => {
@@ -127,7 +129,10 @@ export class UI {
   }
   phonePage(p) {
     const G = this.G; const B = $('phBody'); $('phBack').hidden = false; let h = '';
-    if (p === 'missoes') {
+    if (p === 'avatar') {
+      const cur = G.hero ? G.hero.id : 'ela';
+      h = `<h3>🧍 Seu avatar</h3><div class="avPick inPhone">${G.avatarCards(cur)}</div><p class="small">Fica salvo neste aparelho. Heróis originais de Solara têm um poder (tecla <b>X</b> ou botão ⚡): escalar, voar, super pulo, arrancada com escudo, levitar ou pisão de onda. Ninguém se machuca.</p>`;
+    } else if (p === 'missoes') {
       h = `<h3>🎯 Missões</h3><div class="list">`;
       if (G.missions.active) h += `<button data-a="cancel">Cancelar missão atual<span>✕</span></button>`;
       h += `<button data-a="foto">📸 Pedido de foto (pela Vibez)<span>agora</span></button>`;
@@ -149,8 +154,8 @@ export class UI {
         <button data-a="fps">Mostrar FPS<span>${G.showFps ? 'sim' : 'não'}</span></button>
         <button data-a="reset">Recomeçar do zero<span>⟲</span></button></div>`;
     } else if (p === 'ajuda') {
-      h = `<h3>❓ Controles</h3><div class="post"><b>Computador</b><br>WASD/setas: andar e dirigir<br>Mouse: câmera (clique para travar, Esc solta)<br>Shift: correr · Espaço: pular / freio de mão<br>E: entrar/sair do veículo · Enter: iniciar missão<br>F: foto · H: buzina · R: trocar rádio<br>M: mapa · P: celular · C: câmera</div>
-        <div class="post"><b>Celular</b><br>Joystick à esquerda (no carro: cima acelera, baixo freia)<br>Arraste no lado direito para olhar<br>Botões: 🚗 entrar/sair · ⤒ pular/freio · 📷 foto · ▶ iniciar</div>
+      h = `<h3>❓ Controles</h3><div class="post"><b>Computador</b><br>WASD/setas: andar e dirigir<br>Mouse: câmera (clique para travar, Esc solta)<br>Shift: correr · Espaço: pular / freio de mão<br>E: entrar/sair do veículo · conversar com quem está perto · Enter: iniciar missão<br>Helicóptero: W/S frente e ré · A/D girar · Espaço sobe · Shift desce<br>X: poder do herói (voar/levitar: Espaço sobe, Ctrl/Q desce)<br>F: foto · H: buzina · R: trocar rádio<br>M: mapa · P: celular · C: câmera</div>
+        <div class="post"><b>Celular</b><br>Joystick à esquerda (no carro: cima acelera, baixo freia)<br>Arraste no lado direito para olhar<br>Botões: 🚗 entrar/sair · 💬 conversar · ⤒ pular/freio · 📷 foto · ▶ iniciar<br>Helicóptero: joystick anda e gira · ⤒ sobe · ⤓ desce</div>
         <div class="post"><b>Sem violência</b><br>Aqui ninguém se machuca: pedestres desviam, batidas só dão um susto. Ganhe dinheiro e seguidores com entregas, táxi, corridas, fotos e conchas neon.</div>`;
     } else if (p === 'stats') {
       const S = G.save; h = `<h3>🏆 Progresso</h3><div class="list"><div class="row">Dinheiro<b>$${S.money.toLocaleString('pt-BR')}</b></div><div class="row">Seguidores<b>${S.followers.toLocaleString('pt-BR')}</b></div><div class="row">Missões concluídas<b>${S.done}</b></div><div class="row">Conchas neon<b>${S.shells.length}/${G.missions.shells.length}</b></div><div class="row">Pontos fotografados<b>${S.photos.length}/${LANDMARKS.length}</b></div>${RACES.map(r => `<div class="row">${r.name}<b>${S.best[r.id] ? S.best[r.id] + 's' : '—'}</b></div>`).join('')}</div>`;
@@ -160,7 +165,8 @@ export class UI {
   }
   phoneAction(d, page) {
     const G = this.G;
-    if (d.a === 'cancel') { G.missions.cancel(); this.phonePage(page); }
+    if (d.a === 'av') { G.setAvatar(d.v); this.phonePage(page); const A = G.hero.def; this.toast(A.hero ? `Agora você é <b>${A.label}</b> ${A.emoji} · ${A.powerTxt} (${G.touch ? 'botão ' + A.emoji : 'tecla X'})` : d.v === 'ele' ? 'Agora você é o <b>Davi</b> 🧑🏽' : 'Agora você é a <b>Luna</b> 👩🏾', 2600); }
+    else if (d.a === 'cancel') { G.missions.cancel(); this.phonePage(page); }
     else if (d.a === 'foto') { if (G.missions.active) G.missions.cancel(); G.missions.startPhoto(); this.closePhone(); }
     else if (d.a === 'go') { const x = +d.x, z = +d.z; this.waypoint = [x, z]; if (!G.missions.active) G.setRoute([x, z]); this.closePhone(); this.toast('📍 GPS marcado — siga a linha roxa no mapa'); }
     else if (d.a === 'st') { G.audio.init(); G.radioSet(+d.i); this.phonePage(page); }

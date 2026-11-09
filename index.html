@@ -22,6 +22,7 @@
   <div id="big"></div>
   <div id="note" hidden><b id="noteU"></b><span id="noteT"></span></div>
   <div id="say" hidden></div>
+  <div id="talk" hidden><div id="tkName"></div><span id="tkStep"></span><div class="tkBtns"><button id="tkNext">💬 Mais</button><button id="tkYes" hidden>✅ Topo!</button><button id="tkBye">👋 Tchau</button></div></div>
   <div id="prompt" hidden></div>
   <div id="icons"><button id="bPhone" title="Celular (P)">📱</button><button id="bMap" title="Mapa (M)">🗺️</button><button id="bRadio" title="Rádio (R)">📻</button><button id="bCam" title="Câmera (C)">🎥</button><button id="bRec" title="Gravar vídeo (V)">🔴</button></div>
   <div id="recBar" hidden><i></i><b>REC</b><span id="recTime">0:00</span><button id="recStop" title="Parar gravação">■ Parar</button></div>
@@ -35,6 +36,8 @@
       <button id="bHorn" hidden>📯<small>Buzina</small></button>
       <button id="bStart" hidden>▶<small>Iniciar</small></button>
       <button id="bNitro" hidden>🔥<small>Nitro</small></button>
+      <button id="bDown" hidden>⤓<small>Descer</small></button>
+      <button id="bPow" hidden>⚡<small>Poder</small></button>
     </div>
   </div>
   <div id="fps"></div>
@@ -63,10 +66,12 @@
   <div class="sun"></div><div class="grid"></div>
   <div class="logo"><div class="t1">MIAMI BEACH DRIVE</div><div class="t2">Solara Bay</div><div class="t3">mundo aberto · costa neon · sem violência</div></div>
   <div class="menu">
+    <div class="avPick" id="avPick" role="radiogroup" aria-label="Escolha seu avatar"></div>
     <button id="play" disabled>Carregando cidade…</button>
     <button id="installBtn" class="install">📲 Instalar na tela inicial</button>
     <label>Gráficos <select id="qsel"><option value="auto">Automático</option><option value="low">Leve (celular)</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
-    <div class="help"><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera · V gravar vídeo · Shift nitro (carro tunado)<br><b>Celular:</b> joystick à esquerda · arraste à direita para olhar · botões à direita</div>
+    <div class="help"><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair/conversar · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera · V gravar vídeo · Shift nitro (carro tunado) · helicóptero: Espaço sobe, Shift desce · X poder do herói (voar/levitar: Espaço sobe, Ctrl/Q desce)<br><b>Celular:</b> joystick à esquerda · arraste à direita para olhar · botões à direita · ⚡ poder do herói</div>
+    <div class="small" id="devInfo"></div>
     <div class="small">Cidade fictícia inspirada em Miami. Músicas, carros e cenário são originais, gerados no seu navegador.</div>
   </div>
 </div>

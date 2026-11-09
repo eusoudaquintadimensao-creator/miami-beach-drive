@@ -301,7 +301,7 @@ export function buildWorld(scene, Q) {
   const CH = 250;
   const chunk = (x, z) => {
     const k = Math.floor(x / CH) + ',' + Math.floor(z / CH); let c = chunks.get(k);
-    if (!c) { c = { deco: new MeshBuilder(), tower: new MeshBuilder(), misc: new MeshBuilder(), metal: new MeshBuilder(), pool: new MeshBuilder(), sign: new MeshBuilder(), lampHead: new MeshBuilder(), neon: NEON_COLS.map(() => new MeshBuilder()) }; chunks.set(k, c); }
+    if (!c) { c = { cx: (Math.floor(x / CH) + 0.5) * CH, cz: (Math.floor(z / CH) + 0.5) * CH, deco: new MeshBuilder(), tower: new MeshBuilder(), misc: new MeshBuilder(), metal: new MeshBuilder(), pool: new MeshBuilder(), sign: new MeshBuilder(), lampHead: new MeshBuilder(), neon: NEON_COLS.map(() => new MeshBuilder()) }; chunks.set(k, c); }
     return c;
   };
   const roads = new MeshBuilder(), walks = new MeshBuilder();
@@ -586,12 +586,14 @@ export function buildWorld(scene, Q) {
   LANDMARKS.push({ id: 'flamingo', name: 'Hotel Flamingo (Ocean Drive)', x: flamingoAt.x + 22, z: flamingoAt.z, r: 16, look: [flamingoAt.x - 8, 8, flamingoAt.z] });
 
   // ---- malhas finais dos chunks
-  const dyn = { wheel: null, lighthouse: null, neonMeshes: [] };
+  const dyn = { wheel: null, lighthouse: null, neonMeshes: [] }; const lodList = [];
   for (const c of chunks.values()) {
     const add = (b, mat, shadow = true) => { if (!b.count) return; const m = new THREE.Mesh(b.geometry(), mat); m.castShadow = shadow; m.receiveShadow = true; scene.add(m); return m; };
-    add(c.deco, M.deco); add(c.tower, M.tower); add(c.misc, M.misc); add(c.metal, M.metal); add(c.pool, M.pool, false);
-    c.neon.forEach((b, i) => add(b, M.neon[i], false));
-    const s = add(c.sign, M.sign, false); if (s) s.renderOrder = 2;
+    add(c.deco, M.deco); add(c.tower, M.tower);
+    // detalhes (térreo, letreiros, neon, metais) somem de longe em aparelhos fracos — fachadas e torres ficam (horizonte)
+    const det = [add(c.misc, M.misc), add(c.metal, M.metal), add(c.pool, M.pool, false), ...c.neon.map((b, i) => add(b, M.neon[i], false))];
+    const s = add(c.sign, M.sign, false); if (s) s.renderOrder = 2; det.push(s);
+    for (const m of det) if (m) lodList.push({ m, x: c.cx, z: c.cz });
   }
   // ---- roda-gigante
   {
@@ -777,6 +779,8 @@ export function buildWorld(scene, Q) {
     M.walk.roughness = 0.85 - wet * 0.5; M.walk.color.setScalar(1 - wet * 0.2);
     M.pool.emissiveIntensity = 0.2 + night * 1.2;
   };
+  S.lod = (cx, cz, dist) => { let hidden = 0; for (const o of lodList) { const v = Math.hypot(o.x - cx, o.z - cz) < dist + 180; o.m.visible = v; if (!v) hidden++; } return hidden; };
+  S.lodCount = () => lodList.length;
   S.update = (t, dt) => {
     palmTime.value = t;
     if (dyn.wheel) { const a = t * 0.05; dyn.wheel.wheel.rotation.z = a; dyn.wheel.cabins.forEach((c, i) => { const b = a + i / 16 * Math.PI * 2; c.position.set(Math.cos(b) * 22, Math.sin(b) * 22 - 1.4, 0); }); }

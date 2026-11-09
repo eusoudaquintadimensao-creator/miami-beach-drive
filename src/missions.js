@@ -4,6 +4,7 @@ import { canvasTex, rng, pick, clamp } from './util.js';
 import { groundY, LANDMARKS, SPAWNS } from './world.js';
 import { RACHAS } from './rivals.js';
 import { GARAGE } from './garage.js';
+import { HELIPAD } from './heli.js';
 
 export const POIS = [
   { name: 'Café Brisa (Ocean Drive)', x: 291, z: 120 }, { name: 'Hotel Coral', x: 189, z: -375 }, { name: 'Sorveteria Paraíso', x: 69, z: 75 },
@@ -40,6 +41,7 @@ export class Missions {
       ...RACHAS.map(r => ({ type: 'corrida', race: r, name: r.name, x: r.start[0], z: r.start[1], icon: '🔥', col: '#ff2bd6' })),
       { type: 'garagem', name: GARAGE.name, x: GARAGE.x, z: GARAGE.z, icon: '🔧', col: '#b45cff' },
     ];
+    this.starts.push({ type: 'heliponto', name: HELIPAD.name, x: HELIPAD.x, z: HELIPAD.z, icon: '🚁', col: '#29f0ff', passive: true });
     for (const s of SPAWNS.taxiStands) this.starts.push({ type: 'taxiPonto', name: 'Ponto de Táxi', x: s.x, z: s.z, icon: '🚕', col: '#ffd60a', passive: true });
     for (const s of this.starts) {
       const m = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: s.col, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false, fog: false }));
@@ -68,7 +70,7 @@ export class Missions {
   canStart(s) {
     const v = this.G.player.vehicle;
     if (s.type === 'garagem') return null;
-    if (s.type === 'corrida') { if (s.race.boat) return v && v.spec.boat ? null : 'Precisa estar numa lancha (tem na marina)'; return v && !v.spec.boat ? null : 'Entre num veículo para correr'; }
+    if (s.type === 'corrida') { if (v && v.spec.heli) return 'Corridas são no chão: desça do helicóptero 🚁'; if (s.race.boat) return v && v.spec.boat ? null : 'Precisa estar numa lancha (tem na marina)'; return v && !v.spec.boat ? null : 'Entre num veículo para correr'; }
     return null;
   }
   start(s) {
@@ -88,17 +90,23 @@ export class Missions {
     }
     this.setTarget();
   }
+  // mini missão pedida por um morador na conversa
+  startFavor(f) {
+    const G = this.G; const d = Math.hypot(f.dest.x - G.player.x, f.dest.z - G.player.z);
+    this.active = { type: 'favor', title: f.title, giver: f.giver, item: f.item, dest: f.dest, money: f.money, fol: f.fol, t: 0, time: Math.round(d / 8 + 60) };
+    G.ui.toast(`💛 Leve ${f.item} até <b>${f.dest.name}</b>`); G.audio.chime('start'); this.setTarget();
+  }
   startTaxi() {
     const G = this.G; const p = this.pickPOI(120, 450);
     this.active = { type: 'taxi', title: '🚕 Táxi', stage: 'pickup', pick: p, dest: null, hits: 0, t: 0, time: 999 };
     G.ui.toast(`Passageiro esperando em <b>${p.name}</b>`); G.audio.chime('start');
     this.spawnPassenger(p); this.setTarget();
   }
-  startPhoto() {
-    const G = this.G; const left = LANDMARKS.filter(l => !G.save.photos.includes(l.id)); const L = left.length ? pick(this.r, left) : pick(this.r, LANDMARKS);
-    const fan = pick(this.r, FANS);
-    this.active = { type: 'foto', title: '📸 Pedido da galera', dest: { name: L.name, x: L.x, z: L.z }, lm: L, fan, t: 0, time: 9999 };
-    G.ui.phoneNote(fan, `Manda uma foto do(a) ${L.name}! Quero ver essa vista 😍`);
+  startPhoto(L0, fan0, bonus) {
+    const G = this.G; const left = LANDMARKS.filter(l => !G.save.photos.includes(l.id)); const L = L0 || (left.length ? pick(this.r, left) : pick(this.r, LANDMARKS));
+    const fan = fan0 || pick(this.r, FANS);
+    this.active = { type: 'foto', title: fan0 ? `📸 Foto para ${fan0}` : '📸 Pedido da galera', dest: { name: L.name, x: L.x, z: L.z }, lm: L, fan, t: 0, time: 9999, bonus: bonus || 0 };
+    if (!fan0) G.ui.phoneNote(fan, `Manda uma foto do(a) ${L.name}! Quero ver essa vista 😍`);
     G.ui.toast(`Vá até <b>${L.name}</b> e toque em 📷 para fotografar`);
     this.setTarget();
   }
@@ -128,7 +136,7 @@ export class Missions {
       caption = `${L.name} ✨`; likes = 300 + Math.floor(Math.random() * 900);
       const nightBonus = G.env.night > 0.5 ? 1.5 : G.env.hour > 17.5 && G.env.hour < 19.5 ? 1.8 : 1; likes = Math.round(likes * nightBonus);
       if (!G.save.photos.includes(L.id)) { G.save.photos.push(L.id); fol = 120 + Math.round(likes / 8); money = 100; }
-      if (this.active && this.active.type === 'foto' && this.active.lm.id === L.id) { money += 350; fol += 150; G.ui.phoneNote(this.active.fan, 'Que foto incrível!! Já compartilhei 🔥'); this.reward(money, fol, `Foto enviada: ${L.name}`); this.end(); return { likes, caption, L }; }
+      if (this.active && this.active.type === 'foto' && this.active.lm.id === L.id) { money += this.active.bonus || 350; fol += 150; G.ui.phoneNote(this.active.fan, 'Que foto incrível!! Já compartilhei 🔥'); this.reward(money, fol, `Foto enviada: ${L.name}`); this.end(); return { likes, caption, L }; }
     }
     if (fol || money) { G.addMoney(money); G.addFollowers(fol); G.ui.toast(`Novo ponto fotografado! <b>+${fol}</b> seguidores${money ? ` · +$${money}` : ''}`); G.persist(); }
     else G.addFollowers(Math.round(likes / 40));
@@ -153,6 +161,10 @@ export class Missions {
       const left = A.time - A.t; G.ui.setMission(A.title, `Leve o pacote até <b>${A.dest.name}</b> · ${Math.round(d)} m`, left);
       if (d < 7 && slow) { this.reward(150 + Math.round(Math.max(0, left) * 4), 15, `Entrega feita em ${A.dest.name}!`); this.end(); }
       else if (left <= 0) { G.audio.chime('fail'); this.cancel('⏱️ Tempo esgotado — o cliente vai esperar a próxima. Tente de novo!'); }
+    } else if (A.type === 'favor') {
+      const left = A.time - A.t; G.ui.setMission(A.title, `Leve ${A.item} até <b>${A.dest.name}</b> · ${Math.round(d)} m`, left);
+      if (d < 8 && (!v || v.speed < 6) && (!v || !v.air)) { G.ui.phoneNote(A.giver, pick(this.r, ['Chegou?! Você é um anjo 😇', 'Recebido! Muito obrigado(a) 💛', 'Perfeito! Te devo uma!', 'Uhul! Entregue! 🎉'])); this.reward(A.money + Math.round(Math.max(0, left) * 2), A.fol, `Favor feito para ${A.giver}!`); this.end(); }
+      else if (left <= 0) { G.audio.chime('fail'); this.cancel(`⏱️ O tempo acabou — ${A.giver} vai entender. Tente outro favor!`); }
     } else if (A.type === 'taxi') {
       if (!v || v.type !== 'taxi') { this.cancel('Corrida de táxi encerrada (você saiu do táxi)'); return; }
       if (A.stage === 'pickup') {

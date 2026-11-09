@@ -82,17 +82,17 @@ export class Crowd {
       if (!p.zone || Math.hypot(p.x - px, p.z - pz) > 280) { this.spawn(p, px, pz, 60, 220); if (Math.hypot(p.x - px, p.z - pz) > 280) { p.x = 1e5; } continue; }
       // reação a veículos (desvio — ninguém se machuca)
       for (const v of vehicles) {
-        if (!v.driver && !v.npc) continue; const sp = v.speed; if (sp < 1.5) continue;
+        if (!v.driver && !v.npc) continue; if (v.air) continue; const sp = v.speed; if (sp < 1.5) continue;
         const dx = p.x - v.x, dz = p.z - v.z; if (dx * dx + dz * dz > 400) continue;
         const [fx, fz] = v.fwd(); const ahead = dx * fx + dz * fz, lat = dx * -fz + dz * fx;
         if (ahead > -1 && ahead < sp * 1.1 + 5 && Math.abs(lat) < v.spec.w / 2 + 1.4 && p.dodgeT <= 0) {
           p.dodgeT = 0.9; const side = lat >= 0 ? 1 : -1; p.dvx = -fz * side * 6.5; p.dvz = fx * side * 6.5; p.prevMode = p.mode === 'dodge' ? p.prevMode : p.mode; p.mode = 'dodge';
-          if (v === pv && r() < 0.5) onBubble(p, pick(r, ['Ei! Quase!', 'Cuidado aí, motorista! 😅', 'Ufa, essa foi perto!', 'Opa!']));
+          if (v === pv && r() < 0.5 && !this.quiet) onBubble(p, pick(r, ['Ei! Quase!', 'Cuidado aí, motorista! 😅', 'Ufa, essa foi perto!', 'Opa!']));
         }
         // garantia: nunca há atropelamento — empurra para fora
         for (const c of v.circles()) { const ex = p.x - c[0], ez = p.z - c[1], d = Math.hypot(ex, ez), rr = v.r + 0.45; if (d < rr) { const k = d > 1e-3 ? 1 / d : 1; p.x = c[0] + ex * k * rr; p.z = c[1] + ez * k * rr; } }
       }
-      if (!pv) { const dx = p.x - px, dz = p.z - pz, d = Math.hypot(dx, dz); if (d < 0.7 && d > 1e-3) { p.x = px + dx / d * 0.7; p.z = pz + dz / d * 0.7; } if (d < 4 && p.bubble <= 0 && r() < dt * 0.25 && p.mode !== 'dodge') { p.bubble = 12; onBubble(p, pick(r, LINES_PT.slice(0, 6).concat(LINES_PT.slice(8)))); if (p.mode !== 'lie') { p.mode = 'wave'; p.t = 1.6; p.h = Math.atan2(px - p.x, pz - p.z); } } }
+      if (!pv) { const dx = p.x - px, dz = p.z - pz, d = Math.hypot(dx, dz); if (d < 0.7 && d > 1e-3) { p.x = px + dx / d * 0.7; p.z = pz + dz / d * 0.7; } if (d < 4 && p.bubble <= 0 && !this.quiet && !p.talking && r() < dt * 0.25 && p.mode !== 'dodge') { p.bubble = 12; onBubble(p, pick(r, LINES_PT.slice(0, 6).concat(LINES_PT.slice(8)))); if (p.mode !== 'lie') { p.mode = 'wave'; p.t = 1.6; p.h = Math.atan2(px - p.x, pz - p.z); } } }
       p.bubble -= dt;
       let moving = 0;
       if (p.mode === 'dodge') {
@@ -108,7 +108,7 @@ export class Crowd {
         if (d < 0.5) { if (p.back) { p.back = false; p.mode = 'walk'; } else { p.mode = 'idle'; p.t = 1 + r() * 5; } }
         else { const nx = p.x + dx / d * p.speed * dt, nz = p.z + dz / d * p.speed * dt; if (walkable(nx, nz)) { p.x = nx; p.z = nz; } else { p.tx = p.x; p.tz = p.z; } p.h += angDiff(p.h, Math.atan2(dx, dz)) * Math.min(1, dt * 6); moving = 1; }
       } else if (p.mode === 'idle' || p.mode === 'wave') {
-        p.t -= dt; if (p.t <= 0) { if (p.zone.kind === 'block' && p.rect) { this.nearestPer(p); const ox = p.x, oz = p.z; this.perPos(p); p.tx = p.x; p.tz = p.z; p.x = ox; p.z = oz; if (Math.hypot(p.tx - ox, p.tz - oz) > 0.6) { p.mode = 'wander'; p.back = true; } else p.mode = 'walk'; } else { p.mode = 'wander'; const z = p.zone; p.tx = clamp(p.x + (r() - 0.5) * 30, z.cx > 300 ? 326 : -1e9, z.cx > 300 ? 382 : 1e9); p.tz = p.z + (r() - 0.5) * 30; } }
+        p.t -= dt; if (p.talking) p.t = Math.max(p.t, 1); if (p.t <= 0) { if (p.zone.kind === 'block' && p.rect) { this.nearestPer(p); const ox = p.x, oz = p.z; this.perPos(p); p.tx = p.x; p.tz = p.z; p.x = ox; p.z = oz; if (Math.hypot(p.tx - ox, p.tz - oz) > 0.6) { p.mode = 'wander'; p.back = true; } else p.mode = 'walk'; } else { p.mode = 'wander'; const z = p.zone; p.tx = clamp(p.x + (r() - 0.5) * 30, z.cx > 300 ? 326 : -1e9, z.cx > 300 ? 382 : 1e9); p.tz = p.z + (r() - 0.5) * 30; } }
       }
       p.ph += dt * (moving === 2 ? 11 : moving ? 6.5 : 0) * (p.speed > 0 ? 1 : 0);
       p.moving = moving;

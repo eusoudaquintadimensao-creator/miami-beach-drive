@@ -38,3 +38,27 @@ Testes: 390x844 + 1440x900, 0 erros, gravar 5s -> blob>0, download -> ffprobe, f
   Rodando bateria final (features desk medium, play desk/mob, missions). Depois: commit local (sem push, sem screenshots).
 - [17:05] Bateria final OK: features desk(medium)+mob(UA iPhone), play desk/mob, missions: 0 erros. Commit local feito (ver git log). NÃO DAR PUSH.
   Publicar após aprovação: cd /workspace/miami-mundo-aberto && git push origin main
+
+## Tarefa 3 (t292u, 17:04) — base 6133a37 (NÃO publicado). NÃO DAR PUSH.
+1. Avatares realistas F/M (glTF CC0 com animações idle/walk/run/drive; CREDITOS; fallback procedural), escolha na tela inicial + celular, salvo.
+   Física a pé: aceleração/inércia, giro suave, pulo, degraus, sem atravessar paredes.
+2. Helicóptero: luzes piscando + holofote à noite; rotas ambientes (vários à noite) + pilotável no heliponto (teclado/toque).
+3. NPCs conversam (E / "Conversar"): falas pt-BR por contexto, personalidades, mini missões, reação a nitro/tunado.
+4. Leveza: detectar celular/PC, Android/iPhone; perfis; lazy load; SW offline; medir tamanho e tempo de carga.
+5. "fila verdadeiro" = provável "física verdadeira": suspensão, transferência de peso, drift.
+Testes 390x844 (Android+iPhone UA) e 1440x900; screenshots avatares, heli noite, conversa, seletor.
+
+### Progresso Tarefa 3 (17:50)
+- Feito: src/avatar.js (Luna/Davi GLB CC0 ~220 KB cada), device.js, heli.js (heliponto 416,-200; frota ambiente), talk.js+phrases.js,
+  física carro (peso/suspensão/drift), LOD, SW v4. Testes: test/avatars.js, test/heroes.js (args: W H q saída; IOS=1 p/ iPhone).
+- Bug corrigido: dt negativo no 1º quadro quebrava HeliFleet.at (agora dt>=0 e índice com módulo positivo).
+- t293u: usuário APROVOU publicar quando tudo pronto e testado → 1 push em origin main + conferir site ao vivo (SW versão nova).
+- t297u: heróis originais (src/heroes.js + src/powers.js, tecla X / botão ⚡): Teia Neon (escala/fio), Armadura Solar (voo),
+  Colosso Verde (super pulo, levanta/solta carro sem dano), Sentinela (arrancada + escudo quica), Lorde Férreo (levita),
+  Titã Violeta (pisão com onda de luz). Reusam esqueletos CC0 + acessórios procedurais; miniaturas webp ~3-4 KB.
+- Pendente: rodar suíte completa (/tmp/runall.sh), medir tamanho/tempo, apagar .preview/, commit, push, conferir site.
+### 18:25 retomada após restore
+- Feito depois de 17:50: física do carro corrigida (velocidade não gira junto com o carro → drift real com freio de mão: lateral 12 m/s vs 0,8 normal),
+  MBD.teleport zera velocidade, dicas de poder adaptadas ao toque, .preview/ apagado. Suíte 2 passou toda (0 erros) antes destas correções.
+- Agora: rodar /tmp/runall.sh de novo → commit → push único (aprovado t293u) → conferir site ao vivo.
+- 18:40 suíte final OK (avatars/heroes x3 perfis, features/play/missions desk+mobile, 0 erros). Commit + push aprovado (t293u).

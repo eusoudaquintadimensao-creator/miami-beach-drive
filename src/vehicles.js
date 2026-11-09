@@ -288,11 +288,31 @@ export class Vehicle {
     this.brakeOn = thr < -0.05 && vf > 0.5 || inp.hb;
     this.steer += (inp.x - this.steer) * Math.min(1, dt * (sp.boat ? 3 : 7));
     let yaw;
+    // transferência de peso: freando o peso vai pra frente (traseira leve), acelerando vai pra trás
+    const wt = this.wt || 0; let gripK = 1, yawK = 8;
     if (sp.boat) yaw = this.steer * sp.steer * (Math.min(1, Math.abs(vf) / 6) * Math.sign(vf || 1) * 0.9 + 0.15);
-    else { const ang = this.steer * sp.steer / (1 + Math.abs(vf) * 0.035); yaw = vf * Math.tan(ang) / sp.wb; }
-    this.h -= yaw * dt;
-    const grip = (inp.hb && !sp.boat ? 1.2 : sp.grip) * (sp.boat ? 1 : surf > 0.6 ? 1 : 0.7);
-    vl *= Math.exp(-grip * dt);
+    else {
+      const ang = this.steer * sp.steer / (1 + Math.abs(vf) * 0.035); yaw = vf * Math.tan(ang) / sp.wb;
+      const st = Math.abs(this.steer); const fast = clamp((Math.abs(vf) - 8) / 14, 0, 1);
+      // freada em curva: traseira solta (entrada de curva de lado)
+      if (wt > 0) gripK *= 1 - wt * 0.45 * st * fast;
+      // muita potência em curva (esportivo, moto, nitro): traseira escorrega
+      if (thr > 0.6 && st > 0.35 && this.type !== 'moto') gripK *= 1 - clamp((sp.acc - 8) / 18, 0, 0.4) * fast * (this.boosting ? 1.4 : 1);
+      if (inp.hb) { gripK = Math.min(gripK, 1.2 / sp.grip); yaw *= 1.35; yawK = 3; } // freio de mão: drift
+      else if (gripK < 0.8) yawK = 4.5;
+      // contra-esterço ajuda a segurar o drift: o volante "conversa" com o deslize
+      const slip = vl / Math.max(5, Math.abs(vf)); if (Math.abs(slip) > 0.12) yaw += slip * Math.sign(vf) * (inp.hb ? 1.2 : 0.7) * fast * (1 - st * 0.5);
+    }
+    // inércia de rotação: o carro não vira instantâneo (mais solto quando a traseira escorrega)
+    this.yawV = (this.yawV ?? yaw) + (yaw - (this.yawV ?? yaw)) * Math.min(1, dt * (sp.boat ? 4 : yawK));
+    // física de verdade: a velocidade não gira junto com o carro; o pneu é que puxa a lateral de volta (aderência).
+    // Com freio de mão / traseira leve a aderência cai e o carro escorrega de lado (drift).
+    const wx = fx * vf + rx * vl, wz = fz * vf + rz * vl;
+    this.h -= this.yawV * dt; yaw = this.yawV;
+    if (!sp.boat) { const [hfx, hfz] = this.fwd(); vf = wx * hfx + wz * hfz; vl = wx * -hfz + wz * hfx; }
+    const grip = (sp.boat ? sp.grip : sp.grip * gripK * 2.5) * (sp.boat ? 1 : surf > 0.6 ? 1 : 0.7);
+    const vl0 = vl; vl *= Math.exp(-grip * dt);
+    if (!sp.boat) vf -= Math.sign(vf) * Math.min(Math.abs(vf), Math.abs(vl0 - vl) * 0.12); // escorregar de lado custa um pouco de velocidade
     this.drift = Math.abs(vl);
     const [nfx, nfz] = this.fwd(); const nrx = -nfz, nrz = nfx;
     this.vx = nfx * vf + nrx * vl; this.vz = nfz * vf + nrz * vl; this.vf = vf;
@@ -334,12 +354,17 @@ export class Vehicle {
       const yc = surfaceY(this.x, this.z), yf = surfaceY(this.x + ffx * sp2.wb / 2, this.z + ffz * sp2.wb / 2), yr = surfaceY(this.x - ffx * sp2.wb / 2, this.z - ffz * sp2.wb / 2);
       this.y = lerp(this.y, Math.max(yc, -0.4), Math.min(1, dt * 12));
       const acc = (vf - (this._pvf ?? vf)) / Math.max(dt, 1e-3); this._pvf = vf;
-      const pitchT = Math.atan2(yr - yf, sp2.wb) * 1 + clamp(acc, -20, 20) * sp2.susp * 0.02;
-      const latA = yaw * vf; const rollT = this.type === 'moto' ? 0 : clamp(latA, -25, 25) * sp2.susp * 0.012;
-      this.pitch = lerp(this.pitch, pitchT, Math.min(1, dt * 6)); this.roll = lerp(this.roll, rollT, Math.min(1, dt * 6));
+      this.wt = lerp(this.wt || 0, clamp(-acc / sp.brake, -1, 1), Math.min(1, dt * 5));
+      // suspensão com mola e amortecedor: mergulha na freada, agacha na arrancada, inclina nas curvas e balança nas guias
+      const pitchT = Math.atan2(yr - yf, sp2.wb) * 1 + clamp(acc, -24, 20) * sp2.susp * 0.024;
+      const latA = yaw * vf; const rollT = this.type === 'moto' ? 0 : clamp(latA, -25, 25) * sp2.susp * 0.014;
+      const yN = Math.max(yc, -0.4); if (this._py !== undefined && Math.abs(yN - this._py) > 0.08 && Math.abs(vf) > 3) { this.pv = (this.pv || 0) + (yN - this._py) * Math.sign(vf) * -4; this.bv = (this.bv || 0) + Math.abs(yN - this._py) * 1.5; } this._py = yN;
+      const Kp = 140, Cp = 13; this.pv = (this.pv || 0) + ((pitchT - this.pitch) * Kp - (this.pv || 0) * Cp) * dt; this.pitch += this.pv * dt;
+      if (this.type !== 'moto') { this.rv = (this.rv || 0) + ((rollT - this.roll) * Kp - (this.rv || 0) * Cp) * dt; this.roll += this.rv * dt; }
       if (this.type === 'moto') this.roll = lerp(this.roll, clamp(-yaw * Math.abs(vf) * 0.03, -0.6, 0.6), Math.min(1, dt * 5));
-      if (offroad && Math.abs(vf) > 3) this.bob = Math.sin(t * 22) * 0.012 * Math.min(1, Math.abs(vf) / 15) * (this.type === 'suv' ? 0.5 : 1);
-      else this.bob *= 0.9;
+      this.bv = (this.bv || 0) + (-(this.bobS || 0) * 180 - (this.bv || 0) * 12) * dt; this.bobS = (this.bobS || 0) + this.bv * dt;
+      if (offroad && Math.abs(vf) > 3) this.bob = this.bobS + Math.sin(t * 22) * 0.012 * Math.min(1, Math.abs(vf) / 15) * (this.type === 'suv' ? 0.5 : 1);
+      else this.bob = this.bobS + (this.bob - this.bobS) * 0.9;
     }
     this.spin += vf * dt / (sp.wr || 1);
     this.rpm = clamp(Math.abs(vf) / sp.max, 0, 1);

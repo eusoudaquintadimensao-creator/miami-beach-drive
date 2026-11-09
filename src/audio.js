@@ -113,7 +113,16 @@ export class AudioSys {
     if (want) this.schedule(); else this.nextT = t + 0.1;
     // motor
     const e = st.engine; const base = { sport: 52, classic: 38, suv: 40, sedan: 44, taxi: 44, moto: 60, boat: 34 }[e?.type] || 44;
-    if (e) { const gear = (e.rpm * 5) % 1; const f = base + e.rpm * 90 + gear * 40; this.eng.frequency.setTargetAtTime(f, t, 0.05); this.eng2.frequency.setTargetAtTime(f * 0.5, t, 0.05); this.engF.frequency.setTargetAtTime(300 + e.rpm * 1400 + e.thr * 400, t, 0.05); this.engG.gain.setTargetAtTime(0.035 + e.rpm * 0.05 + e.thr * 0.03, t, 0.08); }
+    // rotor do helicóptero (o seu ou um que passa perto)
+    const rv = Math.max(e && e.type === 'heli' ? e.rpm : 0, st.heliFar || 0);
+    if (rv > 0.01 && !this.rotor) {
+      const src = c.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;
+      const am = c.createGain(); am.gain.value = 0.5; const lfo = c.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 6; const la = c.createGain(); la.gain.value = 0.5; lfo.connect(la); la.connect(am.gain);
+      const g = c.createGain(); g.gain.value = 0; src.connect(lp); lp.connect(am); am.connect(g); g.connect(this.bus); src.start(); lfo.start(); this.rotor = { g, lfo, lp };
+    }
+    if (this.rotor) { const own = e && e.type === 'heli'; this.rotor.g.gain.setTargetAtTime(own ? 0.05 + e.rpm * 0.22 : rv * 0.12, t, 0.2); this.rotor.lfo.frequency.setTargetAtTime(own ? 2 + e.rpm * 9 : 10, t, 0.3); this.rotor.lp.frequency.setTargetAtTime(own ? 180 + e.rpm * 200 + e.thr * 120 : 300, t, 0.2); }
+    if (e && e.type === 'heli') { const f = 140 + e.rpm * 260; this.eng.frequency.setTargetAtTime(f, t, 0.3); this.eng2.frequency.setTargetAtTime(f * 0.5, t, 0.3); this.engF.frequency.setTargetAtTime(900 + e.rpm * 900, t, 0.2); this.engG.gain.setTargetAtTime(e.rpm * 0.025, t, 0.2); }
+    else if (e) { const gear = (e.rpm * 5) % 1; const f = base + e.rpm * 90 + gear * 40; this.eng.frequency.setTargetAtTime(f, t, 0.05); this.eng2.frequency.setTargetAtTime(f * 0.5, t, 0.05); this.engF.frequency.setTargetAtTime(300 + e.rpm * 1400 + e.thr * 400, t, 0.05); this.engG.gain.setTargetAtTime(0.035 + e.rpm * 0.05 + e.thr * 0.03, t, 0.08); }
     else this.engG.gain.setTargetAtTime(0, t, 0.15);
     this.skid.g.gain.setTargetAtTime(st.skid ? Math.min(0.12, st.skid * 0.012) : 0, t, 0.05);
     this.boostN.g.gain.setTargetAtTime(st.boost ? 0.16 : 0, t, st.boost ? 0.04 : 0.25); if (st.boost) this.boostN.fl.frequency.setTargetAtTime(500 + Math.random() * 500, t, 0.05);
