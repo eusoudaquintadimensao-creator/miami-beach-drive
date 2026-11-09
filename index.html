@@ -6,7 +6,8 @@
 <meta name="description" content="Mundo aberto no navegador, sem violência: dirija, ande, faça entregas, táxi, corridas e fotos em Solara Bay, uma costa neon inspirada em Miami.">
 <meta name="theme-color" content="#1a0f2e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Solara Bay"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="src/style.css">
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head><body>
@@ -22,7 +23,9 @@
   <div id="note" hidden><b id="noteU"></b><span id="noteT"></span></div>
   <div id="say" hidden></div>
   <div id="prompt" hidden></div>
-  <div id="icons"><button id="bPhone" title="Celular (P)">📱</button><button id="bMap" title="Mapa (M)">🗺️</button><button id="bRadio" title="Rádio (R)">📻</button><button id="bCam" title="Câmera (C)">🎥</button></div>
+  <div id="icons"><button id="bPhone" title="Celular (P)">📱</button><button id="bMap" title="Mapa (M)">🗺️</button><button id="bRadio" title="Rádio (R)">📻</button><button id="bCam" title="Câmera (C)">🎥</button><button id="bRec" title="Gravar vídeo (V)">🔴</button></div>
+  <div id="recBar" hidden><i></i><b>REC</b><span id="recTime">0:00</span><button id="recStop" title="Parar gravação">■ Parar</button></div>
+  <div id="nitroW" hidden><div id="nitroF"></div><span>NITRO</span></div>
   <div id="touch">
     <div id="stickZone"><div id="stick"><div id="knob"></div></div></div>
     <div id="btns">
@@ -31,6 +34,7 @@
       <button id="bPhoto">📷<small>Foto</small></button>
       <button id="bHorn" hidden>📯<small>Buzina</small></button>
       <button id="bStart" hidden>▶<small>Iniciar</small></button>
+      <button id="bNitro" hidden>🔥<small>Nitro</small></button>
     </div>
   </div>
   <div id="fps"></div>
@@ -38,13 +42,31 @@
 <div id="bigmap" hidden><canvas id="bm"></canvas><div id="bmLeg">🏁 corrida · 📦 entrega · 📸 fotos · 🚕 táxi · 🐚 conchas achadas · toque no mapa para marcar destino</div><button class="x" id="bmX">✕</button></div>
 <div id="phone" hidden><div class="ph"><div class="phTop"><span id="phClock"></span><span>Solara 5G ▂▄▆</span></div><div id="phBody"></div><button id="phBack">⟵ Voltar</button><button id="phClose">Fechar e voltar ao jogo</button></div></div>
 <div id="photo" hidden><div class="pol"><img id="phImg" alt="Sua foto"><div class="cap"><b id="phCap"></b><span id="phLikes">♥ 0</span></div></div><div class="pbtns"><a id="phSave" download="solara-bay.jpg">💾 Salvar foto</a><button id="phOk">Continuar</button></div></div>
+<div id="recPanel" hidden><div class="rpBox">
+  <div class="rpHead"><b>🎬 Sua gravação</b><span id="rpInfo"></span><button class="x" id="rpClose" title="Voltar ao jogo">✕</button></div>
+  <video id="rpVideo" controls playsinline webkit-playsinline preload="metadata"></video>
+  <div class="rpBtns">
+    <button id="rpSave">💾 Salvar vídeo</button>
+    <button id="rpShare">📤 Compartilhar</button>
+    <button id="rpLink">🔗 Mandar link</button>
+    <button id="rpWa">💬 WhatsApp</button>
+    <button id="rpDiscard" class="ghost">🗑️ Descartar</button>
+  </div>
+  <div id="rpMsg"></div>
+</div></div>
+<div id="garage" hidden>
+  <div class="gTop"><b>🔧 Oficina Neon</b><span id="gCar"></span></div>
+  <div class="gPanel" id="gPanel"></div>
+</div>
+<div id="installSheet" hidden><div class="isBox"><button class="x" id="isX">✕</button><div id="isBody"></div></div></div>
 <div id="start">
   <div class="sun"></div><div class="grid"></div>
   <div class="logo"><div class="t1">MIAMI BEACH DRIVE</div><div class="t2">Solara Bay</div><div class="t3">mundo aberto · costa neon · sem violência</div></div>
   <div class="menu">
     <button id="play" disabled>Carregando cidade…</button>
+    <button id="installBtn" class="install">📲 Instalar na tela inicial</button>
     <label>Gráficos <select id="qsel"><option value="auto">Automático</option><option value="low">Leve (celular)</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
-    <div class="help"><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera<br><b>Celular:</b> joystick à esquerda · arraste à direita para olhar · botões à direita</div>
+    <div class="help"><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera · V gravar vídeo · Shift nitro (carro tunado)<br><b>Celular:</b> joystick à esquerda · arraste à direita para olhar · botões à direita</div>
     <div class="small">Cidade fictícia inspirada em Miami. Músicas, carros e cenário são originais, gerados no seu navegador.</div>
   </div>
 </div>

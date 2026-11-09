@@ -11,11 +11,12 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
 **Computador**
 - WASD / setas: andar ou dirigir · Shift: correr · Espaço: pular / freio de mão
 - E: entrar/sair de veículo · Enter: iniciar missão perto de um ícone · F: foto · H: buzina
-- R: trocar rádio · M: mapa · P: celular · mouse: girar a câmera (clique para travar)
+- R: trocar rádio · M: mapa · P: celular · V: gravar vídeo · Shift no carro tunado: nitro
+- mouse: girar a câmera (clique para travar)
 
 **Celular**
-- Joystick à esquerda; botões à direita (Entrar/Sair, Pular/Freio, Foto, Buzina, Iniciar)
-- Ícones no topo: celular, mapa, rádio e câmera. Toque no mapa grande para marcar um destino com GPS.
+- Joystick à esquerda; botões à direita (Entrar/Sair, Pular/Freio, Foto, Buzina, Iniciar, 🔥 Nitro)
+- Ícones no topo: celular, mapa, rádio, câmera e 🔴 gravar. Toque no mapa grande para marcar um destino com GPS.
 
 ## O que tem
 
@@ -30,6 +31,15 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
 - **Rádio original** feito com WebAudio: Neon 88 FM (synthwave), Onda Tropical 101 e Brisa Lo-Fi 93.
 - Minimapa giratório, mapa completo com GPS, qualidade gráfica baixa/média/alta com detecção automática,
   progresso salvo no aparelho e instalação como app (PWA).
+
+- **Gravar gameplay:** botão 🔴 (ou V, ou app no celular do jogo) grava a tela com o som do jogo. Depois dá para
+  assistir, **salvar o vídeo**, **compartilhar** (no celular vai direto para WhatsApp, Instagram etc. quando o navegador deixa),
+  **mandar o link** do jogo ou mandar no **WhatsApp**. Grava em MP4 quando o navegador suporta (senão WebM), até 45 s no celular e 90 s no computador.
+- **Carros tunados:** na **Oficina Neon** (Ocean Drive) escolha pintura, neon embaixo do carro, aerofólio, kit largo,
+  rodas, estilo de adesivo e o texto da lateral. Carro tunado ganha **nitro** com chama no escapamento e desfoque de velocidade.
+  Carros tunados também passeiam pela cidade, e há **rachas** contra 3 rivais tunados (Collins e Centro). Tudo sem batidas violentas.
+- **Instalar como app:** botão “Instalar na tela inicial” (Android/computador) ou instruções de “Adicionar à Tela de Início” no iPhone.
+  Funciona offline depois de instalado. No celular do jogo há o botão **Salvar progresso** (o jogo também salva sozinho).
 
 ## Tecnologias
 

@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { rng, clamp, pick } from './util.js';
 import { SEGS, NODES, lightState, groundY, onBridge } from './world.js';
-import { Vehicle } from './vehicles.js';
+import { Vehicle, randomTune } from './vehicles.js';
 
 const LANE = 3.5;
 const TYPES = ['sedan', 'sedan', 'suv', 'sport', 'classic', 'taxi', 'suv', 'sedan', 'moto'];
@@ -10,6 +10,9 @@ export class Traffic {
   constructor(scene, Q, n) {
     this.cars = []; this.r = rng(99); this.scene = scene;
     for (let i = 0; i < n; i++) { const v = new Vehicle(TYPES[i % TYPES.length], scene, Q); v.npc = true; v.root.visible = false; v.active = false; this.cars.push(v); }
+    // carros tunados passeando (neon, aerofólio, adesivos)
+    const nt = Q.level === 'low' ? 2 : 4; const tr = rng(7);
+    for (let i = 0; i < nt; i++) { const v = new Vehicle(i % 2 ? 'sedan' : 'sport', scene, Q, undefined, randomTune(tr)); v.npc = true; v.tuned = true; v.root.visible = false; v.active = false; this.cars.push(v); }
     this.honk = null;
   }
   dirOf(seg, from) { const to = seg.a === from ? seg.b : seg.a; const dx = (to.x - from.x) / seg.len, dz = (to.z - from.z) / seg.len; return { to, dx, dz, rx: -dz, rz: dx }; }
@@ -23,7 +26,7 @@ export class Traffic {
       const t = 0.25 + r() * 0.5; const x = from.x + D.dx * s.len * t + D.rx * LANE, z = from.z + D.dz * s.len * t + D.rz * LANE;
       if (this.cars.some(o => o.active && o !== v && Math.hypot(o.x - x, o.z - z) < 18)) continue;
       v.seg = s; v.from = from; v.D = D; v.pts = [[x, z]]; v.pi = 0; v.x = x; v.z = z; v.h = Math.atan2(D.dx, D.dz);
-      v.cruise = (s.kind === 'rural' ? 17 : 11.5) + r() * 3; v.vf = v.cruise * 0.6; v.active = true; v.root.visible = true; v.bumped = 0; v.wait = 0;
+      v.cruise = (s.kind === 'rural' ? 17 : 11.5) + r() * 3 + (v.tuned ? 2.5 : 0); v.vf = v.cruise * 0.6; v.active = true; v.root.visible = true; v.bumped = 0; v.wait = 0;
       this.extend(v, true); return true;
     }
     v.active = false; v.root.visible = false; return false;

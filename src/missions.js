@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import { canvasTex, rng, pick, clamp } from './util.js';
 import { groundY, LANDMARKS, SPAWNS } from './world.js';
+import { RACHAS } from './rivals.js';
+import { GARAGE } from './garage.js';
 
 export const POIS = [
   { name: 'Café Brisa (Ocean Drive)', x: 291, z: 120 }, { name: 'Hotel Coral', x: 189, z: -375 }, { name: 'Sorveteria Paraíso', x: 69, z: 75 },
@@ -35,6 +37,8 @@ export class Missions {
       { type: 'entrega', name: 'Entregas Centro', x: -291, z: 160, icon: '📦', col: '#ffb347' },
       { type: 'foto', name: 'Agência Vibez (fotos)', x: 318, z: -95, icon: '📸', col: '#ff4fb8' },
       ...RACES.map(r => ({ type: 'corrida', race: r, name: r.name, x: r.start[0], z: r.start[1], icon: r.boat ? '🚤' : '🏁', col: '#29f0ff' })),
+      ...RACHAS.map(r => ({ type: 'corrida', race: r, name: r.name, x: r.start[0], z: r.start[1], icon: '🔥', col: '#ff2bd6' })),
+      { type: 'garagem', name: GARAGE.name, x: GARAGE.x, z: GARAGE.z, icon: '🔧', col: '#b45cff' },
     ];
     for (const s of SPAWNS.taxiStands) this.starts.push({ type: 'taxiPonto', name: 'Ponto de Táxi', x: s.x, z: s.z, icon: '🚕', col: '#ffd60a', passive: true });
     for (const s of this.starts) {
@@ -42,6 +46,10 @@ export class Missions {
       m.position.set(s.x, groundY(s.x, s.z), s.z); m.scale.set(0.6, 1, 0.6); scene.add(m); s.beam = m;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(s.icon, s.col), depthTest: true, fog: false, toneMapped: false })); sp.scale.setScalar(3); sp.position.set(s.x, groundY(s.x, s.z) + 4.5, s.z); scene.add(sp); s.sprite = sp;
       if (s.passive) { m.visible = false; sp.scale.setScalar(2.2); }
+      if (s.type === 'garagem') { // letreiro neon da oficina
+        const tx = canvasTex(512, 128, (g, w, h) => { g.clearRect(0, 0, w, h); g.font = 'italic 900 62px "Arial Black",Impact,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#ff2bd6'; g.shadowBlur = 22; g.lineWidth = 5; g.strokeStyle = '#ff7ae6'; g.strokeText('OFICINA NEON', w / 2, h / 2); g.fillStyle = '#fff'; g.fillText('OFICINA NEON', w / 2, h / 2); }, { clamp: true });
+        const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, fog: false, toneMapped: false })); sg.scale.set(12, 3, 1); sg.position.set(s.x - 6, groundY(s.x, s.z) + 9, s.z); scene.add(sg); s.sign = sg;
+      }
     }
     // alvo atual
     this.target = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false, fog: false }));
@@ -59,11 +67,13 @@ export class Missions {
   nearestStart(px, pz) { let b = null, bd = 1e9; for (const s of this.starts) { if (s.passive) continue; const d = Math.hypot(s.x - px, s.z - pz); if (d < bd) { bd = d; b = s; } } return { s: b, d: bd }; }
   canStart(s) {
     const v = this.G.player.vehicle;
+    if (s.type === 'garagem') return null;
     if (s.type === 'corrida') { if (s.race.boat) return v && v.spec.boat ? null : 'Precisa estar numa lancha (tem na marina)'; return v && !v.spec.boat ? null : 'Entre num veículo para correr'; }
     return null;
   }
   start(s) {
     const G = this.G; const why = this.canStart(s); if (why) { G.ui.toast(why); return; }
+    if (s.type === 'garagem') { G.garage.open(); return; }
     G.audio.chime('start');
     if (s.type === 'entrega') {
       const p = this.pickPOI(250);
@@ -72,7 +82,8 @@ export class Missions {
     } else if (s.type === 'foto') this.startPhoto();
     else if (s.type === 'corrida') {
       const r = s.race; const v = G.player.vehicle; v.place(r.start[0], r.start[1], r.start[2]); G.snapCam();
-      this.active = { type: 'corrida', title: (r.boat ? '🚤 ' : '🏁 ') + r.name, race: r, k: 0, t: -3, count: 3 };
+      this.active = { type: 'corrida', title: (r.boat ? '🚤 ' : r.rivals ? '🔥 ' : '🏁 ') + r.name, race: r, k: 0, t: -3, count: 3 };
+      if (r.rivals) { G.rivals.spawn(r); G.ui.phoneNote('@luna.turbo', 'Racha valendo! Sem bater, sem perder a linha. Que vença o mais liso 😎🏁'); }
       G.ui.toast('Prepare-se… 3'); G.ui.big('3');
     }
     this.setTarget();
@@ -97,7 +108,7 @@ export class Missions {
     const m = this.passenger; m.g.visible = true; m.g.position.set(p.x, groundY(p.x, p.z) + 0.16, p.z); m.g.rotation.y = Math.random() * 6;
   }
   cancel(msg) { if (!this.active) return; this.G.ui.toast(msg || 'Missão cancelada'); this.end(); }
-  end() { this.active = null; this.target.visible = this.ring.visible = this.ring2.visible = false; if (this.passenger) this.passenger.g.visible = false; this.G.ui.setMission(null); this.G.setRoute(null); this.cool = 2; }
+  end() { if (this.active && this.active.race && this.active.race.rivals) setTimeout(() => { if (!this.active || !this.active.race || !this.active.race.rivals) this.G.rivals.clear(); }, 2500); this.active = null; this.target.visible = this.ring.visible = this.ring2.visible = false; if (this.passenger) this.passenger.g.visible = false; this.G.ui.setMission(null); this.G.setRoute(null); this.cool = 2; }
   setTarget() {
     const A = this.active; if (!A) return; let x, z;
     if (A.type === 'corrida') { const p = A.race.pts[A.k]; x = p[0]; z = p[1]; const n = A.race.pts[A.k + 1];
@@ -171,11 +182,18 @@ export class Missions {
       if (A.t < 0) { const c = Math.ceil(-A.t); if (c !== A.count) { A.count = c; G.ui.big(String(c)); G.audio.chime('coin'); } v.vx = v.vz = v.vf = 0; G.ui.setMission(A.title, 'Prepare-se…', null); return; }
       if (A.count > 0) { A.count = 0; G.ui.big('VAI!'); G.audio.chime('start'); }
       if (!v) { this.cancel('Corrida cancelada (você saiu do veículo)'); return; }
-      G.ui.setMission(A.title, `Checkpoint ${A.k + 1}/${A.race.pts.length} · ${Math.round(d)} m`, null, A.t);
+      const pos = A.race.rivals ? ` · <b>${G.rivals.place(A)}º</b>/4` : '';
+      G.ui.setMission(A.title, `Checkpoint ${A.k + 1}/${A.race.pts.length} · ${Math.round(d)} m${pos}`, null, A.t);
       this.ring.rotation.z = t * 0.5;
       if (d < (A.race.boat ? 12 : 10)) {
         A.k++; G.audio.chime('coin');
-        if (A.k >= A.race.pts.length) {
+        if (A.k >= A.race.pts.length && A.race.rivals) {
+          const place = 1 + G.rivals.cars.filter(c => c.done).length; const T = A.t;
+          const money = [900, 500, 300, 150][place - 1]; const best = G.save.best[A.race.id]; if (!best || T < best) G.save.best[A.race.id] = Math.round(T * 10) / 10;
+          this.reward(money, place === 1 ? 150 : 40, `${A.race.name}: ${place}º lugar · ${T.toFixed(1)}s${place === 1 ? ' · rei da rua! 👑' : ''}`);
+          G.ui.phoneNote(G.rivals.cars[0] ? G.rivals.cars[0].racer : '@luna.turbo', place === 1 ? 'Você voou! Revanche amanhã 🔥' : 'Boa! Quase, hein? Bora de novo 😎');
+          this.end();
+        } else if (A.k >= A.race.pts.length) {
           const T = A.t, [g, s, b] = A.race.medals; const medal = T <= g ? '🥇 Ouro' : T <= s ? '🥈 Prata' : T <= b ? '🥉 Bronze' : 'Concluída';
           const money = T <= g ? 600 : T <= s ? 400 : T <= b ? 250 : 150;
           const best = G.save.best[A.race.id]; if (!best || T < best) G.save.best[A.race.id] = Math.round(T * 10) / 10;

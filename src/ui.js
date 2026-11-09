@@ -112,9 +112,18 @@ export class UI {
   phoneHome() {
     const G = this.G; const h = Math.floor(G.env.hour), m = Math.floor((G.env.hour % 1) * 60); $('phClock').textContent = `${h}:${String(m).padStart(2, '0')}`;
     $('phBack').hidden = true;
-    const apps = [['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
-    $('phBody').innerHTML = `<div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
-    $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => b.dataset.p === 'mapa' ? (this.closePhone(), this.openMap()) : this.phonePage(b.dataset.p));
+    const apps = [['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
+    const saved = G.savedAt ? `✅ Salvo às ${G.savedAt}` : '💾 Salvar progresso';
+    $('phBody').innerHTML = `<div class="saveRow"><button class="saveBtn${G.savedAt ? ' ok' : ''}" id="phSaveG">${saved}</button><button class="saveBtn inst" id="phInst">📲 Instalar</button></div><div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
+    $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => {
+      const p = b.dataset.p;
+      if (p === 'mapa') { this.closePhone(); this.openMap(); }
+      else if (p === 'gravar') { this.closePhone(); G.audio.init(); G.rec.toggle(); }
+      else if (p === 'oficina') { const s = G.missions.starts.find(x => x.type === 'garagem'); this.waypoint = [s.x, s.z]; if (!G.missions.active) G.setRoute([s.x, s.z]); this.closePhone(); this.toast('🔧 GPS para a <b>Oficina Neon</b> — chegue de carro e aperte ' + (G.touch ? '▶' : 'Enter')); }
+      else this.phonePage(p);
+    });
+    $('phSaveG').onclick = () => { const ok = G.saveNow(); const b = $('phSaveG'); b.classList.add('ok'); b.textContent = ok ? `✅ Progresso salvo às ${G.savedAt}` : '⚠️ Não deu para salvar (modo privado?)'; G.audio.chime(ok ? 'coin' : 'fail'); this.toast(ok ? '💾 Progresso salvo neste aparelho!' : 'O navegador bloqueou o salvamento', 2200); };
+    $('phInst').onclick = () => { G.promptInstall(); };
   }
   phonePage(p) {
     const G = this.G; const B = $('phBody'); $('phBack').hidden = false; let h = '';

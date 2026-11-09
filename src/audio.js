@@ -33,10 +33,18 @@ export class AudioSys {
     this.eng.connect(this.engF); this.eng2.connect(this.engF); this.engF.connect(this.engG); this.engG.connect(comp); this.eng.start(); this.eng2.start();
     // ambiente: mar, vento/cidade, chuva
     const mk = (type, f, q) => { const s = c.createBufferSource(); s.buffer = nb; s.loop = true; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = c.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(comp); s.start(); return { g, fl }; };
-    this.sea = mk('lowpass', 500, 0.5); this.city = mk('bandpass', 900, 0.4); this.rainA = mk('highpass', 2500, 0.3); this.skid = mk('bandpass', 1800, 6);
+    this.sea = mk('lowpass', 500, 0.5); this.city = mk('bandpass', 900, 0.4); this.rainA = mk('highpass', 2500, 0.3); this.skid = mk('bandpass', 1800, 6); this.boostN = mk('bandpass', 700, 0.9);
     this.nextT = 0; this.step = 0; this.bar = 0; this.seed = 1;
     this.setStation(this.station, true);
   }
+  // fluxo de áudio para a gravação (mesmo som que sai no alto-falante)
+  recordStream() {
+    if (!this.ok || !this.ctx.createMediaStreamDestination) return null;
+    if (!this.recDest) this.recDest = this.ctx.createMediaStreamDestination();
+    try { this.master.connect(this.recDest); } catch (e) { }
+    return this.recDest.stream;
+  }
+  stopRecordStream() { if (this.recDest) { try { this.master.disconnect(this.recDest); } catch (e) { } } }
   setMuted(m) { this.muted = m; if (this.ok) this.master.gain.setTargetAtTime(m ? 0 : this.vol, this.ctx.currentTime, 0.05); }
   setStation(i, silent) {
     this.station = (i + STATIONS.length) % STATIONS.length; this.step = 0; this.bar = 0; this.seed = Math.floor(Math.random() * 1e6);
@@ -108,9 +116,11 @@ export class AudioSys {
     if (e) { const gear = (e.rpm * 5) % 1; const f = base + e.rpm * 90 + gear * 40; this.eng.frequency.setTargetAtTime(f, t, 0.05); this.eng2.frequency.setTargetAtTime(f * 0.5, t, 0.05); this.engF.frequency.setTargetAtTime(300 + e.rpm * 1400 + e.thr * 400, t, 0.05); this.engG.gain.setTargetAtTime(0.035 + e.rpm * 0.05 + e.thr * 0.03, t, 0.08); }
     else this.engG.gain.setTargetAtTime(0, t, 0.15);
     this.skid.g.gain.setTargetAtTime(st.skid ? Math.min(0.12, st.skid * 0.012) : 0, t, 0.05);
+    this.boostN.g.gain.setTargetAtTime(st.boost ? 0.16 : 0, t, st.boost ? 0.04 : 0.25); if (st.boost) this.boostN.fl.frequency.setTargetAtTime(500 + Math.random() * 500, t, 0.05);
     this.sea.g.gain.setTargetAtTime(st.sea * (0.12 + 0.06 * Math.sin(t * 0.4)), t, 0.5);
     this.city.g.gain.setTargetAtTime(st.city * 0.025, t, 0.5); this.rainA.g.gain.setTargetAtTime(st.rain * 0.09, t, 0.5);
   }
+  nitro() { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.5, 0.35, 'bandpass', 1400, this.bus); this.tone(t, 90, 0.4, 'sawtooth', 0.05, this.bus, 0.01, 0.2); }
   horn() { if (!this.ok) return; const t = this.ctx.currentTime; this.tone(t, 370, 0.35, 'square', 0.06, this.bus, 0.01, 0.05); this.tone(t, 466, 0.35, 'square', 0.05, this.bus, 0.01, 0.05); }
   far_horn(vol = 0.3) { if (!this.ok) return; const t = this.ctx.currentTime; this.tone(t, 330, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); this.tone(t + 0.3, 330, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); }
   thud(v) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.25, Math.min(0.6, v * 0.04), 'lowpass', 400, this.bus); }

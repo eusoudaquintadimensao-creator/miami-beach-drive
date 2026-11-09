@@ -23,3 +23,18 @@ NÃO DAR PUSH — o usuário precisa aprovar. Commit fica preparado localmente.
   marina ajustada para o cais. Testes finais OK (play desk medium + mob, missions, smoke): 0 erros no console.
   Screenshots finais: screenshots/final-*.png. README reescrito. Commit local refeito (sem screenshots/PNGs de teste).
   NÃO FOI DADO PUSH. Para publicar após aprovação: cd /workspace/miami-mundo-aberto && git push origin main
+
+## Tarefa 2 (t291u, 16:38) — 8bf5b4b já publicado (aprovado). NOVO: NÃO DAR PUSH sem aprovação.
+1. Gravação (REC na tela + celular): canvas.captureStream + áudio WebAudio + MediaRecorder (MP4 > WebM), timer, parar,
+   painel: preview, Salvar vídeo, Compartilhar (share files / fallback), Mandar link (+WhatsApp), Descartar. Limite p/ celular, iOS.
+2. Instalar: manifest 192/512/maskable, beforeinstallprompt, instrução iOS, service worker offline, botão "Salvar progresso".
+3. Carros tunados (neon underglow, aerofólio, wide body, adesivos com letras originais, rodas, nitro com chama/blur),
+   garagem/oficina (pintura, neon, aerofólio, texto), NPCs tunados, rachas contra tunados.
+Testes: 390x844 + 1440x900, 0 erros, gravar 5s -> blob>0, download -> ffprobe, fallback share, installability, screenshots.
+- [17:20] Código novo: src/recorder.js, src/install.js, src/garage.js, src/rivals.js, sw.js, ícones maskable/apple,
+  manifest novo; vehicles.js (tunagem+nitro), main.js/ui.js/missions.js/traffic.js/audio.js integrados. Próximo: testar.
+- [17:00] test/features.js (instalar, oficina, nitro, NPC tunado, racha, gravação+download+ffprobe, share fallback/files,
+  mandar link, descartar, salvar progresso) PASSOU em 1440x900 e 390x844 (UA iPhone): 0 erros. MP4 H.264 (+Opus no Chrome Linux).
+  Rodando bateria final (features desk medium, play desk/mob, missions). Depois: commit local (sem push, sem screenshots).
+- [17:05] Bateria final OK: features desk(medium)+mob(UA iPhone), play desk/mob, missions: 0 erros. Commit local feito (ver git log). NÃO DAR PUSH.
+  Publicar após aprovação: cd /workspace/miami-mundo-aberto && git push origin main
