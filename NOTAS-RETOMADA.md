@@ -62,3 +62,35 @@ Testes 390x844 (Android+iPhone UA) e 1440x900; screenshots avatares, heli noite,
   MBD.teleport zera velocidade, dicas de poder adaptadas ao toque, .preview/ apagado. Suíte 2 passou toda (0 erros) antes destas correções.
 - Agora: rodar /tmp/runall.sh de novo → commit → push único (aprovado t293u) → conferir site ao vivo.
 - 18:40 suíte final OK (avatars/heroes x3 perfis, features/play/missions desk+mobile, 0 erros). Commit + push aprovado (t293u).
+- 18:45 PUBLICADO: commit 19c6e90 em origin/main (push único). GitHub Pages OK; site ao vivo serve SW solara-v4-2026-11-09-herois,
+  8 cartões de avatar, herói 3D carrega, 0 erros. https://eusoudaquintadimensao-creator.github.io/miami-beach-drive/
+
+## Tarefa 4 (pt317u, 20:15) — Modo corrida estilo NFS. Base 19c6e90 (publicado). NÃO DAR PUSH (sem aprovação).
+Pedido: pista de corrida com nitro, drift no freio nas curvas, carros de corrida tunados mais realistas.
+Plano: src/track.js (Autódromo Neon nos Glades norte, zona x -1085..-700 z -712..-445, entrada pela Estrada do Pântano z=-420),
+src/race.js (seleção de carro, largada com luzes, voltas/checkpoints, rivais IA, tela final, recorde em localStorage 'mbd-corrida-v1'),
+src/fx.js (fumaça de pneu, marcas de derrapagem, linhas de velocidade), vehicles.js (4 carros de corrida: perfil com caixas de roda,
+tumblehome, splitter, difusor, número; física drift arcade p/ spec.race), SW v5. Teste: test/race.js (desk + mobile).
+### Tarefa 4 — progresso (20:35–21:10)
+- Feito: track.js, race.js, fx.js, 4 carros de corrida, drift arcade, nitro (recarrega no drift), SW v6. test/race.js passa (desk):
+  largada, 6 checkpoints, volta ~45 s (piloto automático), recorde em mbd-corrida-v1, tela final, drift (ângulo, fumaça, marcas),
+  nitro (FOV 82, linhas), gravação MP4 + ffprobe, 0 erros. Rivais deixados mais lentos (skill .95/.91/.87, aLat 12) p/ jogador casual.
+- Drift: mais perda de velocidade de lado (beta), giro maior em alta.
+### ESCOPO ESTENDIDO (pai, 20:34) — mesma atualização, NÃO DAR PUSH
+1. QA completo Android/iPhone/desktop (retrato/paisagem, toque, FPS/draw calls, qualidade auto) + corrigir bugs.
+2. Atalhos pequenos (#quick): 🏁 Corrida, 🎒 Mochila a jato (src/jetpack.js, J), 🚁 chamar Helicóptero (G.callHeli, G), 🏠 Casa.
+3. NPCs com VOZ: Kokoro-82M (Apache-2.0) offline -> assets/voz/{f,m,s}/<fnv>.mp3 (205 falas x 3 vozes, 7,8 MB, lazy) + index.json.
+   Gerador: /workspace/miami-voz/{bank.mjs,gen.py} (venv /workspace/kokoro-venv). Runtime: src/voice.js (hash FNV da fala normalizada,
+   divide vibe+cumprimento, toca no WebAudio -> entra na gravação; abaixa o rádio). Hook em ui.talkBubble/pedBubble.
+   Novas falas: RACE/DIRS/JET/HOME em phrases.js; personagens passeiam (Walk), olham, acenam e cumprimentam; pedestres olham/acenam, alguns no celular.
+4. Casa Solara (src/home.js): (-470,650) sul do Centro, garagem com 3 carros (tunado/corrida/moto), porta -> painel (visual, salvar,
+   dormir, autódromo), apresentação 1ª vez (localStorage 'mbd-casa-v1'). Testes: test/extras.js (W H q saída; IOS=1).
+### ESCOPO 3 (pai, 21:00) — mesma atualização, NÃO DAR PUSH
+- Gravação: limite 2:00 p/ todos (recorder.maxSec=120), contagem "acaba em Xs" + classe .ending nos últimos 10 s, 2/3,5 Mbps vídeo, 96 kbps áudio.
+  Teste: test/rec.js (W H q saída maxSec) -> grava no carro com rádio+nitro, parada automática, ffprobe (h264+opus), volumedetect, salvar, share com arquivo, fallback, copiar link.
+- Veículo assinatura por personagem: src/signature.js (SIGNATURE, roadSpot, callCar, updateCarCall). Novo tipo 'pickup' (Caminhonete Atol) e moto tunável (tuneMoto).
+  Chamar veículo: botão 🚘 #qCar + tecla B; acha faixa livre numa rua (SEGS) até 90 m, sem água/prédio/carro; chega deslizando 2,6 s.
+- Nitro de cinco camadas: vehicles.js nStage 1..5 (0,6 s cada), boost 0,6+0,1·estágio; HUD #nitroW com 5 segmentos .nSegs + "NITRO ×N".
+- Traje nano-metal: heroes.js nanoSuit (só no jogador: makeModel(...,suit=true) em Avatar.setAvatar): roupa metálica escura + linhas/nós de luz (SUIT_GLOW).
+- Corrigido: talk.whoOf usava ped.per (que é perímetro do quarteirão) -> erro 'emoji'; agora o.pers.
+- Teste: test/sig.js (W H q saída [ids]) -> screenshots sig-*-<id>.png, sig-*-nitro5.png, sig-*-chamar.png.

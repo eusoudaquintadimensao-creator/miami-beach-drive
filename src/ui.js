@@ -41,9 +41,9 @@ export class UI {
   radio(st) { const r = $('radio'); r.innerHTML = `${st.name}<small>${st.tag || ''}</small>`; r.classList.add('on'); clearTimeout(this._rt); this._rt = setTimeout(() => r.classList.remove('on'), 2600); }
   phoneNote(user, text) { const n = $('note'); $('noteU').textContent = user + ' · Vibez'; $('noteT').textContent = text; n.hidden = false; clearTimeout(this._nt); this._nt = setTimeout(() => n.hidden = true, 5200); this.G.audio.chime('coin'); this.G.feed.unshift([user, text, 'agora']); }
   bubbleText(who, text) { const s = $('say'); s.className = 'top'; s.textContent = `${who}: ${text}`; s.hidden = false; this._sayP = null; clearTimeout(this._st); this._st = setTimeout(() => s.hidden = true, 4200); }
-  talkBubble(p, text) { const s = $('say'); s.className = 'talk'; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); }
+  talkBubble(p, text) { if (this.G.voice) this.G.voice.say(text, p); const s = $('say'); s.className = 'talk'; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); }
   hideBubble(p) { if (this._sayP === p || !p) { $('say').hidden = true; this._sayP = null; } }
-  pedBubble(p, text) { if (this.G.talk && this.G.talk.cur) return; const s = $('say'); s.className = ''; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); this._st = setTimeout(() => { s.hidden = true; this._sayP = null; }, 2600); }
+  pedBubble(p, text) { if (this.G.talk && this.G.talk.cur) return; if (this.G.voice) { const pl = this.G.player; this.G.voice.say(text, p.kind === 'talker' ? p : { ref: p, per: p.per }, { dist: Math.hypot(p.x - pl.x, p.z - pl.z), vol: 0.9 }); } const s = $('say'); s.className = ''; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); this._st = setTimeout(() => { s.hidden = true; this._sayP = null; }, 2600); }
   stats(money, fol) { $('money').textContent = '$' + money.toLocaleString('pt-BR'); $('fol').textContent = '♥ ' + fol.toLocaleString('pt-BR') + ' seguidores'; }
   frame(dt, cam) {
     const G = this.G; const pl = G.player; const E = G.env;
@@ -114,12 +114,13 @@ export class UI {
   phoneHome() {
     const G = this.G; const h = Math.floor(G.env.hour), m = Math.floor((G.env.hour % 1) * 60); $('phClock').textContent = `${h}:${String(m).padStart(2, '0')}`;
     $('phBack').hidden = true;
-    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
+    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['corrida', '🏁', 'Corrida', '#ff2bd6'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
     const saved = G.savedAt ? `✅ Salvo às ${G.savedAt}` : '💾 Salvar progresso';
     $('phBody').innerHTML = `<div class="saveRow"><button class="saveBtn${G.savedAt ? ' ok' : ''}" id="phSaveG">${saved}</button><button class="saveBtn inst" id="phInst">📲 Instalar</button></div><div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
     $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => {
       const p = b.dataset.p;
       if (p === 'mapa') { this.closePhone(); this.openMap(); }
+      else if (p === 'corrida') { this.closePhone(); G.race.openMenu(); }
       else if (p === 'gravar') { this.closePhone(); G.audio.init(); G.rec.toggle(); }
       else if (p === 'oficina') { const s = G.missions.starts.find(x => x.type === 'garagem'); this.waypoint = [s.x, s.z]; if (!G.missions.active) G.setRoute([s.x, s.z]); this.closePhone(); this.toast('🔧 GPS para a <b>Oficina Neon</b> — chegue de carro e aperte ' + (G.touch ? '▶' : 'Enter')); }
       else this.phonePage(p);
@@ -165,7 +166,7 @@ export class UI {
   }
   phoneAction(d, page) {
     const G = this.G;
-    if (d.a === 'av') { G.setAvatar(d.v); this.phonePage(page); const A = G.hero.def; this.toast(A.hero ? `Agora você é <b>${A.label}</b> ${A.emoji} · ${A.powerTxt} (${G.touch ? 'botão ' + A.emoji : 'tecla X'})` : d.v === 'ele' ? 'Agora você é o <b>Davi</b> 🧑🏽' : 'Agora você é a <b>Luna</b> 👩🏾', 2600); }
+    if (d.a === 'av') { G.setAvatar(d.v); this.phonePage(page); const A = G.hero.def; this.toast(A.hero ? `Agora você é <b>${A.label}</b> ${A.emoji} · ${A.powerTxt} (${G.touch ? 'botão ' + A.emoji : 'tecla X'})` : d.v === 'ele' ? 'Agora você é o <b>Davi</b> 🧑🏽' : 'Agora você é a <b>Luna</b> 👩🏾', 2600); setTimeout(() => this.toast(`🦾 Traje nano-metal · seu veículo: <b>${(G.sigName && G.sigName(d.v)) || ''}</b> (${G.touch ? 'botão 🚘' : 'tecla B'})`, 2600), 900); }
     else if (d.a === 'cancel') { G.missions.cancel(); this.phonePage(page); }
     else if (d.a === 'foto') { if (G.missions.active) G.missions.cancel(); G.missions.startPhoto(); this.closePhone(); }
     else if (d.a === 'go') { const x = +d.x, z = +d.z; this.waypoint = [x, z]; if (!G.missions.active) G.setRoute([x, z]); this.closePhone(); this.toast('📍 GPS marcado — siga a linha roxa no mapa'); }

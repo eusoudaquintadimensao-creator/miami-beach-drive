@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { Hero } from './people.js';
 import { lerp } from './util.js';
-import { HEROES, heroMaterials } from './heroes.js';
+import { HEROES, heroMaterials, nanoSuit } from './heroes.js';
 
 export const AVATARS = {
   ela: {
@@ -62,7 +62,7 @@ export function loadAvatar(id) {
 export function preloadAvatars() { for (const id of BASE_IDS) loadAvatar(id).catch(() => { }); }
 
 // Cria uma cópia animável do modelo (com cores próprias). Usado pelo jogador e pelos moradores que conversam.
-export async function makeModel(id, colors, height) {
+export async function makeModel(id, colors, height, suit) {
   const A = AVATARS[id] || AVATARS.ela; const { gltf, L } = await loadAvatar(A.id);
   const model = L.SkeletonUtils.clone(gltf.scene);
   const cols = Object.assign({}, A.colors, colors || {}); const mats = new Map();
@@ -75,6 +75,7 @@ export async function makeModel(id, colors, height) {
   model.scale.multiplyScalar((height || A.height) / gltf.rawHeight);
   if (A.bulk) { model.scale.x *= A.bulk; model.scale.z *= A.bulk; }
   if (A.hero) { heroMaterials(A, [...mats.values()]); try { A.gear(model, (height || A.height) / AVATARS[A.base].height); } catch (e) { console.info('acessório do herói falhou:', e && e.message); } }
+  if (suit) nanoSuit(A, model, [...mats.values()], (height || A.height) / AVATARS[A.hero ? A.base : A.id].height);
   const mixer = new THREE.AnimationMixer(model); const acts = {};
   for (const c of gltf.animations) acts[c.name] = mixer.clipAction(c);
   for (const k of ['Jump', 'Standing']) if (acts[k]) { acts[k].setLoop(THREE.LoopOnce, 1); acts[k].clampWhenFinished = true; }
@@ -102,7 +103,7 @@ export class Avatar {
     if (A.bulk) { this.fb.inner.scale.x *= A.bulk; this.fb.inner.scale.z *= A.bulk; }
     if (A.id === 'ela') { const hairM = this.fb.hair.material; const pony = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.28, 2, 6).translate(0, 1.5, -0.14), hairM); this.fb.inner.add(pony); }
     tmp.remove(this.fb.g); this.g.add(this.fb.g); this.fb.g.visible = !this.rig;
-    const id0 = A.id; return makeModel(id0).then((r) => {
+    const id0 = A.id; return makeModel(id0, null, null, true).then((r) => {
       if (tok !== this.token) return;
       if (this.rig) { this.g.remove(this.rig.model); this.rig.mixer.stopAllAction(); }
       this.rig = r; this.g.add(r.model); this.fb.g.visible = false; this.loaded = true; this.failed = false; this.cur = null; this.play(this.mode, 1, 0);

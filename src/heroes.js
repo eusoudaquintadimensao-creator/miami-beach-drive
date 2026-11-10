@@ -127,3 +127,26 @@ export function heroMaterials(H, mats) {
     if (H.glow && H.glow[m.name] != null) { m.emissive = new THREE.Color(H.glow[m.name]); m.emissiveIntensity = 1.6; }
   }
 }
+
+// ---- "traje nano-metal": roupa tecnológica metálica escura com linhas de luz (estilo próprio de Solara) para todos os personagens jogáveis
+const SUIT_CLOTH = ['Shirt', 'Pants', 'Socks', 'Shoes']; const SUIT_SKIN = new Set(['teia', 'solar', 'ferreo']);
+export const SUIT_GLOW = { ela: 0xff4f8b, ele: 0x19e3ff, teia: 0x9cff3a, solar: 0xffd23f, colosso: 0x7dff6a, sentinela: 0x4fb3ff, ferreo: 0xff6a2a, tita: 0xb36bff };
+export function nanoSuit(A, model, mats, k) {
+  const glow = SUIT_GLOW[A.id] ?? 0x29f0ff; const hsl = {};
+  for (const m of mats) {
+    const cloth = SUIT_CLOTH.includes(m.name) || (m.name === 'Skin' && SUIT_SKIN.has(A.id)); // nesses heróis a "pele" já é o macacão/armadura
+    if (!cloth) continue;
+    m.color.getHSL(hsl, THREE.SRGBColorSpace); m.color.setHSL(hsl.h, Math.min(hsl.s, 0.5), A.hero ? 0.17 : 0.13, THREE.SRGBColorSpace); m.metalness = 0.85; m.roughness = 0.24; m.envMapIntensity = 1.4; m.emissive = new THREE.Color(glow).multiplyScalar(0.05); m.emissiveIntensity = 1;
+  }
+  const gm = GLOW(glow, 2.0); const line = (w, h, d) => mesh(box(w, h, d), gm);
+  try {
+    // peito em V, linha central e cinto de luz
+    attach(model, 'Torso', grp(line(0.24, 0.026, 0.02).rotateZ(0.55).translateX(0.08), line(0.24, 0.026, 0.02).rotateZ(-0.55).translateX(-0.08)), [0, 0.06, 0.135], k);
+    attach(model, 'Torso', line(0.024, 0.22, 0.02), [0, -0.06, 0.14], k);
+    attach(model, 'Torso', line(0.024, 0.3, 0.02), [0, 0.0, -0.13], k);
+    attach(model, 'Hips', line(0.34, 0.03, 0.26), [0, 0.06, 0], k);
+    // nós de luz nos ombros, cotovelos, joelhos e punhos
+    const dot = (r) => mesh(new THREE.SphereGeometry(r, 10, 8), gm);
+    for (const s of ['L', 'R']) { attach(model, 'UpperArm' + s, dot(0.04), [0, 0, 0], k); attach(model, 'LowerArm' + s, dot(0.035), [0, 0, 0], k); attach(model, 'LowerLeg' + s, dot(0.04), [0, 0, 0.05], k); attach(model, 'Palm' + s, dot(0.03), [0, 0, 0], k); }
+  } catch (e) { console.info('traje nano-metal parcial:', e && e.message); }
+}

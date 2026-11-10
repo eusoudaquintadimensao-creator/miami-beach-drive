@@ -2,10 +2,10 @@
 // Aperte E (ou 💬 Conversar) perto de alguém. Falas locais com contexto; alguns oferecem mini missões.
 import * as THREE from 'three';
 import { rng, pick, clamp, angDiff, canvasTex } from './util.js';
-import { walkable, isRoad, collide, surfaceY, LANDMARKS } from './world.js';
+import { walkable, isRoad, collide, surfaceY, LANDMARKS, inTrackZone } from './world.js';
 import { POIS } from './missions.js';
 import { RACHAS } from './rivals.js';
-import { PERS, GENERIC_PERS, REACT, FAVORS, OFFER_TXT, buildScript, periodOf } from './phrases.js';
+import { PERS, GENERIC_PERS, REACT, FAVORS, OFFER_TXT, BYE, THANKS, buildScript, periodOf } from './phrases.js';
 import { makeModel } from './avatar.js';
 import { HELIPAD } from './heli.js';
 import { SPECS, TUNABLE } from './vehicles.js';
@@ -49,7 +49,7 @@ export class Talk {
     for (const C of CAST.slice(0, n)) {
       let [x, z] = C.at || (() => { const L = LANDMARKS.find(l => l.id === C.lm); return L ? [L.x, L.z] : [300, 0]; })();
       [x, z] = freeSpot(x, z);
-      const T = { kind: 'talker', per: C.per, name: C.name, emoji: PERS[C.per].emoji, x, z, h: Math.random() * 6, h0: 0, favor: C.favor, mode: 'idle', t: 0 };
+      const T = { kind: 'talker', model: C.model, per: C.per, name: C.name, emoji: PERS[C.per].emoji, x, z, h: Math.random() * 6, h0: 0, favor: C.favor, mode: 'idle', t: 0 };
       try {
         const R = await makeModel(C.model, C.colors, C.h); T.rig = R; R.model.position.set(x, surfaceY(x, z), z); G.scene.add(R.model);
         R.acts.Idle.play(); R.acts.Idle.time = Math.random() * 3; R.mixer.update(0.01);
@@ -64,7 +64,8 @@ export class Talk {
     const A = G.hero && G.hero.def; const ela = G.hero && (G.hero.id === 'ela' || A && A.base === 'ela');
     return {
       period: periodOf(E.hour), weather: E.weather, night: E.night, g: ela ? 'a' : 'o', am: ela ? 'amiga' : 'amigo', qa: ela ? 'querida' : 'querido',
-      car: v ? { type: v.type, name: v.spec.name, tuned: !!v.tune, text: v.tune && v.tune.text, nitro: this.nitroT > 0, tunable: TUNABLE.includes(v.type) } : null,
+      jet: (G.jet && G.jet.recent > 0) || false, nearTrack: inTrackZone(p.x, p.z, 160),
+      car: v ? { type: v.type, race: !!v.spec.race, name: v.spec.name, tuned: !!v.tune, text: v.tune && v.tune.text, nitro: this.nitroT > 0, tunable: TUNABLE.includes(v.type) } : null,
       hero: A && A.hero ? { id: A.id, label: A.label, power: A.powerTxt } : null,
       mission: G.missions.active && G.missions.active.type, done: G.save.done, money: G.save.money, followers: G.save.followers,
     };
@@ -79,8 +80,9 @@ export class Talk {
   }
   whoOf(o) {
     if (o.kind === 'talker') return o;
-    if (!o.per) { o.per = GENERIC_PERS[o.i % GENERIC_PERS.length]; o.name = pick(this.r, PERS[o.per].names); }
-    return { kind: 'ped', ref: o, per: o.per, name: o.name, emoji: PERS[o.per].emoji, get x() { return o.x; }, get z() { return o.z; }, favor: this.r() < 0.35 };
+    // (o.per dos pedestres é o perímetro do quarteirão; a personalidade fica em o.pers)
+    if (!PERS[o.pers]) { o.pers = GENERIC_PERS[(o.i | 0) % GENERIC_PERS.length]; o.name = pick(this.r, PERS[o.pers].names); }
+    return { kind: 'ped', ref: o, per: o.pers, name: o.name, emoji: PERS[o.pers].emoji, get x() { return o.x; }, get z() { return o.z; }, favor: this.r() < 0.35 };
   }
   open(o) {
     const G = this.G; const W = this.whoOf(o); const c = this.ctx();
@@ -126,13 +128,13 @@ export class Talk {
     else if (o.f.kind === 'racha') { G.ui.waypoint = [o.race.start[0], o.race.start[1]]; G.setRoute(G.ui.waypoint); G.ui.toast(`🔥 GPS marcado: <b>${o.race.name}</b>`); }
     else if (o.f.kind === 'concha') { G.ui.waypoint = [o.shell.x, o.shell.z]; G.setRoute(G.ui.waypoint); G.ui.toast('🐚 Concha neon marcada no GPS'); }
     else if (o.f.kind === 'heli') { G.ui.waypoint = [HELIPAD.x, HELIPAD.z]; G.setRoute(G.ui.waypoint); G.ui.toast('🚁 GPS para o <b>Heliponto da Praia</b>'); }
-    G.ui.talkBubble(W, pick(this.r, ['Valeu demais! 💛', 'Você é demais! Obrigado(a)!', 'Combinado! Te espero!', 'Isso! Boa sorte! 🍀']).replace('Obrigado(a)', G.hero && G.hero.id === 'ela' ? 'Obrigada' : 'Obrigado'));
+    G.ui.talkBubble(W, pick(this.r, THANKS).replace('Obrigado(a)', G.hero && G.hero.id === 'ela' ? 'Obrigada' : 'Obrigado'));
     this.close(false, 1800); G.audio.chime('start');
   }
   close(now, delay = 0) {
     const C = this.cur; if (!C) return; $('talk').hidden = true; this.cur = null; this.cool = 0.6;
     if (C.W.kind === 'ped') { const p = C.W.ref; p.talking = false; if (p.mode === 'idle') p.t = 1.5; } else C.W.mode = 'idle';
-    if (!now && delay) setTimeout(() => this.G.ui.hideBubble(C.W), delay); else if (now) { this.G.ui.talkBubble(C.W, pick(this.r, ['Tchau! 👋', 'Até mais!', 'Boa, aproveita Solara! 🌴', 'Falou! 🤙', 'Volte sempre!'])); setTimeout(() => this.G.ui.hideBubble(C.W), 1400); }
+    if (!now && delay) setTimeout(() => this.G.ui.hideBubble(C.W), delay); else if (now) { this.G.ui.talkBubble(C.W, pick(this.r, BYE)); setTimeout(() => this.G.ui.hideBubble(C.W), 1400); }
   }
   get open_() { return !!this.cur; }
   update(dt, t, cam) {
@@ -147,22 +149,31 @@ export class Talk {
       const dc = Math.hypot(T.x - cam.position.x, T.z - cam.position.z); const vis = dc < 160; T.rig.model.visible = vis; T.icon.visible = vis && dc < 45 && !this.cur;
       if (!vis) continue;
       const dp = Math.hypot(T.x - p.x, T.z - p.z);
+      // passeia um pouco perto do seu ponto (para quando você chega perto ou está conversando)
+      if (!T.home) { T.home = [T.x, T.z]; T.wt = 3 + Math.random() * 8; }
+      const busy = dp < 7 || (this.cur && this.cur.W === T) || T.clap > 0; let walking = false;
+      if (!busy) {
+        if (T.walkTo) { const ex = T.walkTo[0] - T.x, ez = T.walkTo[1] - T.z, dd = Math.hypot(ex, ez); if (dd < 0.3) { T.walkTo = null; T.wt = 4 + Math.random() * 9; T.h0 = T.h; } else { const st = Math.min(dd, 1.15 * dt); T.x += ex / dd * st; T.z += ez / dd * st; T.h0 = Math.atan2(ex, ez); walking = true; const y = surfaceY(T.x, T.z); T.rig.model.position.set(T.x, y, T.z); T.icon.position.x = T.x; T.icon.position.z = T.z; } }
+        else if ((T.wt -= dt) <= 0) { T.wt = 2; const a = Math.random() * 6.283, rr = 1.5 + Math.random() * 4; const nx = T.home[0] + Math.cos(a) * rr, nz = T.home[1] + Math.sin(a) * rr; if (walkable(nx, nz) && !isRoad(nx, nz) && !collide({ x: nx, z: nz }, 0.6, false, 0.5)) T.walkTo = [nx, nz]; }
+      } else if (T.walkTo && dp < 7) { T.walkTo = null; T.wt = 6; }
+      if (!p.vehicle && dp < 3.6 && !this.cur && !T.greeted && G.started) { T.greeted = true; const v0 = pick(this.r, PERS[T.per].vibe); G.ui.pedBubble(T, v0.replace(/,$/, '!') + ' ' + (G.touch ? 'Toque em 💬 pra conversar' : 'Aperta E pra conversar')); } else if (dp > 16) T.greeted = false;
       const want = dp < 7 ? Math.atan2(p.x - T.x, p.z - T.z) : T.h0; T.h += angDiff(T.h, want) * Math.min(1, dt * 4); T.rig.model.rotation.y = T.h;
       T.icon.position.y = surfaceY(T.x, T.z) + 2.25 + Math.sin(t * 2.5 + T.x) * 0.06;
-      const A = T.rig.acts; let clip = 'Idle'; if (T.clap > 0) { T.clap -= dt; clip = 'Clapping'; }
+      const A = T.rig.acts; let clip = walking && A.Walk ? 'Walk' : 'Idle'; if (T.clap > 0) { T.clap -= dt; clip = 'Clapping'; }
       if (T.clip !== clip) { const a = A[clip] || A.Idle; a.reset().play(); if (T.clipA) T.clipA.crossFadeTo(a, 0.25, false); T.clipA = a; T.clip = clip; }
       if (dc < Q.animDist) T.rig.mixer.update(dt);
     }
     // reações ao nitro, ao carro tunado e ao helicóptero
-    if (v && this.reactCool <= 0) {
-      const kind = v.boosting ? 'nitro' : v.type === 'heli' && v.air && v.y - surfaceY(v.x, v.z) < 30 ? 'heli' : v.tune && v.speed < 14 ? 'tuned' : null;
+    const jetOn = !v && G.jet && G.jet.on && !p.grounded && p.y - surfaceY(p.x, p.z) < 25;
+    if ((v || jetOn) && this.reactCool <= 0) {
+      const kind = jetOn ? 'jet' : v.boosting ? 'nitro' : v.type === 'heli' && v.air && v.y - surfaceY(v.x, v.z) < 30 ? 'heli' : v.spec.race && v.speed < 16 ? 'race' : v.tune && v.speed < 14 ? 'tuned' : null;
       if (kind) {
-        const rad = kind === 'nitro' ? 30 : kind === 'heli' ? 35 : 13; let who = null, bd = rad;
-        for (const T of this.talkers) { const d = Math.hypot(T.x - v.x, T.z - v.z); if (d < bd) { bd = d; who = T; } }
-        if (!who) for (const c of G.crowd.peds) { if (c.mode === 'dodge' || c.mode === 'lie') continue; const d = Math.hypot(c.x - v.x, c.z - v.z); if (d < bd && d > 3) { bd = d; who = c; } }
+        const rad = kind === 'nitro' ? 30 : kind === 'heli' || kind === 'jet' ? 35 : 13; let who = null, bd = rad; const sx = v ? v.x : p.x, sz = v ? v.z : p.z;
+        for (const T of this.talkers) { const d = Math.hypot(T.x - sx, T.z - sz); if (d < bd) { bd = d; who = T; } }
+        if (!who) for (const c of G.crowd.peds) { if (c.mode === 'dodge' || c.mode === 'lie') continue; const d = Math.hypot(c.x - sx, c.z - sz); if (d < bd && d > 3) { bd = d; who = c; } }
         if (who) {
           this.reactCool = kind === 'tuned' ? 7 : 5; G.ui.pedBubble(who, pick(this.r, REACT[kind]));
-          if (who.kind === 'talker') who.clap = 2.5; else { who.mode = 'wave'; who.t = 1.8; who.h = Math.atan2(v.x - who.x, v.z - who.z); }
+          if (who.kind === 'talker') who.clap = 2.5; else { who.mode = 'wave'; who.t = 1.8; who.h = Math.atan2(sx - who.x, sz - who.z); }
         } else this.reactCool = 1;
       }
     }

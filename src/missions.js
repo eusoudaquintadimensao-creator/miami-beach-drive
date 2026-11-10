@@ -40,6 +40,8 @@ export class Missions {
       ...RACES.map(r => ({ type: 'corrida', race: r, name: r.name, x: r.start[0], z: r.start[1], icon: r.boat ? '🚤' : '🏁', col: '#29f0ff' })),
       ...RACHAS.map(r => ({ type: 'corrida', race: r, name: r.name, x: r.start[0], z: r.start[1], icon: '🔥', col: '#ff2bd6' })),
       { type: 'garagem', name: GARAGE.name, x: GARAGE.x, z: GARAGE.z, icon: '🔧', col: '#b45cff' },
+      { type: 'autodromo', name: 'Autódromo Neon (corrida com nitro e drift)', x: -860, z: -428, icon: '🏎️', col: '#ff2bd6' },
+      { type: 'autodromo', name: 'Ônibus da torcida → Autódromo Neon', x: 314, z: -240, icon: '🏎️', col: '#ff2bd6' },
     ];
     this.starts.push({ type: 'heliponto', name: HELIPAD.name, x: HELIPAD.x, z: HELIPAD.z, icon: '🚁', col: '#29f0ff', passive: true });
     for (const s of SPAWNS.taxiStands) this.starts.push({ type: 'taxiPonto', name: 'Ponto de Táxi', x: s.x, z: s.z, icon: '🚕', col: '#ffd60a', passive: true });
@@ -70,12 +72,14 @@ export class Missions {
   canStart(s) {
     const v = this.G.player.vehicle;
     if (s.type === 'garagem') return null;
+    if (s.type === 'autodromo') return v && (v.spec.boat || v.type === 'heli') ? 'Desça da lancha/helicóptero para ir ao autódromo' : null;
     if (s.type === 'corrida') { if (v && v.spec.heli) return 'Corridas são no chão: desça do helicóptero 🚁'; if (s.race.boat) return v && v.spec.boat ? null : 'Precisa estar numa lancha (tem na marina)'; return v && !v.spec.boat ? null : 'Entre num veículo para correr'; }
     return null;
   }
   start(s) {
     const G = this.G; const why = this.canStart(s); if (why) { G.ui.toast(why); return; }
     if (s.type === 'garagem') { G.garage.open(); return; }
+    if (s.type === 'autodromo') { G.race.openMenu(); return; }
     G.audio.chime('start');
     if (s.type === 'entrega') {
       const p = this.pickPOI(250);

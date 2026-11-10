@@ -45,6 +45,7 @@ export class AudioSys {
     return this.recDest.stream;
   }
   stopRecordStream() { if (this.recDest) { try { this.master.disconnect(this.recDest); } catch (e) { } } }
+  duck(d) { if (this.ok) this.duckUntil = this.ctx.currentTime + d; } // abaixa o rádio enquanto alguém fala
   setMuted(m) { this.muted = m; if (this.ok) this.master.gain.setTargetAtTime(m ? 0 : this.vol, this.ctx.currentTime, 0.05); }
   setStation(i, silent) {
     this.station = (i + STATIONS.length) % STATIONS.length; this.step = 0; this.bar = 0; this.seed = Math.floor(Math.random() * 1e6);
@@ -109,7 +110,7 @@ export class AudioSys {
   update(dt, st) {
     if (!this.ok) return; const c = this.ctx, t = c.currentTime;
     const want = st.inVehicle && STATIONS[this.station].bpm > 0;
-    this.music.gain.setTargetAtTime(want ? 0.55 : 0, t, 0.3); this.musicLP.frequency.setTargetAtTime(st.inVehicle ? 16000 : 900, t, 0.2);
+    this.music.gain.setTargetAtTime(want ? (t < (this.duckUntil || 0) ? 0.2 : 0.55) : 0, t, 0.3); this.musicLP.frequency.setTargetAtTime(st.inVehicle ? 16000 : 900, t, 0.2);
     if (want) this.schedule(); else this.nextT = t + 0.1;
     // motor
     const e = st.engine; const base = { sport: 52, classic: 38, suv: 40, sedan: 44, taxi: 44, moto: 60, boat: 34 }[e?.type] || 44;

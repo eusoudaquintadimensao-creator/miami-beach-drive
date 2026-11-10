@@ -68,6 +68,40 @@ const TIPS = [
   'Dica: no celular, app Clima e hora muda o tempo e o horário.',
   'Dica: o Mirante dos Glades é ótimo pra ver garças. Vai devagar que é pântano!',
 ];
+// autódromo, drift e nitro (quando você chega num carro de corrida ou perto da pista)
+const RACE = [
+  'Bora apostar um racha no Autódromo Neon? Lá é na pista, sem perigo pra ninguém!',
+  'Freia na entrada da curva e vira: a traseira sai de lado. Isso é drift!',
+  'Guarda o nitro pra reta principal. Na curva ele só te joga pra fora.',
+  'Dizem que a Luna Turbo tá invicta no autódromo. Será que você ganha dela?',
+  'Esse carro de corrida é lindo demais! Parece de videogame.',
+  'Que ronco desse motor! Dá pra ouvir lá da praia.',
+  'Quanto mais tempo de lado no drift, mais o nitro enche. Aproveita as curvas!',
+  'Fiquei sabendo que a curva do grampo no autódromo é traiçoeira. Entra devagar!',
+];
+// direções pela cidade (o morador ensina o caminho)
+const DIRS = [
+  'O Autódromo Neon fica no norte dos Glades. Segue a Estrada do Pântano que você chega!',
+  'Quer voar? O helicóptero fica no heliponto da praia. Ou chama ele pelo botão do helicóptero!',
+  'A Oficina Neon é onde a galera tuna os carros. Procura a chave inglesa no mapa.',
+  'Cansou? Vai pra sua casa descansar, trocar de carro e salvar o progresso.',
+  'A roda-gigante da baía fica linda à noite. Vale a pena passar lá!',
+  'Se perder, abre o mapa e marca o destino. O GPS te leva!',
+];
+// mochila a jato (você passou voando)
+const JET = [
+  'Você tava voando de mochila a jato?! Eu vi tudo!',
+  'Mochila a jato em Solara? Agora eu já vi de tudo!',
+  'Me empresta essa mochila voadora? Só uma voltinha!',
+  'Cuidado com os fios e as palmeiras lá em cima, hein!',
+];
+// sobre a sua casa
+const HOME = [
+  'Ouvi dizer que você tem uma casa linda, com garagem cheia de carro!',
+  'Sua casa tem piscina? Que chique!',
+];
+export const BYE = ['Tchau! 👋', 'Até mais!', 'Boa, aproveita Solara! 🌴', 'Falou! 🤙', 'Volte sempre!'];
+export const THANKS = ['Valeu demais! 💛', 'Você é demais! Obrigado(a)!', 'Combinado! Te espero!', 'Isso! Boa sorte! 🍀'];
 // falas próprias de cada personalidade
 const OWN = {
   surfista: ['O mar tá com umas ondinhas perfeitas hoje, brother 🌊', 'Já surfei no Píer da Praia ao amanhecer. Recomendo demais!', 'Prancha, protetor e paz. É disso que eu preciso.', 'Se vir uma prancha azul perdida, é minha 😅', 'Vida de surfista: acordar cedo e dormir com o barulho do mar.'],
@@ -87,6 +121,8 @@ export const REACT = {
   nitro: ['Uooou, que nitro! 🔥', 'Foi um foguete?!', 'Que barulho é esse?! 😱', 'Fogo no escapamento! Que lindo!', 'Devagar aí, Fast! 😂', 'VRUUUM! 🔥🔥'],
   tuned: ['Que carro tunado lindo! 😍', 'Olha esse neon embaixo do carro!', 'Que máquina! 🤩', 'Posso tirar uma foto do seu carro?', 'Esse aerofólio ficou demais!', 'Carro de cinema, hein!'],
   heli: ['Olha o helicóptero! 🚁', 'Que vento! Segura o chapéu!', 'Me leva junto! 😄', 'Tchau, piloto! 👋'],
+  jet: ['Olha! Uma pessoa voando! 😱', 'É um pássaro? É um avião? É mochila a jato!', 'Que demais, voa mais alto!', 'Uau, mochila a jato! 🚀'],
+  race: ['Que carro de corrida! 🏁', 'Olha o ronco desse motor!', 'Parece carro de videogame! 🤩'],
 };
 
 // mini missões oferecidas em conversa
@@ -128,10 +164,21 @@ export function buildScript(per, c, r, recent) {
   const lines = [];
   const g = choose(GREET[c.period]) || 'Oi!'; const v = pickA(r, P.vibe); lines.push(`${v} ${/,$/.test(v) ? g.charAt(0).toLowerCase() + g.slice(1) : g}`);
   const own = OWN[per] ? (typeof OWN[per] === 'function' ? OWN[per](c) : OWN[per]) : [];
-  const ctx = [choose(CAR), choose(MISSION), choose(WEATHER[c.weather] || WEATHER.limpo)].filter(Boolean);
+  const ctx = [c.jet ? choose(JET) : null, c.car && c.car.race || c.nearTrack ? choose(RACE) : null, choose(CAR), choose(MISSION), r() < 0.3 ? choose(HOME) : null, choose(WEATHER[c.weather] || WEATHER.limpo)].filter(Boolean);
   // prioridade: carro (se tem) > missão > clima
   if (c.hero && r() < 0.8) lines.push(choose(HERO_TALK)); else if (ctx.length) lines.push(ctx[0]);
   lines.push(choose(own) || choose(TIPS));
-  if (r() < 0.75) lines.push(r() < 0.5 && ctx[1] ? ctx[1] : choose(TIPS));
+  if (r() < 0.75) lines.push(r() < 0.5 && ctx[1] ? ctx[1] : r() < 0.5 ? choose(DIRS) : choose(TIPS));
   return lines.filter(Boolean).map(l => l.replace(/(\w)o\(a\)/g, (m, ch) => ch + (c.g === 'a' ? 'a' : 'o')));
+}
+
+// todas as falas fixas (para gerar as vozes gravadas). Funções são avaliadas com contextos de exemplo.
+export function voiceBank() {
+  const out = new Set(); const ctxs = ['o', 'a'].map(g => ({ g, am: g === 'a' ? 'amiga' : 'amigo', qa: g === 'a' ? 'querida' : 'querido', period: 'tarde', weather: 'limpo', car: null, mission: null, done: 1, followers: 0, money: 0 }));
+  const add = (x) => { for (const c of ctxs) { const t = typeof x === 'function' ? (() => { try { return x(c); } catch (e) { return null; } })() : x; if (t) out.add(t.replace(/(\w)o\(a\)/g, (m, ch) => ch + (c.g === 'a' ? 'a' : 'o'))); } };
+  const all = (a) => { if (typeof a === 'function') { for (const c of ctxs) for (const x of a(c)) add(x); } else for (const x of a) add(x); };
+  for (const k in GREET) all(GREET[k]); for (const k in WEATHER) all(WEATHER[k]); all(TIPS); for (const k in OWN) all(OWN[k]); for (const k in REACT) all(REACT[k]);
+  all(RACE); all(DIRS); all(JET); all(HOME); all(BYE); all(THANKS); all(MISSION.slice(0, 5));
+  for (const k in PERS) for (const v of PERS[k].vibe) add(v);
+  return [...out];
 }

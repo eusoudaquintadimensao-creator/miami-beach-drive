@@ -77,10 +77,14 @@ export const PIERS = [ // retângulos de píer (andáveis, bloqueiam barcos)
   { x0: 322, x1: 540, z0: -302, z1: -296, y: 0.9 }, // píer da praia
   { x0: -960, x1: -900, z0: -152, z1: -148, y: 0.4 }, // passarela dos glades
 ];
+// Autódromo Neon (pista de corrida) no norte dos Glades: sem árvores nem poças nessa área
+export const TRACK_ZONE = { x0: -1088, x1: -698, z0: -716, z1: -443 };
+export const inTrackZone = (x, z, m = 0) => x > TRACK_ZONE.x0 - m && x < TRACK_ZONE.x1 + m && z > TRACK_ZONE.z0 - m && z < TRACK_ZONE.z1 + m;
+export const HOOKS = { surf: null, map: [] }; // a pista registra aqui a aderência do asfalto e o desenho no mapa
 const POOLS = []; // poças do pântano (visual)
 {
   const r = rng(77);
-  for (let i = 0; i < 26; i++) POOLS.push({ x: -1060 + r() * 360, z: -650 + r() * 1300, r: 10 + r() * 28 });
+  for (let i = 0; i < 26; i++) { const p = { x: -1060 + r() * 360, z: -650 + r() * 1300, r: 10 + r() * 28 }; if (!inTrackZone(p.x, p.z, p.r + 4)) POOLS.push(p); }
 }
 export function onBridge(x, z) {
   for (const zz of [-450, 450]) if (Math.abs(z - zz) < RW + 2.2 && x > -262 && x < 32) return true;
@@ -102,7 +106,7 @@ export function isWaterDeep(x, z) { return groundY(x, z) < -1.2 && !onPier(x, z)
 export function walkable(x, z) { return x > BOUNDS.x0 + 5 && x < BOUNDS.x1 && z > BOUNDS.z0 && z < BOUNDS.z1 && groundY(x, z) > -0.45; }
 export function drivable(x, z) { return walkable(x, z) && groundY(x, z) > -0.3 && !onPier(x, z); }
 export function boatable(x, z) { return x > BOUNDS.x0 && x < BOUNDS.x1 + 300 && z > BOUNDS.z0 - 200 && z < BOUNDS.z1 + 200 && isWaterDeep(x, z) && !onBridge(x, z); }
-export function inSwamp(x, z) { for (const p of POOLS) if ((x - p.x) ** 2 + (z - p.z) ** 2 < p.r * p.r) return true; return false; }
+export function inSwamp(x, z) { if (inTrackZone(x, z)) return false; for (const p of POOLS) if ((x - p.x) ** 2 + (z - p.z) ** 2 < p.r * p.r) return true; return false; }
 export function roadAt(x, z) { // via mais próxima (para o GPS e nomes de rua)
   let best = null, bd = 1e9;
   for (const s of SEGS) {
@@ -118,13 +122,14 @@ export function districtName(x, z) {
   if (x > 25) return z > 560 ? 'Ponta Sul' : 'Solara Beach';
   if (x > -262) return 'Baía de Solara';
   if (x > -680) return 'Centro (Downtown)';
+  if (inTrackZone(x, z)) return 'Autódromo Neon';
   return 'Glades';
 }
 
 // ---------------------------------------------------------------- colisões
 const CELL = 40; const grid = new Map();
 export const BOXES = [];
-function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
+export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
   const b = { x0, z0, x1, z1, h, boatOnly }; BOXES.push(b);
   for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i++)
     for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j++) {
@@ -132,7 +137,7 @@ function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
     }
 }
 const circles = new Map();
-function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); a.push({ x, z, r }); }
+export function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); a.push({ x, z, r }); }
 // resolve círculo contra caixas; retorna normal do impacto (ou null)
 export function collide(pos, r, boat = false, y = 0) {
   let hit = null;
@@ -568,8 +573,8 @@ export function buildWorld(scene, Q) {
     addBox(-969, -154, -961, -146, 13);
     ch.misc.box(-700, 2, 30, 10, 4, 8, C(0x8a6a48)); ch.misc.box(-700, 4.4, 30, 11.5, 0.6, 9.5, C(0x4a6a3a)); addBox(-705, 26, -695, 34, 5);
     LANDMARKS.push({ id: 'glades', name: 'Mirante dos Glades', x: -935, z: -150, r: 20, look: [-1000, 3, -150] });
-    for (let i = 0; i < 260; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; if (Math.abs(z) < 12 || Math.abs(x + 860) < 10) continue; treePos.push([x, z]); }
-    for (let i = 0; i < 50; i++) palmPos.push([-1080 + R() * 400, -700 + R() * 1400, 0.6 + R() * 0.4]);
+    for (let i = 0; i < 260; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; if (Math.abs(z) < 12 || Math.abs(x + 860) < 10 || inTrackZone(x, z, 3)) continue; treePos.push([x, z]); }
+    for (let i = 0; i < 50; i++) { const pp = [-1080 + R() * 400, -700 + R() * 1400, 0.6 + R() * 0.4]; if (!inTrackZone(pp[0], pp[1], 3)) palmPos.push(pp); }
   }
   // poças e canais do pântano (água escura que reflete o céu)
   {
@@ -674,7 +679,7 @@ export function buildWorld(scene, Q) {
     const gt = canvasTex(128, 128, (g, w, h) => { g.clearRect(0, 0, w, h); const r = rng(3); for (let i = 0; i < 46; i++) { const x = r() * w, hh = h * (0.45 + r() * 0.55); g.strokeStyle = `rgb(${90 + r() * 60},${110 + r() * 60},${40 + r() * 30})`; g.lineWidth = 2 + r() * 2; g.beginPath(); g.moveTo(x, h); g.quadraticCurveTo(x + (r() - 0.5) * 20, h - hh * 0.6, x + (r() - 0.5) * 30, h - hh); g.stroke(); } }, { clamp: true });
     const gm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide, map: gt, alphaTest: 0.5 });
     const cnt = Q.level === 'low' ? 500 : 1600; const gmesh = new THREE.InstancedMesh(gb.geometry(), gm, cnt);
-    for (let i = 0; i < cnt; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; mtx.makeRotationY(R() * 6).premultiply(new THREE.Matrix4().makeScale(1 + R(), 0.6 + R() * 0.9, 1 + R())).setPosition(x, 0, z); gmesh.setMatrixAt(i, mtx); }
+    for (let i = 0; i < cnt; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; mtx.makeRotationY(R() * 6).premultiply(new THREE.Matrix4().makeScale(1 + R(), 0.6 + R() * 0.9, 1 + R())).setPosition(x, inTrackZone(x, z, 2) ? -60 : 0, z); gmesh.setMatrixAt(i, mtx); }
     scene.add(gmesh);
   }
   // ---- postes de luz
@@ -805,6 +810,7 @@ export function drawMap() {
   g.fillStyle = '#9a8f7c'; for (const b of BOXES) if (!b.boatOnly && b.h > 3) g.fillRect(X(b.x0), Z(b.z0), (b.x1 - b.x0) * MAPSCALE, (b.z1 - b.z0) * MAPSCALE);
   for (const s of SEGS) { g.strokeStyle = s.kind === 'rural' ? '#b8a27a' : '#f4f4f4'; g.lineWidth = s.w * 2 * MAPSCALE + 1; g.lineCap = 'square'; g.beginPath(); g.moveTo(X(s.a.x), Z(s.a.z)); g.lineTo(X(s.b.x), Z(s.b.z)); g.stroke(); }
   g.fillStyle = '#7a5a3a'; for (const p of PIERS) g.fillRect(X(p.x0), Z(p.z0), (p.x1 - p.x0) * MAPSCALE, Math.max(2, (p.z1 - p.z0) * MAPSCALE));
+  for (const f of HOOKS.map) f(g, X, Z);
   return { canvas: c, X, Z };
 }
 

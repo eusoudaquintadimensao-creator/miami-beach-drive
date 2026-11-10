@@ -14,7 +14,7 @@ export function canRecord(canvas) { return !!(window.MediaRecorder && canvas.cap
 export class Recorder {
   constructor(G, canvas, opts) {
     this.G = G; this.canvas = canvas; this.opts = opts; this.rec = null; this.chunks = []; this.blob = null; this.url = ''; this.t0 = 0; this.timer = 0;
-    this.maxSec = opts.touch ? 45 : 90;
+    this.maxSec = 120; // até 2 minutos por vídeo (para sozinho em 2:00)
     $('recStop').onclick = () => this.stop();
     $('rpSave').onclick = () => this.save();
     $('rpShare').onclick = () => this.share();
@@ -40,8 +40,8 @@ export class Recorder {
     // áudio do jogo (rádio, motor, ambiente)
     const at = G.audio.recordStream && G.audio.recordStream();
     if (at) for (const tr of at.getAudioTracks()) stream.addTrack(tr);
-    const vbr = this.opts.touch ? 2_500_000 : 5_000_000;
-    try { this.rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: vbr, audioBitsPerSecond: 128000 } : { videoBitsPerSecond: vbr }); }
+    const vbr = this.opts.touch ? 2_000_000 : 3_500_000; // ~30 MB (celular) / ~53 MB (computador) em 2 min
+    try { this.rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: vbr, audioBitsPerSecond: 96000 } : { videoBitsPerSecond: vbr }); }
     catch (e) { try { this.rec = new MediaRecorder(stream); } catch (e2) { this.opts.onState && this.opts.onState(false); G.ui.toast('A gravação não é suportada aqui.'); return false; } }
     this.type = this.rec.mimeType || type || 'video/webm'; this.chunks = []; this.stream = stream;
     this.rec.ondataavailable = (e) => { if (e.data && e.data.size) this.chunks.push(e.data); };
@@ -51,12 +51,15 @@ export class Recorder {
     this.t0 = performance.now();
     $('recBar').hidden = false; document.body.classList.add('recording');
     clearInterval(this.timer); this.timer = setInterval(() => this.tick(), 250); this.tick();
-    G.ui.toast(`🔴 Gravando! Máximo de ${this.maxSec}s · toque em ⏹ para parar`, 2500);
+    G.ui.toast(`🔴 Gravando! Até ${Math.floor(this.maxSec / 60)}:${String(this.maxSec % 60).padStart(2, '0')} · toque em ■ Parar quando quiser`, 2500);
     return true;
   }
   tick() {
     const s = (performance.now() - this.t0) / 1000; const m = Math.floor(s / 60), ss = Math.floor(s % 60);
-    $('recTime').textContent = `${m}:${String(ss).padStart(2, '0')} / ${Math.floor(this.maxSec / 60)}:${String(this.maxSec % 60).padStart(2, '0')}`;
+    const left = Math.max(0, Math.ceil(this.maxSec - s)); const end = left <= 10;
+    const tot = `${Math.floor(this.maxSec / 60)}:${String(this.maxSec % 60).padStart(2, '0')}`, cur = `${m}:${String(ss).padStart(2, '0')}`;
+    $('recTime').textContent = this.G.touch ? `${cur}/${tot}` + (end ? ` · ${left}s` : '') : `${cur} / ${tot}` + (end ? ` · acaba em ${left}s` : '');
+    $('recBar').classList.toggle('ending', end);
     if (s >= this.maxSec) { this.G.ui.toast('Tempo máximo de gravação atingido'); this.stop(); }
   }
   stop() {
@@ -102,8 +105,8 @@ export class Recorder {
         this.save(); this.msg('Seu navegador não envia o vídeo direto, então mandei o link e salvei o vídeo para você anexar. 📎'); return 'link';
       }
     } catch (e) { if (e && e.name === 'AbortError') { this.msg('Compartilhamento cancelado.'); return 'abort'; } }
+    this.save(); // primeiro salva (ainda dentro do toque do usuário), depois copia o link
     const ok = await copy(`${text} ${GAME_URL}`);
-    this.save();
     this.msg(`${ok ? '🔗 Link copiado! ' : ''}Este navegador não tem compartilhamento: o vídeo foi salvo para você enviar pelo app que quiser.`);
     return 'fallback';
   }

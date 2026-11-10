@@ -25,6 +25,7 @@ export function poseFor(mode, ph, amt) {
   if (mode === 'sit') return { legL: -1.5, legR: -1.5, armL: -0.5, armR: -0.5, lean: 0, yOff: -0.45, lie: 0 };
   if (mode === 'dodge') return { legL: -0.8, legR: 0.5, armL: -2.6, armR: -2.4, lean: -0.3, yOff: 0.05, lie: 0 };
   if (mode === 'wave') return { legL: 0, legR: 0, armL: 0, armR: -2.7 + Math.sin(ph * 8) * 0.35, lean: 0, yOff: 0, lie: 0 };
+  if (mode === 'phone') return { legL: 0.04, legR: -0.04, armL: 0.06, armR: -2.05, lean: 0.1, yOff: 0, lie: 0 }; // olhando o celular
   if (mode === 'jump') return { legL: -0.5, legR: 0.3, armL: -0.9, armR: -0.9, lean: 0, yOff: 0, lie: 0 };
   if (mode === 'drive') return { legL: -1.4, legR: -1.4, armL: -1.2, armR: -1.2, lean: 0, yOff: -0.45, lie: 0 };
   const s = Math.sin(ph) * amt;
@@ -53,7 +54,7 @@ export class Crowd {
   spawn(p, px, pz, minD, maxD) {
     const r = this.r; const cand = this.zones.filter(z => { const d = Math.hypot(z.cx - px, z.cz - pz); return d < maxD + 80; });
     const z = cand.length ? pick(r, cand) : pick(r, this.zones);
-    p.zone = z; p.mode = 'walk'; p.t = 0; p.dodgeT = 0;
+    p.zone = z; p.mode = 'walk'; p.t = 0; p.dodgeT = 0; p.act = r() < 0.32 ? 'phone' : null;
     if (z.kind === 'block') {
       const b = z.b; const o = 9 + (r() - 0.5) * 2.2;
       p.rect = [b.x0 + o, b.z0 + o, b.x1 - o, b.z1 - o]; const W = p.rect[2] - p.rect[0], H = p.rect[3] - p.rect[1]; p.per = 2 * (W + H);
@@ -108,6 +109,8 @@ export class Crowd {
         if (d < 0.5) { if (p.back) { p.back = false; p.mode = 'walk'; } else { p.mode = 'idle'; p.t = 1 + r() * 5; } }
         else { const nx = p.x + dx / d * p.speed * dt, nz = p.z + dz / d * p.speed * dt; if (walkable(nx, nz)) { p.x = nx; p.z = nz; } else { p.tx = p.x; p.tz = p.z; } p.h += angDiff(p.h, Math.atan2(dx, dz)) * Math.min(1, dt * 6); moving = 1; }
       } else if (p.mode === 'idle' || p.mode === 'wave') {
+        // repara em você: vira para olhar quando você passa a pé por perto (e às vezes acena)
+        p.looking = false; if (!pv && p.mode === 'idle') { const ex = px - p.x, ez = pz - p.z, dd = ex * ex + ez * ez; if (dd < 36) { p.looking = true; p.h += angDiff(p.h, Math.atan2(ex, ez)) * Math.min(1, dt * 3); if (!p.waved && dd < 16 && r() < dt * 0.4) { p.waved = true; p.mode = 'wave'; p.t = 1.6; } } else if (dd > 400) p.waved = false; }
         p.t -= dt; if (p.talking) p.t = Math.max(p.t, 1); if (p.t <= 0) { if (p.zone.kind === 'block' && p.rect) { this.nearestPer(p); const ox = p.x, oz = p.z; this.perPos(p); p.tx = p.x; p.tz = p.z; p.x = ox; p.z = oz; if (Math.hypot(p.tx - ox, p.tz - oz) > 0.6) { p.mode = 'wander'; p.back = true; } else p.mode = 'walk'; } else { p.mode = 'wander'; const z = p.zone; p.tx = clamp(p.x + (r() - 0.5) * 30, z.cx > 300 ? 326 : -1e9, z.cx > 300 ? 382 : 1e9); p.tz = p.z + (r() - 0.5) * 30; } }
       }
       p.ph += dt * (moving === 2 ? 11 : moving ? 6.5 : 0) * (p.speed > 0 ? 1 : 0);
@@ -124,7 +127,7 @@ export class Crowd {
     const camX = cam.position.x, camZ = cam.position.z;
     for (const p of this.peds) {
       const far = Math.abs(p.x - camX) > 180 || Math.abs(p.z - camZ) > 180;
-      const pose = poseFor(p.mode === 'line' ? 'walk' : p.mode === 'walk' || p.mode === 'wander' ? 'walk' : p.mode, p.ph, p.moving === 2 ? 0.9 : p.moving ? 0.55 : 0);
+      const pose = poseFor(p.mode === 'line' ? 'walk' : p.mode === 'walk' || p.mode === 'wander' ? 'walk' : p.mode === 'idle' && p.act === 'phone' && !p.looking ? 'phone' : p.mode, p.ph, p.moving === 2 ? 0.9 : p.moving ? 0.55 : 0);
       const y = far ? 0 : surfaceY(p.x, p.z);
       _e.set(pose.lie ? -Math.PI / 2 : pose.lean, p.h, 0, 'YXZ'); _q.setFromEuler(_e);
       _p.set(p.x, y + (pose.lie ? 0.14 : pose.yOff), p.z); _s.setScalar(far ? 0 : p.scale);
