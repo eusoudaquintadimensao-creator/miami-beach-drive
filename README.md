@@ -15,11 +15,12 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
 - mouse: girar a câmera (clique para travar)
 - Carros de corrida: S/Espaço numa curva rápida = drift · Shift/N = nitro · T = volta para a pista
 - J: mochila a jato (Espaço sobe, Q/Ctrl desce) · G: chamar o helicóptero · B: chamar o seu veículo
+- L: piscar o farol (desafia um rival da Liga da Madrugada, à noite)
 
 **Celular**
 - Joystick à esquerda; botões à direita (Entrar/Sair, Pular/Freio, Foto, Buzina, Iniciar, 🔥 Nitro)
 - Ícones no topo: celular, mapa, rádio, câmera e 🔴 gravar. Toque no mapa grande para marcar um destino com GPS.
-- Atalhos pequenos: 🏁 corrida, 🎒 mochila a jato, 🚁 chamar helicóptero, 🚘 chamar o seu veículo, 🏠 ir para casa (no carro de corrida, o botão 🌀 faz o drift)
+- Atalhos pequenos: 🏁 corrida, 🎒 mochila a jato, 🚁 chamar helicóptero, 🚘 chamar o seu veículo, 🏠 ir para casa, 💡 piscar o farol (no carro de corrida, o botão 🌀 faz o drift)
 
 ## O que tem
 
@@ -27,7 +28,19 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
   centro com arranha-céus de vidro; pontes sobre a baía; marina com iates; roda-gigante; Glades com pântano.
 - **Clima e luz:** ciclo dia/noite, pôr do sol, neon e reflexos à noite, chuva com raios, sombras, neblina e brilho (bloom).
 - **Veículos:** esportivo, clássico, SUV, sedã, táxi, moto e lancha, cada um com dirigibilidade própria.
-- **Vida na cidade:** pedestres andando, conversando e tomando sol; trânsito que segue as ruas e para nos semáforos.
+- **Vida na cidade:** cada morador tem uma rotina pelo relógio do jogo (casa, trabalho, café, almoço, praia, academia, bar, balada
+  e de volta para casa). Dá para ver gente sentada nas mesas, conversando em dupla, correndo, passeando com o cachorro, fazendo
+  compras (com sacola) e dançando. De noite a rua esvazia e quem sai vai para os bares e para a balada. Trânsito segue as ruas e para nos semáforos.
+- **Bares e restaurantes:** 14 lugares originais (Café Brisa, Sorveteria Coco Gelado, Bar Maré Alta, Restaurante Luar, Açaí do Píer,
+  Lanchonete Onda, Bar Neon Coral, cafés e bistrô no Centro, Pulso Beach Club, Academia da Praia…) com mesas, guarda-sóis,
+  varal de luzes e placa neon; cada um abre no seu horário e, a pé, você ouve a música da casa e o burburinho.
+- **Gaivotas:** bandos voam sobre a praia, pousam na areia e saem voando quando você chega perto.
+- **Presentes brilhantes:** 34 caixas espalhadas pelo mapa (aparecem no mapa como 🎁) dão poderes temporários: 🎒 Mochila Turbo,
+  🛹 Prancha Flutuante, 🪂 Planador, 🦘 Superpulo, 💪 Superforça (empurra carros do caminho com cuidado) e ⚡ Supercorrida.
+  Cada poder tem ícone e tempo no HUD; as caixas voltam depois de um tempo; o total fica salvo (3 mochilas liberam a turbo para sempre).
+- **Liga da Madrugada (rachas de rua):** das 19h às 5h, rivais esperam nos pontos 🏎️ do mapa. Chegue de carro e pisque o farol
+  (L ou 💡) para desafiar. Corrida pelas ruas de verdade com portões neon, seta e GPS; vitórias dão reputação, dinheiro,
+  pinturas novas e níveis de nitro. Ranking com 8 rivais e o chefão @rei.da.orla.
 - **Missões:** entregas com tempo, táxi, corridas (com medalhas e recorde), regata de lancha, pedidos de foto
   pelo app Vibez e 24 conchas neon escondidas. Dinheiro e seguidores como recompensa.
 - **Celular do jogo:** missões, mapa, rádio, clima/horário, feed Vibez, progresso, ajustes e ajuda.

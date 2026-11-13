@@ -39,3 +39,7 @@
 Os veículos de cada personagem (esportivo, motos, caminhonete e carros de corrida), seus letreiros e o “traje nano-metal”
 são geometria e texturas geradas por código neste projeto. Nomes, cores e desenhos são originais: nenhuma marca, logotipo,
 nome ou visual de personagens de terceiros.
+
+## Rotinas, bares, gaivotas, presentes e Liga da Madrugada
+- Tudo modelado em código (three.js) neste projeto: lugares, gaivotas, caixas de presente, prancha, planador, portões neon.
+  Nomes de lugares, rivais, rotas e da liga são originais. Sem marcas de terceiros.

@@ -86,6 +86,7 @@ export const TUNE_OPTS = {
   rims: [0xc8ccd0, 0x1a1a1a, 0xffd23f, 0xff2d55, 0x29f0ff, 0xff4fb8],
   styles: ['Faixas', 'Raio', 'Ondas'],
 };
+export const NITRO = { lvl: 0 }; // nível de nitro ganho na Liga da Madrugada (só o carro do jogador)
 export const TUNE_NAMES = ['SOLARA RUSH', 'NEON KINGS', 'BRISA TURBO', 'ONDA 88', 'LUAR GT', 'FAROL RACING', 'PULSO NOTURNO', 'TUCANO TURBO', 'MARÉ ALTA', 'VENTO SUL'];
 export const TUNABLE = ['sport', 'sedan', 'classic', 'suv', 'taxi', 'pickup'];
 export const RACE_CARS = ['rc_gt', 'rc_muscle', 'rc_jdm', 'rc_hyper'];
@@ -446,10 +447,10 @@ export class Vehicle {
     }
     // nitro (só carros tunados)
     this.boosting = !!(this.tune && inp.nitro && this.nitro > 0.02 && thr > 0.05 && vf > 1);
-    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / (sp.race ? 3.6 : 3)); else this.nitro = Math.min(1, this.nitro + dt * fill); }
+    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / ((sp.race ? 3.6 : 3) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
     // nitro de cinco camadas: segurando, sobe de estágio a cada 0,6 s (1 a 5), cada um mais forte
     if (this.boosting) { this.nStageT = (this.nStageT || 0) + dt; this.nStage = Math.min(5, 1 + Math.floor(this.nStageT / 0.6)); } else { this.nStageT = 0; this.nStage = 0; }
-    const boost = this.boosting ? 0.6 + this.nStage * 0.1 : 0; const max = sp.max * surf * (1 + boost * 0.32); const acc = sp.acc * (1 + boost * 1.4);
+    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const max = sp.max * surf * (1 + boost * 0.32); const acc = sp.acc * (1 + boost * 1.4);
     if (thr > 0.05) { if (vf < -0.5) vf = Math.min(0, vf + sp.brake * dt); else vf += acc * thr * Math.max(0, 1 - (vf / max) ** 2) * dt + boost * 4 * dt; }
     else if (thr < -0.05) { if (vf > 0.5) vf = Math.max(0, vf - sp.brake * -thr * dt); else vf = Math.max(-max * 0.3, vf - sp.acc * 0.6 * -thr * dt); }
     else { const c = (sp.boat ? 2.5 : 2.2) * dt; vf = Math.abs(vf) < c ? 0 : vf - Math.sign(vf) * c; }

@@ -152,6 +152,7 @@ export class UI {
       h = `<h3>⚙️ Ajustes</h3><div class="list">${[['auto', 'Gráficos: automático'], ['low', 'Gráficos: leve (celular)'], ['medium', 'Gráficos: médio'], ['high', 'Gráficos: alto']].map(([k, n]) => `<button data-a="q" data-v="${k}" class="${q === k ? 'sel' : ''}">${n}<span>${k === G.Q.level && q === 'auto' ? 'em uso: ' + G.Q.level : ''}</span></button>`).join('')}
         <button data-a="mute">Som<span>${G.audio.muted ? 'desligado' : 'ligado'}</span></button>
         <button data-a="sens">Sensibilidade da câmera<span>${G.save.sens.toFixed(1)}x</span></button>
+        <button data-a="shake">Tremor da câmera<span>${({ 0: 'desligado', 0.5: 'suave', 1: 'normal' }[G.save.shake] || (G.save.shake * 100 | 0) + '%')}</span></button>
         <button data-a="fps">Mostrar FPS<span>${G.showFps ? 'sim' : 'não'}</span></button>
         <button data-a="reset">Recomeçar do zero<span>⟲</span></button></div>`;
     } else if (p === 'ajuda') {
@@ -177,6 +178,7 @@ export class UI {
     else if (d.a === 'q') { G.save.quality = d.v; G.persist(); this.toast('Aplicando gráficos…'); setTimeout(() => location.reload(), 300); }
     else if (d.a === 'mute') { G.audio.setMuted(!G.audio.muted); G.save.muted = G.audio.muted; G.persist(); this.phonePage(page); }
     else if (d.a === 'sens') { G.save.sens = G.save.sens >= 2 ? 0.6 : Math.round((G.save.sens + 0.2) * 10) / 10; G.persist(); this.phonePage(page); }
+    else if (d.a === 'shake') { G.save.shake = G.save.shake >= 1 || G.save.shake == null ? 0.5 : G.save.shake >= 0.5 ? 0 : 1; G.persist(); this.phonePage(page); }
     else if (d.a === 'fps') { G.showFps = !G.showFps; this.phonePage(page); }
     else if (d.a === 'reset') { if (confirm('Apagar todo o progresso e recomeçar?')) { localStorage.removeItem(G.SAVE_KEY); location.reload(); } }
   }

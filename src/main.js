@@ -30,6 +30,10 @@ import { Home, HOME } from './home.js';
 import { Jetpack } from './jetpack.js';
 import { Voices } from './voice.js';
 import { callCar, updateCarCall, SIGNATURE } from './signature.js';
+import { buildLife } from './life.js';
+import { Birds } from './birds.js';
+import { Gifts } from './gifts.js';
+import { Street } from './street.js';
 
 const SAVE_KEY = 'mbd-solara-v1';
 const $ = (id) => document.getElementById(id);
@@ -39,7 +43,7 @@ initInstall({ toast: (t) => G.ui ? G.ui.toast(t, 4000) : null });
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
 // ---------------- progresso salvo
-const save = Object.assign({ money: 0, followers: 0, shells: [], photos: [], done: 0, best: {}, hour: 17.4, weather: 'limpo', station: 0, quality: 'auto', muted: false, sens: 1, pos: null, avatar: null }, (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); } catch (e) { return {}; } })());
+const save = Object.assign({ money: 0, followers: 0, shells: [], photos: [], done: 0, best: {}, hour: 17.4, weather: 'limpo', station: 0, quality: 'auto', muted: false, sens: 1, shake: 1, pos: null, avatar: null }, (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); } catch (e) { return {}; } })());
 
 // ---------------- qualidade
 function detectQuality() {
@@ -53,9 +57,9 @@ function detectQuality() {
   return 'medium';
 }
 const PRESETS = {
-  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 18, traffic: 9, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
-  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 40, traffic: 16, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
-  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 64, traffic: 22, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
+  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 30, traffic: 10, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
+  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 60, traffic: 17, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
+  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 92, traffic: 24, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
 };
 // celular/tablet: menos pixels, sombras menores, menos gente e carros, menos distância de desenho
 function forDevice(P) {
@@ -136,6 +140,7 @@ async function boot() {
   const status = (t) => { $('play').textContent = t; };
   status('Construindo a cidade…'); await nextFrame();
   G.world = buildWorld(scene, Q); G.helipad = buildHelipad(scene, Q); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
+  G.life = buildLife(G); G.birds = new Birds(G); G.gifts = new Gifts(G);
   status('Acendendo o neon…'); await nextFrame();
   G.env = createEnv(scene, renderer, Q); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
   setupComposer();
@@ -160,7 +165,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -263,6 +268,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyF') photo();
   if (e.code === 'KeyX' && G.started && !G.paused) G.powers.trigger();
   if (e.code === 'KeyH') horn();
+  if (e.code === 'KeyL' && G.started && !G.paused) G.street.flash();
   if (e.code === 'KeyR') G.radioSet(G.audio.station + 1);
   if (e.code === 'KeyM') { $('bigmap').hidden ? G.ui.openMap() : G.ui.closeMap(); }
   if (e.code === 'KeyP') { G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); }
@@ -283,7 +289,11 @@ addEventListener('mousemove', (e) => {
 // toque: joystick e olhar
 const stickEl = $('stick'), knob = $('knob'); let stickId = null, stickO = null; const looks = new Map();
 $('stickZone').addEventListener('pointerdown', (e) => { if (stickId !== null) return; stickId = e.pointerId; stickO = [e.clientX, e.clientY]; const zr = $('stickZone').getBoundingClientRect(); stickEl.style.left = (e.clientX - zr.left) + 'px'; stickEl.style.top = (e.clientY - zr.top) + 'px'; stickEl.style.opacity = 1; $('stickZone').setPointerCapture(e.pointerId); e.preventDefault(); });
-$('stickZone').addEventListener('pointermove', (e) => { if (e.pointerId !== stickId) return; let dx = e.clientX - stickO[0], dy = e.clientY - stickO[1]; const d = Math.hypot(dx, dy), R = 55; if (d > R) { dx *= R / d; dy *= R / d; } knob.style.transform = `translate(${dx}px,${dy}px)`; input.stick = [dx / R, -dy / R]; });
+$('stickZone').addEventListener('pointermove', (e) => { if (e.pointerId !== stickId) return; let dx = e.clientX - stickO[0], dy = e.clientY - stickO[1]; const d = Math.hypot(dx, dy), R = 55, DEAD = 0.14;
+  // zona morta RADIAL (input-systems): abaixo de 14% zera; depois reescala o círculo todo, para diagonal não ficar mais rápida
+  if (d < 1e-6 || d / R < DEAD) { input.stick = [0, 0]; knob.style.transform = ''; return; }
+  const t = (Math.min(d, R) / R - DEAD) / (1 - DEAD), nx = dx / d, ny = dy / d;
+  knob.style.transform = `translate(${nx * t * R}px,${ny * t * R}px)`; input.stick = [nx * t, -ny * t]; });
 const stickEnd = (e) => { if (e.pointerId !== stickId) return; stickId = null; input.stick = null; knob.style.transform = ''; stickEl.style.opacity = ''; stickEl.style.left = ''; stickEl.style.top = ''; };
 $('stickZone').addEventListener('pointerup', stickEnd); $('stickZone').addEventListener('pointercancel', stickEnd);
 canvas.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; looks.set(e.pointerId, [e.clientX, e.clientY]); });
@@ -357,7 +367,8 @@ function startNear() { if (!G.started || G.paused) return; const s = startableNe
 
 // ---------------- atualização do jogador
 const tmp = new THREE.Vector3();
-let shake = 0; G.shake = (v) => { shake = Math.max(shake, v); };
+let trauma = 0; G.shake = (v) => { trauma = Math.min(1, Math.max(trauma, v)); };
+G.shakeAmt = () => trauma; // testes
 function updatePlayer(dt) {
   const p = G.player, v = p.vehicle, hero = G.hero;
   let mx = 0, my = 0;
@@ -377,15 +388,17 @@ function updatePlayer(dt) {
     if (v.type === 'heli') {
       const down = nitro || keys.has('ControlLeft') || keys.has('KeyQ') || input.down; const up = hb || keys.has('KeyE') && false;
       const impact = v.drive(dt, { x: steer, y: fromStick ? (Math.abs(my) < 0.15 ? 0 : my) : thr, up, down });
-      if (impact > 3) { G.audio.thud(impact); shake = Math.min(0.5, impact * 0.03); }
+      if (impact > 3) { G.audio.thud(impact); G.shake(Math.min(0.6, impact * 0.05)); }
       p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; hero.pose('drive', 0, dt);
       G.engine = { type: 'heli', rpm: v.spool, thr: Math.abs(thr) }; G.skid = 0; return;
     }
-    const n = Math.ceil(dt / (1 / 60)); let impact = 0;
-    const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars, G.race.cars);
-    for (let i = 0; i < n; i++) impact = Math.max(impact, v.drive(dt / n, { x: steer, y: thr, hb, nitro }, others, G.t));
+    // passo fixo 1/60, no máximo 3 por quadro; depois de um hitch o resto é descartado (physics-tuning)
+    const F = 1 / 60; v._acc = (v._acc || 0) + dt; let impact = 0, n = 0;
+    const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars, G.race.cars, G.street.cars);
+    while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro }, others, G.t)); v._acc -= F; n++; }
+    if (n >= 3) v._acc = 0;
     if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
-    if (impact > 2.5) { G.audio.thud(impact); shake = Math.min(0.6, impact * 0.03); }
+    if (impact > 2.5) { G.audio.thud(impact); G.shake(Math.min(0.7, impact * 0.05)); }
     p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h;
     hero.pose(v.spec.boat ? 'idle' : 'drive', 0, dt);
     G.engine = { type: v.type, rpm: v.rpm, thr: Math.max(0, thr) };
@@ -398,7 +411,7 @@ function updatePlayer(dt) {
   const run = fromStick ? mag > 0.85 : keys.has('ShiftLeft') || keys.has('ShiftRight');
   const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw), rx = -fz, rz = fx;
   let dx = fx * my + rx * mx, dz = fz * my + rz * mx; const dl = Math.hypot(dx, dz);
-  const maxS = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0));
+  const maxS = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0)) * G.gifts.speedK();
   p.vx = p.vx || 0; p.vz = p.vz || 0;
   let tvx = 0, tvz = 0; if (dl > 0.05) { dx /= dl; dz /= dl; tvx = dx * maxS; tvz = dz * maxS; }
   // virada brusca correndo: freia um pouco antes de mudar de direção (inércia)
@@ -418,10 +431,13 @@ function updatePlayer(dt) {
   if (tryMove(p.x, nz)) p.z = nz; else { if (Math.abs(p.vz) > 0.3) blocked = { x: 0, z: -Math.sign(p.vz) }; p.vz = 0; }
   tmp.set(p.x, 0, p.z); const wall = collide(tmp, 0.35, false, p.y + 0.2); p.x = tmp.x; p.z = tmp.z;
   if (wall) { const vn = p.vx * wall.x + p.vz * wall.z; if (vn < 0) { p.vx -= vn * wall.x; p.vz -= vn * wall.z; } } // desliza rente à parede, sem atravessar
-  for (const o of G.vehicles.concat(G.traffic.cars, G.rivals.cars, G.race.cars)) { if (o.npc && !o.active) continue; for (const c of o.circles()) { const ex = p.x - c[0], ez = p.z - c[1], d = Math.hypot(ex, ez), rr = o.r + 0.35; if (d < rr && d > 1e-4) { p.x = c[0] + ex / d * rr; p.z = c[1] + ez / d * rr; } } }
+  for (const o of G.vehicles.concat(G.traffic.cars, G.rivals.cars, G.race.cars, G.street.cars)) { if (o.npc && !o.active) continue; for (const c of o.circles()) { const ex = p.x - c[0], ez = p.z - c[1], d = Math.hypot(ex, ez), rr = o.r + 0.35; if (d < rr && d > 1e-4) { if (G.gifts.push(o, ex / d, ez / d)) break; p.x = c[0] + ex / d * rr; p.z = c[1] + ez / d * rr; } } }
   const gy = supY(p.x, p.z)[0]; let jumped = false;
-  if ((keys.has('Space') || input.jump) && p.grounded && !G.talk.cur && !G.powers.fly && !G.powers.lev && !G.jet.on) { p.vy = 5.4; p.grounded = false; p.jumpT = 0; jumped = true; }
-  const fc = { keys, input, gy, dx, dz, dl, run, wall: wall || blocked, jumped }; const powered = G.jet.foot(dt, p, fc) || G.powers.foot(dt, p, fc);
+  // coyote time + buffer de pulo (~120 ms): um pulo um pouco atrasado ou antecipado ainda vale (input-systems)
+  if (p.grounded) p.coyote = 0.12; else p.coyote = Math.max(0, (p.coyote || 0) - dt);
+  if (keys.has('Space') || input.jump) p.jumpBuf = 0.12; else p.jumpBuf = Math.max(0, (p.jumpBuf || 0) - dt);
+  if (p.jumpBuf > 0 && (p.grounded || p.coyote > 0) && !G.talk.cur && !G.powers.fly && !G.powers.lev && !G.jet.on) { p.vy = G.gifts.jumpV(); p.grounded = false; p.coyote = 0; p.jumpBuf = 0; p.jumpT = 0; jumped = true; }
+  const fc = { keys, input, gy, dx, dz, dl, run, wall: wall || blocked, jumped }; const powered = G.gifts.foot(dt, p, fc) || G.jet.foot(dt, p, fc) || G.powers.foot(dt, p, fc);
   input.jump = false;
   if (powered) { /* o poder controla a altura */ }
   else if (p.grounded && gy > p.y + 0.02) { p.y = lerp(p.y, gy, Math.min(1, dt * 14)); if (gy - p.y < 0.02) p.y = gy; p.vy = 0; } // subindo degrau
@@ -432,10 +448,10 @@ function updatePlayer(dt) {
   p.jumpT = (p.jumpT || 0) + dt;
   hero.g.position.set(p.x, p.y, p.z); hero.g.rotation.y = p.h;
   hero.ph += dt * (speed > 5 ? 11 : 7.5) * (speed > 0.1 ? 1 : 0);
-  const ap = G.jet.airPose || G.powers.airPose; const sp2 = Math.hypot(p.vx, p.vz);
-  hero.g.rotation.x = lerp(hero.g.rotation.x, ap === 'fly' ? Math.min(1.1, sp2 * 0.045) : ap === 'dash' ? 0.25 : 0, Math.min(1, dt * 5));
+  const ap = G.gifts.airPose || G.jet.airPose || G.powers.airPose; const sp2 = Math.hypot(p.vx, p.vz);
+  hero.g.rotation.x = lerp(hero.g.rotation.x, ap === 'fly' || ap === 'glide' ? Math.min(1.1, sp2 * 0.045) : ap === 'board' ? Math.min(0.18, sp2 * 0.012) : ap === 'dash' ? 0.25 : 0, Math.min(1, dt * 5));
   if (ap === 'climb') hero.pose('walk', 0.6, dt);
-  else if (ap === 'fly' || ap === 'lev') hero.pose('idle', 0, dt);
+  else if (ap === 'fly' || ap === 'lev' || ap === 'board' || ap === 'glide') hero.pose('idle', 0, dt);
   else if (ap === 'dash') hero.pose('walk', 0.95, dt);
   else hero.pose(!p.grounded && p.jumpT < 1 ? 'jump' : speed > 0.3 ? 'walk' : 'idle', speed > 5.2 ? 0.95 : 0.6 * Math.min(1, speed / 4.2), dt);
 }
@@ -459,8 +475,11 @@ function updateCamera(dt, snap) {
   const floor = Math.max(surfaceY(cx, cz), WATER_Y) + 0.35; if (cy < floor) cy = floor;
   if (snap || !camInit) { camPos.set(cx, cy, cz); camInit = true; } else { const k = Math.min(1, dt * (v ? 10 : 14)); camPos.x = lerp(camPos.x, cx, k); camPos.y = lerp(camPos.y, cy, k); camPos.z = lerp(camPos.z, cz, k); }
   camera.position.copy(camPos);
-  if (v && v.boosting) shake = Math.max(shake, 0.06);
-  if (shake > 0) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake; shake = Math.max(0, shake - dt * 2); }
+  // tremor com trauma² (game-feel): pancadas leves quase não mexem, as fortes empurram; intensidade 0–1 em save.shake (acessibilidade)
+  if (v && v.boosting) trauma = Math.max(trauma, 0.22);
+  const sh = trauma * trauma * (save.shake == null ? 1 : save.shake);
+  if (sh > 0.0008) { const tt = G.t * 62; camera.position.x += Math.sin(tt * 1.71) * sh * 0.38; camera.position.y += Math.sin(tt * 2.27 + 1.1) * sh * 0.28; }
+  trauma = Math.max(0, trauma - dt * 2.4);
   camLook.set(fx + (v ? Math.sin(v.h) * 2 : 0), fy, fz + (v ? Math.cos(v.h) * 2 : 0)); camera.lookAt(camLook);
   const portrait = innerHeight > innerWidth; const baseF = portrait ? 72 : 60; const f = baseF + (v ? Math.min(14, v.speed * 0.28) + (v.boosting ? 9 : 0) : 0);
   if (Math.abs(camera.fov - f) > 0.05) { camera.fov = lerp(camera.fov, f, Math.min(1, dt * 3)); camera.updateProjectionMatrix(); }
@@ -512,7 +531,7 @@ function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)) || 0; last = now;
   if (!G.ready) return;
-  if (G.started && !G.paused) step(dt);
+  if (G.started && !G.paused) { const t0 = performance.now(); step(dt); recordStep(performance.now() - t0); }
   else if (G.started && G.raceMenu) { G.t += dt; G.race.frame(dt, camera); G.env.update(dt * 0.3, G.t, camera.position); G.world.setNight(G.env.night, G.env.wet); setVehicleLights(G.env.night); G.world.update(G.t, dt); G.track.update(dt, G.t, G.env.night, camera.position, []); }
   else if (G.started && G.homeIntro) { G.t += dt; G.home.frame(dt, camera); G.env.update(dt * 0.3, G.t, camera.position); G.world.setNight(G.env.night, G.env.wet); setVehicleLights(G.env.night); G.world.update(G.t, dt); G.home.update(dt, G.t, G.env.night, camera); for (const c of G.home.cars) if (c && c.v) c.v.sync(0); }
   else if (G.started && G.garageOpen) { G.t += dt; G.garage.frame(dt, camera); G.env.update(dt * 0.3, G.t, camera.position); G.world.setNight(G.env.night, G.env.wet); setVehicleLights(G.env.night); G.world.update(G.t, dt); const gv = G.player.vehicle; if (gv) gv.sync(0); }
@@ -526,13 +545,17 @@ function adapt() { // resolução dinâmica para manter fluido
   else if (fps > 57 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) setPR(pr + 0.05);
   if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low') { slowT++; if (slowT >= 6 && !sessionStorage.getItem('mbd-down')) { sessionStorage.setItem('mbd-down', '1'); G.ui.toast('Deixando os gráficos mais leves para ficar fluido…'); persist(); const nq = Q.level === 'high' ? 'medium' : 'low'; setTimeout(() => { location.search = '?q=' + nq; }, 900); } } else slowT = 0;
 }
+const stepMs = [];
+function recordStep(ms) { stepMs.push(ms); if (stepMs.length > 600) stepMs.shift(); }
+G.frameStats = () => { if (!stepMs.length) return { n: 0, avg: 0, p95: 0, p99: 0, max: 0 }; const a = stepMs.slice().sort((x, y) => x - y), n = a.length, sum = a.reduce((s, v) => s + v, 0); return { n, avg: +(sum / n).toFixed(2), p95: +a[Math.min(n - 1, Math.floor(n * 0.95))].toFixed(2), p99: +a[Math.min(n - 1, Math.floor(n * 0.99))].toFixed(2), max: +a[n - 1].toFixed(2) }; };
 function step(dt) {
   G.t += dt; const t = G.t;
   updatePlayer(dt);
   const honk = G.traffic.update(dt, t, G.player, G.crowd, Q);
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
-  const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars].filter(Boolean);
-  G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt));
+  const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
+  G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera);
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
   G.missions.update(dt, t);
@@ -550,7 +573,7 @@ function step(dt) {
   const v = G.player.vehicle;
   if (Q.level !== 'low' && v && !v.spec.boat && v.type !== 'heli' && G.env.night > 0.3) {
     if (!headlight) { headlight = new THREE.SpotLight(0xfff2d8, 0, 70, 0.55, 0.5, 1.2); scene.add(headlight, headlight.target); }
-    const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 60 * G.env.night;
+    const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 60 * G.env.night + (G.street && G.street.flashT > 0 ? 150 * Math.min(1, G.street.flashT * 4) : 0);
   } else if (headlight) headlight.intensity = 0;
   // esconde carros estacionados distantes
   for (const c of G.vehicles) c.root.visible = Math.hypot(c.x - camera.position.x, c.z - camera.position.z) < Q.viewHide;
@@ -560,7 +583,8 @@ function step(dt) {
   // áudio
   const p = G.player; const sea = Math.max(smooth(140, 10, Math.abs(p.x - 390)), p.x > -300 && p.x < 70 ? smooth(80, 0, Math.min(Math.abs(p.x + 260), Math.abs(p.x - 30))) * 0.6 : 0);
   const city = p.x > -680 && p.x < 330 ? 1 : 0.3;
-  G.audio.update(dt, { inVehicle: !!v, engine: G.engine, skid: G.skid, sea, city, rain: G.env.rain, boost: !!(v && v.boosting), heliFar: G.heliFar || 0 });
+  const vn = !v && G.life ? G.life.nearest(p.x, p.z, G.env.hour, 40) : null; G._venue = vn;
+  G.audio.update(dt, { venue: vn && { kind: vn.v.kind, d: vn.d }, chatter: vn ? Math.max(0, 1 - vn.d / 30) * (G.crowd.nearSit || 0.6) : 0, inVehicle: !!v, engine: G.engine, skid: G.skid, sea, city, rain: G.env.rain, boost: !!(v && v.boosting), heliFar: G.heliFar || 0 });
   if (G.env.flash > 0.95) G.audio.thunder();
   G.ui.frame(dt, camera); updatePrompts();
   saveT += dt; if (saveT > 8) { saveT = 0; persist(); }
@@ -631,7 +655,8 @@ $('qJet').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); 
 $('qHeli').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callHeli(); };
 $('qCar').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callCar(); };
 $('qHome').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.home.go(); };
-for (const id of ['qRace', 'qJet', 'qHeli', 'qCar', 'qHome']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
+$('qFlash').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.street.flash(); };
+for (const id of ['qRace', 'qJet', 'qHeli', 'qCar', 'qHome', 'qFlash']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
 addEventListener('visibilitychange', () => { if (document.hidden) { persist(); if (G.rec && G.rec.recording) G.rec.stop(); } });
 addEventListener('pagehide', persist);
 
@@ -647,8 +672,10 @@ window.MBD = {
   fpsHist,
   rec: () => G.rec, garage: () => G.garage, rivals: () => G.rivals, nitro: (on) => { input.nitro = !!on; },
   tuneCar: (t) => { const v = G.player.vehicle; if (v) G.replaceVehicle(v, t); },
-  sim(n, dt = 1 / 30) { for (let i = 0; i < n; i++) step(dt); }, // testes: avança a lógica sem desenhar
+  sim(n, dt = 1 / 30) { const t0 = performance.now(); for (let i = 0; i < n; i++) step(dt); recordStep((performance.now() - t0) / Math.max(1, n)); }, // testes: avança a lógica sem desenhar
+  frameStats: () => G.frameStats(),
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
+  life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
 

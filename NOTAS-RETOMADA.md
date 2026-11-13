@@ -94,3 +94,39 @@ tumblehome, splitter, difusor, número; física drift arcade p/ spec.race), SW v
 - Traje nano-metal: heroes.js nanoSuit (só no jogador: makeModel(...,suit=true) em Avatar.setAvatar): roupa metálica escura + linhas/nós de luz (SUIT_GLOW).
 - Corrigido: talk.whoOf usava ped.per (que é perímetro do quarteirão) -> erro 'emoji'; agora o.pers.
 - Teste: test/sig.js (W H q saída [ids]) -> screenshots sig-*-<id>.png, sig-*-nitro5.png, sig-*-chamar.png.
+
+### Publicado (21:50) — aa9fca3 em origin/main (aprovado pelo usuário t320u). Site ao vivo verificado: SW solara-v7-2026-11-09-veiculos-assinatura, 0 erros desk/celular.
+
+## Tarefa 5 (pt321u, 21:54) — base aa9fca3 (publicado). NÃO DAR PUSH (sem aprovação).
+Pedido: NPCs com rotina diária (relógio do jogo), corridas de rua noturnas (estilo próprio, sem marcas), mais pedestres/bares/
+restaurantes/movimento, gaivotas na praia, presentes com poderes (mochila turbo, prancha flutuante, planador, superpulo, superforça,
+supercorrida) com HUD/tempo/respawn/contador em 'mbd-presentes-v1', miniaturas do avatar com traje nano-metal, SW novo, testes.
+Plano: src/life.js (bares/restaurantes/balada/academia + agenda por persona), people.js (rotina, cachorros, sacolas, poses sentar/dançar/
+exercício/conversa), src/birds.js (gaivotas instanciadas), src/gifts.js (presentes + poderes), src/street.js (Liga da Madrugada:
+rivais à noite, pisca-farol L, rota com setas/portais, reputação 'mbd-ruas-v1', pinturas e nitro), vozes novas (ROUTINE/STREET em phrases.js).
+- 21:58 vozes novas gerando (bank.json 248 falas) -> /tmp/voz2.log
+- 22:40 vozes prontas (40 falas novas × 3 vozes, assets/voz). Módulos integrados no main.js:
+  * life.js: 14 lugares (7 quiosques no calçadão com mesas/guarda-sóis/varal de luz, 4 cafés/bistrô/bar nas praças do Centro, quiosque do parque,
+    balada Pulso Beach Club (pista de dança colorida), Academia da Praia). Horários por tipo (KINDS). G.life.nearest() -> música abafada a pé (audio venueSt) + burburinho.
+  * people.js: persona -> activity(h) -> spawn em assento/pista/aparelho/vitrine/dupla/cachorro; "casa" some (16% ainda na rua); LOD (>150 m atualiza 1/3);
+    quem muda de atividade perto da câmera vai embora andando (14–24 s). Q.peds low 30 / medium 60 / high 92 (celular ×0,75).
+  * birds.js: 6 bandos × 8 gaivotas (3 InstancedMesh), voa -> pousa -> espalha (<14 m), some >320 m. audio.gull().
+  * gifts.js: 34 presentes (6 tipos), respawn 150 s, HUD #giftHud, 'mbd-presentes-v1' {total,tipos,turbo}; 3 mochilas = turbo permanente.
+    Hooks no main: speedK() no maxS, jumpV() no pulo, foot() antes do jetpack, push() no laço de colisão a pé (superforça), airPose 'board'/'glide'.
+  * street.js: Liga da Madrugada (19h–5h), 4 rotas reais (ROUTES), 8 rivais (LEAGUE, nomes originais), L/💡 (#qFlash) pisca o farol (SpotLight +150),
+    portões neon + seta #stArrow + GPS, IA cinemática com elástico, resultado #stRes com ranking, pinturas (applyLivery) e NITRO.lvl (vehicles.js), 'mbd-ruas-v1'.
+  * Miniaturas: test/thumbs.js renderiza makeModel(id,null,null,true) -> assets/avatars/*.webp 192×256 (antigas em /tmp/thumbs-old).
+  * SW: solara-v8-2026-11-09-rotinas-ruas-presentes (+life/birds/gifts/street no CORE).
+  * Teste novo: test/vida.js (W H q saída; IOS=1) -> censo 8/13/18/22/3h, lugares, gaivotas+espalhar, 6 poderes, racha completo+pintura, draw calls low, 0 erros.
+
+### Tarefa 5 / Atualização A — pronto para publicar (13/11 19:10, ainda sem push até este ponto)
+- Skills gamedev: clone em /workspace/gamedev-skills (Apache-2.0), RESUMO-PT.md escrito. `npx skills add` instalou em /tmp/.agents (não no repo do jogo).
+  Aplicado no Solara Bay (sem copiar código Godot/Unity):
+  * física do carro em passo fixo 1/60, máx. 3 subtpassos (teste 30 vs 60 Hz: diferença 0 m em 2 s)
+  * zona morta radial no joystick; coyote + buffer de pulo 120 ms
+  * tremor de câmera com trauma² + ajuste “Tremor da câmera” (desligado/suave/normal)
+  * variação de pitch nos SFX; histerese de 21 min nas rotinas dos NPCs
+  * MBD.frameStats() (média/p95/p99 em ms); p95 CPU ~2–4 ms no teste headless
+- test/vida.js passou (0 erros, 0 falhas) em desktop 1280×720, iPhone 390×844 e Android paisagem 844×390.
+  Censo 3h < 13h, 14 lugares, 6 poderes, Liga completa, draw calls 210–267 (low). race.js desk também 0 erros.
+- SW: solara-v8-2026-11-09-rotinas-ruas-presentes. Chaves novas: mbd-presentes-v1, mbd-ruas-v1 (mbd-solara-v1 intocado).

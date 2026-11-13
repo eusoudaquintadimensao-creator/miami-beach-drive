@@ -100,6 +100,31 @@ const HOME = [
   'Ouvi dizer que você tem uma casa linda, com garagem cheia de carro!',
   'Sua casa tem piscina? Que chique!',
 ];
+// ---- rotina diária dos moradores (falas curtas ligadas ao que estão fazendo)
+export const ROUTINE = {
+  cafe: ['Nada como um cafezinho de manhã!', 'O pão de queijo daqui é o melhor da orla.'],
+  almoco: ['Hora do almoço, finalmente!', 'Vou pedir o prato do dia.'],
+  jantar: ['Jantar com vista pro mar, perfeito.', 'Esse lugar fica lindo à noite.'],
+  bar: ['Esse suco de maracujá tá geladinho!', 'Vim ver o pôr do sol com os amigos.'],
+  trabalho: ['Tô atrasado pro trabalho!', 'Reunião às nove, bora!'],
+  compras: ['Achei uma promoção ótima!', 'Mais uma sacola, não resisti.'],
+  praia: ['Dia perfeito pra pegar onda!', 'Passa o protetor, hein!'],
+  corrida: ['Mais cinco quilômetros e eu paro!', 'Correr na orla é outra coisa.'],
+  cachorro: ['O Bolinha adora passear na orla!', 'Calma, Pipoca, devagar!'],
+  academia: ['Hoje é dia de perna!', 'Mais uma série e acabou!'],
+  balada: ['Esse DJ é muito bom!', 'Bora dançar até amanhecer!'],
+  casa: ['Tô indo pra casa descansar.', 'Amanhã cedo tem mais.'],
+  passeio: ['Vim só dar uma volta e ver o movimento.', 'A cidade fica linda à noite.'],
+  caminhada: ['Caminhada leve pra começar o dia.'],
+};
+// ---- liga de corridas de rua (madrugada)
+export const STREET = {
+  challenge: ['Piscou o farol pra mim? Então bora correr!', 'Acha que me alcança? Segue as setas!', 'Corrida até o fim da rota, valendo reputação!', 'Tô pronto. Vai ser na madrugada mesmo!'],
+  win: ['Caramba, você voa! Respeito.', 'Perdi essa, mas quero revanche!', 'Mandou bem demais, a liga vai saber disso.'],
+  lose: ['Hoje não foi seu dia. Treina mais!', 'Cheguei primeiro! Tenta de novo.', 'Quase, hein! Volta quando tiver mais nitro.'],
+  locked: ['Volta quando tiver mais reputação na liga.'],
+  idle: ['A liga só corre de madrugada.', 'Pisca o farol se tiver coragem.'],
+};
 export const BYE = ['Tchau! 👋', 'Até mais!', 'Boa, aproveita Solara! 🌴', 'Falou! 🤙', 'Volte sempre!'];
 export const THANKS = ['Valeu demais! 💛', 'Você é demais! Obrigado(a)!', 'Combinado! Te espero!', 'Isso! Boa sorte! 🍀'];
 // falas próprias de cada personalidade
@@ -179,6 +204,7 @@ export function voiceBank() {
   const all = (a) => { if (typeof a === 'function') { for (const c of ctxs) for (const x of a(c)) add(x); } else for (const x of a) add(x); };
   for (const k in GREET) all(GREET[k]); for (const k in WEATHER) all(WEATHER[k]); all(TIPS); for (const k in OWN) all(OWN[k]); for (const k in REACT) all(REACT[k]);
   all(RACE); all(DIRS); all(JET); all(HOME); all(BYE); all(THANKS); all(MISSION.slice(0, 5));
+  for (const k in ROUTINE) all(ROUTINE[k]); for (const k in STREET) all(STREET[k]);
   for (const k in PERS) for (const v of PERS[k].vibe) add(v);
   return [...out];
 }

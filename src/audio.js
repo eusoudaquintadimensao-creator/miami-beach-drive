@@ -33,7 +33,7 @@ export class AudioSys {
     this.eng.connect(this.engF); this.eng2.connect(this.engF); this.engF.connect(this.engG); this.engG.connect(comp); this.eng.start(); this.eng2.start();
     // ambiente: mar, vento/cidade, chuva
     const mk = (type, f, q) => { const s = c.createBufferSource(); s.buffer = nb; s.loop = true; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = c.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(comp); s.start(); return { g, fl }; };
-    this.sea = mk('lowpass', 500, 0.5); this.city = mk('bandpass', 900, 0.4); this.rainA = mk('highpass', 2500, 0.3); this.skid = mk('bandpass', 1800, 6); this.boostN = mk('bandpass', 700, 0.9);
+    this.sea = mk('lowpass', 500, 0.5); this.city = mk('bandpass', 900, 0.4); this.rainA = mk('highpass', 2500, 0.3); this.skid = mk('bandpass', 1800, 6); this.boostN = mk('bandpass', 700, 0.9); this.chat = mk('bandpass', 1050, 1.4);
     this.nextT = 0; this.step = 0; this.bar = 0; this.seed = 1;
     this.setStation(this.station, true);
   }
@@ -73,7 +73,7 @@ export class AudioSys {
   }
   kick(t, g = 0.9) { const c = this.ctx; const o = c.createOscillator(); const v = c.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); v.gain.setValueAtTime(g, t); v.gain.exponentialRampToValueAtTime(0.001, t + 0.35); o.connect(v); v.connect(this.dry); o.start(t); o.stop(t + 0.4); }
   schedule() {
-    const c = this.ctx; const st = STATIONS[this.station]; if (!st.bpm) return;
+    const c = this.ctx; const st = STATIONS[this.venueSt ?? this.station]; if (!st.bpm) return;
     const s16 = 60 / st.bpm / 4;
     while (this.nextT < c.currentTime + 0.2) {
       const t = this.nextT, i = this.step % 16, bar = Math.floor(this.step / 16), S = this.song;
@@ -109,8 +109,13 @@ export class AudioSys {
   }
   update(dt, st) {
     if (!this.ok) return; const c = this.ctx, t = c.currentTime;
-    const want = st.inVehicle && STATIONS[this.station].bpm > 0;
-    this.music.gain.setTargetAtTime(want ? (t < (this.duckUntil || 0) ? 0.2 : 0.55) : 0, t, 0.3); this.musicLP.frequency.setTargetAtTime(st.inVehicle ? 16000 : 900, t, 0.2);
+    // a pé perto de um bar/restaurante/balada aberto: a música da casa toca abafada (some com a distância)
+    const ven = !st.inVehicle && st.venue ? st.venue : null; const vk = ven ? Math.max(0, Math.min(1, 1 - ven.d / 40)) : 0;
+    const vst = ven ? (ven.kind === 'balada' || ven.kind === 'bar' ? 0 : ven.kind === 'cafe' || ven.kind === 'sorveteria' || ven.kind === 'academia' ? 2 : 1) : null;
+    if (vst !== (this.venueSt ?? null) && !st.inVehicle) this.venueSt = vst; if (st.inVehicle) this.venueSt = null;
+    const want = (st.inVehicle && STATIONS[this.station].bpm > 0) || vk > 0.02;
+    this.music.gain.setTargetAtTime(st.inVehicle ? (want ? (t < (this.duckUntil || 0) ? 0.2 : 0.55) : 0) : vk * (ven && ven.kind === 'balada' ? 0.42 : 0.26), t, 0.3); this.musicLP.frequency.setTargetAtTime(st.inVehicle ? 16000 : 600 + vk * 1600, t, 0.2);
+    this.chat.g.gain.setTargetAtTime(Math.max(0, Math.min(1, st.chatter || 0)) * (0.02 + 0.012 * Math.sin(t * 2.3) * Math.sin(t * 0.7)), t, 0.3);
     if (want) this.schedule(); else this.nextT = t + 0.1;
     // motor
     const e = st.engine; const base = { sport: 52, classic: 38, suv: 40, sedan: 44, taxi: 44, moto: 60, boat: 34 }[e?.type] || 44;
@@ -130,14 +135,18 @@ export class AudioSys {
     this.sea.g.gain.setTargetAtTime(st.sea * (0.12 + 0.06 * Math.sin(t * 0.4)), t, 0.5);
     this.city.g.gain.setTargetAtTime(st.city * 0.025, t, 0.5); this.rainA.g.gain.setTargetAtTime(st.rain * 0.09, t, 0.5);
   }
-  nitro() { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.5, 0.35, 'bandpass', 1400, this.bus); this.tone(t, 90, 0.4, 'sawtooth', 0.05, this.bus, 0.01, 0.2); }
-  horn() { if (!this.ok) return; const t = this.ctx.currentTime; this.tone(t, 370, 0.35, 'square', 0.06, this.bus, 0.01, 0.05); this.tone(t, 466, 0.35, 'square', 0.05, this.bus, 0.01, 0.05); }
-  far_horn(vol = 0.3) { if (!this.ok) return; const t = this.ctx.currentTime; this.tone(t, 330, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); this.tone(t + 0.3, 330, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); }
+  nitro() { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.5, 0.3 + Math.random() * 0.1, 'bandpass', 1200 + Math.random() * 400, this.bus); this.tone(t, 80 + Math.random() * 25, 0.4, 'sawtooth', 0.05, this.bus, 0.01, 0.2); }
+  horn() { if (!this.ok) return; const t = this.ctx.currentTime, d = (Math.random() - 0.5) * 28, g = 0.85 + Math.random() * 0.3; this.tone(t, 370 + d, 0.35, 'square', 0.06 * g, this.bus, 0.01, 0.05); this.tone(t, 466 + d, 0.35, 'square', 0.05 * g, this.bus, 0.01, 0.05); }
+  far_horn(vol = 0.3) { if (!this.ok) return; const t = this.ctx.currentTime, d = (Math.random() - 0.5) * 24; this.tone(t, 330 + d, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); this.tone(t + 0.28 + Math.random() * 0.06, 330 + d * 0.5, 0.25, 'square', 0.03 * vol, this.bus, 0.01, 0.05); }
+  // gaivotas: dois "quiá" curtos descendo de tom
+  gull() { if (!this.ok || this._gullT > this.ctx.currentTime) return; const c = this.ctx, t = c.currentTime; this._gullT = t + 1.2;
+    for (let k = 0; k < 2 + (Math.random() < 0.5 ? 1 : 0); k++) { const t0 = t + k * 0.22, o = c.createOscillator(), g = c.createGain(), f = 1500 + Math.random() * 400; o.type = 'triangle'; o.frequency.setValueAtTime(f, t0); o.frequency.exponentialRampToValueAtTime(f * 0.55, t0 + 0.17); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.035, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.19); o.connect(g); g.connect(this.bus); o.start(t0); o.stop(t0 + 0.21); } }
   thud(v) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.25, Math.min(0.6, v * 0.04), 'lowpass', 400, this.bus); }
   chime(kind = 'coin') {
     if (!this.ok) return; const t = this.ctx.currentTime;
     const seq = kind === 'win' ? [72, 76, 79, 84, 88] : kind === 'start' ? [67, 72, 76] : kind === 'photo' ? [96] : kind === 'fail' ? [64, 60, 55] : [84, 91];
-    seq.forEach((n, i) => this.tone(t + i * 0.09, NOTE(n), 0.12, kind === 'photo' ? 'square' : 'triangle', 0.12, this.bus, 0.002, 0.1));
+    // variação de pitch/volume (audio-design): o mesmo sino nunca sai idêntico duas vezes
+    seq.forEach((n, i) => this.tone(t + i * 0.09, NOTE(n) * (0.985 + Math.random() * 0.03), 0.12, kind === 'photo' ? 'square' : 'triangle', 0.1 + Math.random() * 0.05, this.bus, 0.002, 0.1));
     if (kind === 'photo') this.noise(t, 0.08, 0.3, 'highpass', 3000, this.bus);
   }
   thunder() { if (!this.ok) return; const t = this.ctx.currentTime + 0.6 + Math.random(); this.noise(t, 2.5, 0.5, 'lowpass', 160, this.bus); }
