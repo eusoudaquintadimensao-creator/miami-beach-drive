@@ -80,11 +80,14 @@ export const PIERS = [ // retângulos de píer (andáveis, bloqueiam barcos)
 // Autódromo Neon (pista de corrida) no norte dos Glades: sem árvores nem poças nessa área
 export const TRACK_ZONE = { x0: -1088, x1: -698, z0: -716, z1: -443 };
 export const inTrackZone = (x, z, m = 0) => x > TRACK_ZONE.x0 - m && x < TRACK_ZONE.x1 + m && z > TRACK_ZONE.z0 - m && z < TRACK_ZONE.z1 + m;
-export const HOOKS = { surf: null, map: [] }; // a pista registra aqui a aderência do asfalto e o desenho no mapa
+export const SERP_ZONE = { x0: -1040, x1: -280, z0: 575, z1: 900 };
+export const inSerpZone = (x, z, m = 0) => x > SERP_ZONE.x0 - m && x < SERP_ZONE.x1 + m && z > SERP_ZONE.z0 - m && z < SERP_ZONE.z1 + m;
+export const HOOKS = { surfs: [], map: [] }; // pistas registram aderência e desenho no mapa
+HOOKS.surf = (x, z) => { for (const f of HOOKS.surfs) { const r = f(x, z); if (r != null) return r; } return null; };
 const POOLS = []; // poças do pântano (visual)
 {
   const r = rng(77);
-  for (let i = 0; i < 26; i++) { const p = { x: -1060 + r() * 360, z: -650 + r() * 1300, r: 10 + r() * 28 }; if (!inTrackZone(p.x, p.z, p.r + 4)) POOLS.push(p); }
+  for (let i = 0; i < 26; i++) { const p = { x: -1060 + r() * 360, z: -650 + r() * 1300, r: 10 + r() * 28 }; if (!inTrackZone(p.x, p.z, p.r + 4) && !inSerpZone(p.x, p.z, p.r + 4)) POOLS.push(p); }
 }
 export function onBridge(x, z) {
   for (const zz of [-450, 450]) if (Math.abs(z - zz) < RW + 2.2 && x > -262 && x < 32) return true;
@@ -94,6 +97,7 @@ export function onPier(x, z) { for (const p of PIERS) if (x > p.x0 && x < p.x1 &
 function landBase(x, z) {
   if (x >= ISL.x0 && x < SHORE_X + 200 && z >= ISL.z0 && z <= ISL.z1) return true;
   if (x >= MAIN.x0 && x <= MAIN.x1 && z >= MAIN.z0 && z <= MAIN.z1) return true;
+  if (inSerpZone(x, z)) return true; // aterro do Circuito Serpentina, ao sul da Casa Solara
   return false;
 }
 export function groundY(x, z) {
@@ -118,6 +122,7 @@ export function roadAt(x, z) { // via mais próxima (para o GPS e nomes de rua)
   return { seg: best, d: bd };
 }
 export function districtName(x, z) {
+  if (inSerpZone(x, z) && z > 718) return 'Circuito Serpentina';
   if (x > 322) return 'Praia de Solara';
   if (x > 25) return z > 560 ? 'Ponta Sul' : 'Solara Beach';
   if (x > -262) return 'Baía de Solara';
@@ -322,6 +327,9 @@ export function buildWorld(scene, Q) {
   groundMesh(ISL.x0, ISL.z0, 332, ISL.z1, M.plaza, 24, -0.01);
   groundMesh(-680, MAIN.z0, MAIN.x1, MAIN.z1, M.plaza, 24, -0.01);
   groundMesh(MAIN.x0, MAIN.z0, -680, MAIN.z1, M.swamp, 30, -0.01);
+  // aterro visual do Circuito Serpentina (ao sul de MAIN.z1; a altura já vem de landBase)
+  groundMesh(SERP_ZONE.x0, MAIN.z1 - 4, -680, SERP_ZONE.z1, M.swamp, 30, -0.01);
+  groundMesh(-680, MAIN.z1 - 4, SERP_ZONE.x1, SERP_ZONE.z1, M.plaza, 24, -0.01);
   // praia inclinada
   {
     const b = new MeshBuilder(); const xs = [322, 330, 360, 390, 420, 480];
@@ -339,6 +347,10 @@ export function buildWorld(scene, Q) {
   sea.box(MAIN.x1 + 1, -1.5, 0, 2, 3, MAIN.z1 - MAIN.z0, wallC);
   sea.box((MAIN.x0 + MAIN.x1) / 2, -1.5, MAIN.z0 - 1, MAIN.x1 - MAIN.x0, 3, 2, wallC); sea.box((MAIN.x0 + MAIN.x1) / 2, -1.5, MAIN.z1 + 1, MAIN.x1 - MAIN.x0, 3, 2, wallC);
   sea.box(MAIN.x0 - 1, -1.5, 0, 2, 3, MAIN.z1 - MAIN.z0, wallC);
+  // mureta do aterro da Serpentina
+  sea.box((SERP_ZONE.x0 + SERP_ZONE.x1) / 2, -1.5, SERP_ZONE.z1 + 1, SERP_ZONE.x1 - SERP_ZONE.x0, 3, 2, wallC);
+  sea.box(SERP_ZONE.x1 + 1, -1.5, (MAIN.z1 + SERP_ZONE.z1) / 2, 2, 3, SERP_ZONE.z1 - MAIN.z1 + 4, wallC);
+  sea.box(SERP_ZONE.x0 - 1, -1.5, (MAIN.z1 + SERP_ZONE.z1) / 2, 2, 3, SERP_ZONE.z1 - MAIN.z1 + 4, wallC);
   // grade da mureta na baía
   for (let z = -700; z < 700; z += 3) { sea.box(-259, 0.5, z, 0.12, 1, 0.12, C(0xeeeeee)); sea.box(29, 0.5, z, 0.12, 1, 0.12, C(0xeeeeee)); }
   sea.box(-259, 1.0, 0, 0.18, 0.08, 1420, C(0xffffff)); sea.box(29, 1.0, 0, 0.18, 0.08, 1360, C(0xffffff));
@@ -573,8 +585,8 @@ export function buildWorld(scene, Q) {
     addBox(-969, -154, -961, -146, 13);
     ch.misc.box(-700, 2, 30, 10, 4, 8, C(0x8a6a48)); ch.misc.box(-700, 4.4, 30, 11.5, 0.6, 9.5, C(0x4a6a3a)); addBox(-705, 26, -695, 34, 5);
     LANDMARKS.push({ id: 'glades', name: 'Mirante dos Glades', x: -935, z: -150, r: 20, look: [-1000, 3, -150] });
-    for (let i = 0; i < 260; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; if (Math.abs(z) < 12 || Math.abs(x + 860) < 10 || inTrackZone(x, z, 3)) continue; treePos.push([x, z]); }
-    for (let i = 0; i < 50; i++) { const pp = [-1080 + R() * 400, -700 + R() * 1400, 0.6 + R() * 0.4]; if (!inTrackZone(pp[0], pp[1], 3)) palmPos.push(pp); }
+    for (let i = 0; i < 260; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; if (Math.abs(z) < 12 || Math.abs(x + 860) < 10 || inTrackZone(x, z, 3) || inSerpZone(x, z, 6)) continue; treePos.push([x, z]); }
+    for (let i = 0; i < 50; i++) { const pp = [-1080 + R() * 400, -700 + R() * 1400, 0.6 + R() * 0.4]; if (!inTrackZone(pp[0], pp[1], 3) && !inSerpZone(pp[0], pp[1], 6)) palmPos.push(pp); }
   }
   // poças e canais do pântano (água escura que reflete o céu)
   {
@@ -679,7 +691,7 @@ export function buildWorld(scene, Q) {
     const gt = canvasTex(128, 128, (g, w, h) => { g.clearRect(0, 0, w, h); const r = rng(3); for (let i = 0; i < 46; i++) { const x = r() * w, hh = h * (0.45 + r() * 0.55); g.strokeStyle = `rgb(${90 + r() * 60},${110 + r() * 60},${40 + r() * 30})`; g.lineWidth = 2 + r() * 2; g.beginPath(); g.moveTo(x, h); g.quadraticCurveTo(x + (r() - 0.5) * 20, h - hh * 0.6, x + (r() - 0.5) * 30, h - hh); g.stroke(); } }, { clamp: true });
     const gm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide, map: gt, alphaTest: 0.5 });
     const cnt = Q.level === 'low' ? 500 : 1600; const gmesh = new THREE.InstancedMesh(gb.geometry(), gm, cnt);
-    for (let i = 0; i < cnt; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; mtx.makeRotationY(R() * 6).premultiply(new THREE.Matrix4().makeScale(1 + R(), 0.6 + R() * 0.9, 1 + R())).setPosition(x, inTrackZone(x, z, 2) ? -60 : 0, z); gmesh.setMatrixAt(i, mtx); }
+    for (let i = 0; i < cnt; i++) { const x = -1080 + R() * 400, z = -700 + R() * 1400; mtx.makeRotationY(R() * 6).premultiply(new THREE.Matrix4().makeScale(1 + R(), 0.6 + R() * 0.9, 1 + R())).setPosition(x, (inTrackZone(x, z, 2) || inSerpZone(x, z, 6)) ? -60 : 0, z); gmesh.setMatrixAt(i, mtx); }
     scene.add(gmesh);
   }
   // ---- postes de luz

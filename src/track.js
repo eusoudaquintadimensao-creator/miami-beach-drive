@@ -49,7 +49,7 @@ export class Track {
     this.group = new THREE.Group(); scene.add(this.group);
     this.build(Q);
     // física: asfalto da pista tem aderência total (zebras e área de escape um pouco menos)
-    HOOKS.surf = (x, z) => { if (!inTrackZone(x, z, 4)) return null; const r = this.locate(x, z); if (!r) return null; const a = Math.abs(r.lat); return a <= D.halfW + D.curb ? 1 : a <= D.wall + 1 ? 0.9 : null; };
+    HOOKS.surfs.push((x, z) => { if (!inTrackZone(x, z, 4)) return null; const r = this.locate(x, z); if (!r) return null; const a = Math.abs(r.lat); return a <= D.halfW + D.curb ? 1 : a <= D.wall + 1 ? 0.9 : null; });
     HOOKS.map.push((g, X, Z) => {
       const k = X(1) - X(0); g.lineJoin = 'round';
       const path = () => { g.beginPath(); for (let i = 0; i <= N; i++) { const j = i % N; i ? g.lineTo(X(this.px[j]), Z(this.pz[j])) : g.moveTo(X(this.px[j]), Z(this.pz[j])); } g.closePath(); };

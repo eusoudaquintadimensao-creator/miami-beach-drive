@@ -16,11 +16,12 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
 - Carros de corrida: S/Espaço numa curva rápida = drift · Shift/N = nitro · T = volta para a pista
 - J: mochila a jato (Espaço sobe, Q/Ctrl desce) · G: chamar o helicóptero · B: chamar o seu veículo
 - L: piscar o farol (desafia um rival da Liga da Madrugada, à noite)
+- K: ir ao Circuito Serpentina (pista de drift ao lado da Casa Solara)
 
 **Celular**
 - Joystick à esquerda; botões à direita (Entrar/Sair, Pular/Freio, Foto, Buzina, Iniciar, 🔥 Nitro)
 - Ícones no topo: celular, mapa, rádio, câmera e 🔴 gravar. Toque no mapa grande para marcar um destino com GPS.
-- Atalhos pequenos: 🏁 corrida, 🎒 mochila a jato, 🚁 chamar helicóptero, 🚘 chamar o seu veículo, 🏠 ir para casa, 💡 piscar o farol (no carro de corrida, o botão 🌀 faz o drift)
+- Atalhos pequenos: 🏁 corrida, 🎒 mochila a jato, 🚁 chamar helicóptero, 🚘 chamar o seu veículo, 🏠 ir para casa, 🐍 Circuito Serpentina, 💡 piscar o farol (no carro de corrida, o botão 🌀 faz o drift)
 
 ## O que tem
 
@@ -63,6 +64,10 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
   melhor volta salva no aparelho, tela de chegada com compartilhar. Acesso pelo menu inicial, pelo ícone 🏎️ no mapa ou pelo atalho 🏁.
 - **Casa Solara:** sua casa à beira-mar (sul do Centro) com piscina e garagem com os seus carros (o tunado, o de corrida e a moto).
   Na porta: trocar de visual, salvar o progresso e passar o tempo. Apresentação curta na 1ª visita.
+- **Circuito Serpentina:** pista de drift de ~1,5 km a oeste e ao sul da Casa Solara, com curvas fechadas, muros neon, rivais que derrapam
+  (Lila Curva, Leo Fumaça, Nina Lateral, Rafa Serpente) e pontuação de sessão (recorde em `mbd-serpentina-v1`). Entrada pela Av. do Centro
+  (atalho 🐍 ou tecla K) ou pelo painel da casa. Ao lado da curva leste fica o **Bar da Curva** (aberto das 16h às 2h), com mesas, moradores
+  na rotina da cidade e espectadores que vêm à tarde e à noite e vão embora de madrugada.
 - **Mochila a jato e helicóptero:** voe pela cidade com a mochila (chama e fumaça) ou chame o helicóptero, que chega voando e pousa perto.
 - **Veículo de cada personagem:** cada personagem tem o seu, com cores e letreiro próprios — Luna: esportivo rosa “LUNA”;
   Davi: moto ciano “DAVI”; Teia Neon: moto verde-limão; Armadura Solar: hiper dourado nº 1; Colosso Verde: caminhonete;

@@ -119,7 +119,7 @@ rivais à noite, pisca-farol L, rota com setas/portais, reputação 'mbd-ruas-v1
   * SW: solara-v8-2026-11-09-rotinas-ruas-presentes (+life/birds/gifts/street no CORE).
   * Teste novo: test/vida.js (W H q saída; IOS=1) -> censo 8/13/18/22/3h, lugares, gaivotas+espalhar, 6 poderes, racha completo+pintura, draw calls low, 0 erros.
 
-### Tarefa 5 / Atualização A — pronto para publicar (13/11 19:10, ainda sem push até este ponto)
+### Tarefa 5 / Atualização A — PUBLICADA (13/11): dc001e1 em origin/main, SW solara-v8-2026-11-09-rotinas-ruas-presentes, verificado ao vivo (desk+iPhone, 0 erros).
 - Skills gamedev: clone em /workspace/gamedev-skills (Apache-2.0), RESUMO-PT.md escrito. `npx skills add` instalou em /tmp/.agents (não no repo do jogo).
   Aplicado no Solara Bay (sem copiar código Godot/Unity):
   * física do carro em passo fixo 1/60, máx. 3 subtpassos (teste 30 vs 60 Hz: diferença 0 m em 2 s)
@@ -130,3 +130,25 @@ rivais à noite, pisca-farol L, rota com setas/portais, reputação 'mbd-ruas-v1
 - test/vida.js passou (0 erros, 0 falhas) em desktop 1280×720, iPhone 390×844 e Android paisagem 844×390.
   Censo 3h < 13h, 14 lugares, 6 poderes, Liga completa, draw calls 210–267 (low). race.js desk também 0 erros.
 - SW: solara-v8-2026-11-09-rotinas-ruas-presentes. Chaves novas: mbd-presentes-v1, mbd-ruas-v1 (mbd-solara-v1 intocado).
+
+## Atualização B — Circuito Serpentina (13/11, noite)
+Pedido (t322u, publicar depois dos testes): pista estilo drift ao lado da Casa Solara, rivais com IA que derrapa, pontuação, bar/restaurante e espectadores com rotina própria. Nomes originais, leve no celular, SW novo, 0 erros, um push.
+
+### Feito
+- `src/serpentina.js`: Circuito Serpentina (~1549 m, Catmull-Rom, muros neon instanciados, arcos, pórtico "CIRCUITO SERPENTINA", faixa e zebras).
+  Rivais: Lila Curva, Leo Fumaça, Nina Lateral, Rafa Serpente (cinemáticos, ângulo de drift grande nas curvas, fumaça, evitam o jogador).
+  Sessão ao entrar de carro, HUD `#serpHud`, fecha após 6 s fora; recorde em `mbd-serpentina-v1` (mbd-solara-v1 intocado).
+  Bar da Curva (16h–2h) entra em VENUES/SPOTS do life.js (8 mesas); espectadores instanciados (10/16/22) com turno 11–23 e histerese.
+  Atalho 🐍 / tecla K / botão no painel da casa. Entrada em (-660, 600) na Av. do Centro. Pista não entra no quintal (HOME_ZONE).
+- `src/world.js`: SERP_ZONE + aterro visual (chão + mureta ao sul de MAIN.z1=720), `HOOKS.surfs[]` (track.js também passou a empilhar), distrito "Circuito Serpentina", árvores/capim fora da pista.
+- Skills aplicadas também aqui: geometria fundida + InstancedMesh (performance), histerese dos fãs, ocultar grupo >520 m, menos fãs no low, far=sessão ainda fecha.
+- SW: `solara-v9-2026-11-13-serpentina` (+ src/serpentina.js no CORE).
+- Teste `test/serp.js`: pista >800 m, 4 rivais andam e derrapam, bar, rotina dos fãs (15h/20h > 3h), recorde salvo, layout sem sobreposição, 0 erros.
+  Passou desk 1280×720, iPhone 390×844 e Android paisagem 844×390 (low). Draw calls ~66–68, p95 CPU ~3–4 ms (headless).
+  Fotos: screenshots/serp-{d,i,al}-{entrada,curva-ia,bar,hud}.png. Melhores: serp-d-entrada.png, serp-d-curva-ia.png, serp-d-bar.png, serp-d-hud.png.
+
+### Publicado
+- Testes verdes (desk, iPhone, Android paisagem, 0 erros). SW solara-v9-2026-11-13-serpentina.
+
+## Próximo (fila, só DEPOIS desta publicação verificada ao vivo)
+- Jogo separado cyberpunk em /workspace/jogo-cyberpunk (cópia com A+B), nome original, chaves/SW próprios, repo+Pages novos, um push após testes.

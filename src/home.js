@@ -136,12 +136,13 @@ export class Home {
     const h = G.env.hour; const night = h < 6 || h > 18.5;
     $('hsBody').innerHTML = `<h4>🧍 Visual</h4><div class="avPick inPhone">${G.avatarCards(G.save.avatar || 'ela')}</div>
       <h4>🚗 Garagem</h4><p class="rsInfo">Seus carros ficam nas vagas da garagem. Chegue perto e aperte ${G.touch ? '🚗' : '<b>E</b>'} para dirigir. O carro tunado muda na Oficina Neon e o de corrida no Autódromo.</p>
-      <div class="gAct hsAct"><button id="hsSave" class="go">💾 Salvar progresso</button><button id="hsTime">${night ? '☀️ Dormir até de manhã' : '🌙 Descansar até a noite'}</button><button id="hsRace">🏁 Ir para o Autódromo</button><button id="hsX">✕ Voltar ao jogo</button></div><div id="hsMsg"></div>`;
+      <div class="gAct hsAct"><button id="hsSave" class="go">💾 Salvar progresso</button><button id="hsTime">${night ? '☀️ Dormir até de manhã' : '🌙 Descansar até a noite'}</button><button id="hsRace">🏁 Ir para o Autódromo</button><button id="hsSerp">🐍 Circuito Serpentina</button><button id="hsX">✕ Voltar ao jogo</button></div><div id="hsMsg"></div>`;
     $('homeSel').hidden = false;
     $('hsBody').querySelectorAll('.avCard').forEach(b => b.onclick = () => { G.setAvatar(b.dataset.av); $('hsBody').querySelectorAll('.avCard').forEach(c => c.classList.toggle('sel', c === b)); G.audio.chime('coin'); });
     $('hsSave').onclick = () => { G.persist(); this.data.saved = Date.now(); this.save(); $('hsMsg').textContent = '✅ Progresso salvo neste aparelho!'; G.audio.chime('win'); };
     $('hsTime').onclick = () => { G.env.setTime(night ? 7.5 : 20.2); G.persist(); this.close(); G.ui.big(night ? 'BOM DIA ☀️' : 'BOA NOITE 🌙'); };
     $('hsRace').onclick = () => { this.close(); G.race.openMenu(); };
+    $('hsSerp').onclick = () => { this.close(); G.serp.go(); };
     $('hsX').onclick = () => this.close();
   }
   close() { $('homeSel').hidden = true; this.state = 'idle'; this.G.paused = false; }
