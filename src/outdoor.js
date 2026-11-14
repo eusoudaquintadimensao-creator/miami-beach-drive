@@ -35,7 +35,8 @@ export class Outdoor {
     const fP = [], fU = [], bP = [], posts = [];
     const quad = (P, U, cx, cy, cz, h, w, hh, k, back) => { const c = Math.cos(h), s = Math.sin(h); const pts = [[-w / 2, -hh / 2], [w / 2, -hh / 2], [w / 2, hh / 2], [-w / 2, hh / 2]]; const v = pts.map(([a, b]) => [cx + a * c * (back ? -1 : 1), cy + b, cz - a * s * (back ? -1 : 1)]);
       for (const i of [0, 1, 2, 0, 2, 3]) P.push(...v[i]); if (U) { const [u0, v0] = cell(k), du = 1 / COLS, dv = 1 / ROWS; const uv = [[u0, v0], [u0 + du, v0], [u0 + du, v0 + dv], [u0, v0 + dv]]; for (const i of [0, 1, 2, 0, 2, 3]) U.push(...uv[i]); } };
-    for (const [x0, z0, k] of BOARDS) { const sp = this.spot(x0, z0, 3.2); if (!sp) continue; const [x, z, h] = sp; const y = groundY(x, z); const off = 0.12;
+    const own = (k) => THEME.first === 'neon' ? (k === 0 ? 1 : k === 1 ? 0 : k) : k; // o 1º outdoor anuncia o próprio jogo
+    for (const [x0, z0, k0] of BOARDS) { const k = own(k0); const sp = this.spot(x0, z0, 3.2); if (!sp) continue; const [x, z, h] = sp; const y = groundY(x, z); const off = 0.12;
       // painel 12×6 a 5 m do chão, virado para a rua (normal = (sin h, cos h))
       const fx = Math.sin(h), fz = Math.cos(h);
       quad(fP, fU, x + fx * off, y + 8, z + fz * off, h, 12, 6, k, false);
