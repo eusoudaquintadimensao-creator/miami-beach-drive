@@ -1,5 +1,5 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v17-2026-11-14-ilhas';
+const VERSION = 'solara-v18-2026-11-14-garagem';
 const FAM = VERSION.replace(/v\d.*$/, ''); // só apaga caches antigos DESTE jogo (o domínio é dividido com outros apps/jogos)
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
