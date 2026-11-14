@@ -33,7 +33,8 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 - [x] E port Neon (Mega Garagem Prisma, 6d760fe) + test/t380.js (ONLY=mega) PASS d/i/il/al Solara
 - [x] E matriz completa 32/32 PASS (t380,t367,t361,t335 × d/i/il/al × 2 jogos; /workspace/t380/E-*.txt) → SW solara-v18-2026-11-14-garagem (04cc35e) / neon-dist-v10-2026-11-14-garagem (c3257c5) → push → site Cloudflare redeploy 13:50; live-drive OK nos 4 alvos (/workspace/t380/live-*.txt)
 - [x] G código: src/gpsosm.js + assets/osm/miami.json (694 KB) + LEIA-ME ODbL + tools/osm/; app 🧭 GPS Miami; t380 ONLY=gps PASS d/i/il/al nos 2 jogos (Solara 9c2f045, Neon b0136ec)
-- [ ] G matriz (logs /workspace/t380/G-*.txt, iniciada 14:01) → SW v19/v11 → push → site
+- [x] G matriz 32/32 PASS (/workspace/t380/G-*.txt) + t383 (Versões do jogo) t383 d/i/il/al + t380 d/i nos 2 jogos → SW solara-v19-gps/neon-dist-v11-gps → push → site. Hotfix link de versões no GitHub Pages (Neon apontava github.io/solara-bay/): t383 4 configs + t367 d PASS → SW solara-v20-2026-11-14-versoes (8333feb) / neon-dist-v12-2026-11-14-versoes (6966ccf) → push → site 14:33. Ao vivo: SW nos 4 alvos, versões e OSM ok, live-drive ok (/workspace/t380/liveG-*.txt)
+- [x] t383 SOLARA SKY 2088: seção #versoes no site (/workspace/solara-sky-site, commit local), SW solara-sky-v2, republicado e testado (versões d/i/l, site.js d PASS). Contadores não zerados.
 - [ ] F em andamento no worktree /workspace/solara-f (branch f-vida, ac8b125): beachlife.js (banhistas, vôlei, castelos, corredores, surfistas, nadadores, carrinhos, pipas; BEACH em world.js), peds 40/84/124, mapa completo com zoom/arrasto (#bmBtns). Falta: probe visual, carros (retrovisores/maçanetas), pedestres (sapatos/cabelo longo), teste t380 ONLY=vida, port Neon, matriz, publicar. Testar o worktree num servidor próprio (porta 8767).
 - [ ] F vida/realismo/praia/NPCs/mapa completo
 - [ ] G app GPS OpenStreetMap
