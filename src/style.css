@@ -538,6 +538,26 @@ body.ponteOn #area{visibility:hidden;opacity:0}
 #turnCue[hidden]{display:none}#turnCue i{font-style:normal;font-size:38px;line-height:1;color:#ffd23f}#turnCue b{font-size:20px;letter-spacing:1px}#turnCue small{font-size:13px;opacity:.85;margin-left:4px}
 #turnCue.near{border-color:#ff4fb8;box-shadow:0 0 22px rgba(255,79,184,.5);animation:tcp .5s infinite alternate}#turnCue.near i{color:#ff4fb8}
 @keyframes tcp{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.06)}}
-body.touch #turnCue{top:calc(var(--sat) + 236px);padding:6px 12px}body.touch #turnCue i{font-size:30px}body.touch #turnCue b{font-size:16px}
+body.touch #turnCue{top:calc(var(--sat) + 280px);padding:6px 12px}body.touch #turnCue i{font-size:30px}body.touch #turnCue b{font-size:16px}
 body.touch.land #turnCue{top:calc(var(--sat) + 130px)}
 body.touch #bAct small{white-space:normal;line-height:1.05;text-align:center}
+
+/* t335: diversão na ponte (moedas, missões) */
+#bfPop{position:absolute;left:50%;top:34%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:9}
+#bfPop .bfp{background:rgba(10,8,22,.72);border:1px solid rgba(255,210,63,.7);color:#fff;border-radius:12px;padding:4px 12px;font-size:15px;font-weight:700;white-space:nowrap;text-shadow:0 1px 3px #000;animation:bfup 1.5s ease-out forwards}
+#bfPop .bfp.big{font-size:18px;border-color:#ff4fb8;box-shadow:0 0 18px rgba(255,79,184,.45);animation-duration:2.6s}
+#bfPop .bfp b{color:#ffd23f}
+@keyframes bfup{0%{opacity:0;transform:translateY(10px) scale(.9)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+#bfZone{position:absolute;left:50%;top:calc(34% - 44px);transform:translateX(-50%);min-width:150px;text-align:center;background:rgba(10,8,22,.78);border:2px solid #ff4fb8;border-radius:12px;padding:4px 12px 8px;color:#fff;font-size:15px;pointer-events:none;z-index:9;overflow:hidden}
+#bfZone[hidden]{display:none}#bfZone i{position:absolute;left:0;bottom:0;height:4px;background:#ff4fb8}#bfZone.ok{border-color:#45ff9a}#bfZone.ok i{background:#45ff9a}
+body.touch #bfPop{top:44%}body.touch #bfZone{top:calc(44% - 40px)}body.touch #bfPop .bfp{font-size:13px}body.touch #bfPop .bfp.big{font-size:15px}
+body.touch.land #bfPop{top:40%}body.touch.land #bfZone{top:calc(40% - 38px)}
+
+/* t335: helicóptero — controles transparentes (mesmo esquema: joystick + ⤒/⤓) e painel de voo */
+body.heli.touch #stick{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.32)}
+body.heli.touch #bJump,body.heli.touch #bDown{background:rgba(10,14,24,.28)!important;backdrop-filter:none;opacity:.8;width:74px;height:74px}
+body.heli.touch #bJump:active,body.heli.touch #bDown:active{opacity:1;background:rgba(41,240,255,.28)!important}
+#heliHud{position:absolute;left:50%;bottom:calc(var(--sab) + 74px);transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:rgba(8,12,20,.42);border:1px solid rgba(41,240,255,.45);border-radius:12px;padding:4px 12px;color:#fff;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none;z-index:7}
+#heliHud[hidden]{display:none}#heliHud b{font-size:16px;color:#7dfcff}#heliHud .att{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.5);overflow:hidden;position:relative;background:#2a6bd1}
+#heliHud .att i{position:absolute;left:-50%;width:200%;height:100%;top:50%;background:#7a5a32;transform-origin:50% 0}
+body.touch #heliHud{bottom:auto;top:calc(var(--sat) + 120px);font-size:12px}body.touch.land #heliHud{top:auto;bottom:calc(var(--sab) + 10px)}

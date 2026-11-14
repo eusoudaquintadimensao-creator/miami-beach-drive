@@ -2,6 +2,7 @@
 // (luzes de navegação piscando e holofote à noite). Sem armas: é só passeio e vista.
 import * as THREE from 'three';
 import { clamp, lerp, angDiff, canvasTex } from './util.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { groundY, surfaceY, BOXES, PIERS, WATER_Y, BOUNDS } from './world.js';
 
 // colisão do helicóptero só com prédios (caixas) abaixo da altitude; palmeiras e postes ficam de fora
@@ -41,7 +42,7 @@ function coneMat() {
 const M = {};
 function mats() {
   if (M.ok) return M; M.ok = true;
-  M.glass = new THREE.MeshStandardMaterial({ color: 0x0c1a28, metalness: 0.7, roughness: 0.08, envMapIntensity: 1.4 });
+  M.glass = new THREE.MeshStandardMaterial({ color: 0x2a5876, metalness: 0.35, roughness: 0.06, envMapIntensity: 1.6 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x1b1d22, metalness: 0.5, roughness: 0.45 });
   M.metal = new THREE.MeshStandardMaterial({ color: 0xb8bcc4, metalness: 0.85, roughness: 0.3 });
   M.disc = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.0, depthWrite: false, side: THREE.DoubleSide });
@@ -57,28 +58,52 @@ export class Heli {
     this.root = new THREE.Group(); this.body = new THREE.Group(); this.root.add(this.body); scene.add(this.root);
     const paint = new THREE.MeshStandardMaterial({ color: this.color, metalness: 0.45, roughness: 0.32 }); this.paint = paint;
     const add = (geo, mat, x = 0, y = 0, z = 0, parent = this.body) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); parent.add(o); return o; };
-    add(new THREE.SphereGeometry(1, 22, 14).scale(1.2, 1.1, 2.15), paint, 0, 1.75, 0.2);
-    add(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.55).scale(1.08, 0.95, 1.5).rotateX(1.25), m.glass, 0, 1.95, 1.05);
-    add(new THREE.BoxGeometry(2.0, 0.16, 2.6), m.dark, 0, 0.82, 0.1);
-    const stripe = add(new THREE.BoxGeometry(2.46, 0.14, 3.2), new THREE.MeshStandardMaterial({ color: opts.stripe ?? 0xffffff, roughness: 0.4 }), 0, 1.45, -0.2);
-    add(new THREE.CylinderGeometry(0.34, 0.14, 5.4, 12).rotateX(Math.PI / 2), paint, 0, 2.0, -3.7);
-    add(new THREE.BoxGeometry(0.14, 1.5, 1.0).translate(0, 0.45, 0), paint, 0, 2.15, -6.25);
-    add(new THREE.BoxGeometry(1.8, 0.07, 0.5), paint, 0, 2.0, -5.6);
-    add(new THREE.CylinderGeometry(0.42, 0.55, 0.45, 12), m.dark, 0, 2.9, 0);
+    // modelo genérico de helicóptero leve (sem marca): cabine em gota com bolha de vidro, carenagem do motor, cone de
+    // cauda afinando, deriva + ventral, estabilizador com placas, esquis com travessas, rotor de 3 pás e rotor de cauda de 2.
+    // Peças estáticas mescladas por material (poucos draw calls por helicóptero).
+    const B = { paint: [], dark: [], metal: [], glass: [], stripe: [] };
+    const put = (k, g, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { if (rx) g.rotateX(rx); if (ry) g.rotateY(ry); if (rz) g.rotateZ(rz); g.translate(x, y, z); B[k].push(g.index ? g.toNonIndexed() : g); };
+    const lo = Q.level === 'low'; const seg = lo ? 14 : 22;
+    put('paint', new THREE.SphereGeometry(1, seg, lo ? 10 : 14).scale(1.12, 1.02, 1.95), 0, 1.68, 0.35);              // cabine
+    put('paint', new THREE.CylinderGeometry(0.34, 0.86, 2.3, seg).rotateX(Math.PI / 2), 0, 1.9, -2.15);                 // transição para a cauda
+    put('paint', new THREE.CylinderGeometry(0.15, 0.3, 4.9, lo ? 8 : 12).rotateX(Math.PI / 2), 0, 2.06, -5.35);          // cone de cauda
+    put('paint', new THREE.BoxGeometry(0.95, 0.55, 2.1), 0, 2.72, -0.55);                                                // carenagem do motor
+    put('paint', new THREE.SphereGeometry(0.5, 12, 8).scale(0.95, 0.55, 1.2), 0, 2.72, 0.5);                             // frente da carenagem
+    put('paint', new THREE.BoxGeometry(0.1, 1.55, 0.95), 0, 2.78, -7.55, -0.42);                                          // deriva vertical (enflechada)
+    put('paint', new THREE.BoxGeometry(0.08, 0.7, 0.5), 0, 1.72, -7.45, 0.35);                                            // ventral
+    put('paint', new THREE.BoxGeometry(2.1, 0.06, 0.48), 0, 2.08, -6.55);                                                 // estabilizador horizontal
+    for (const sx of [-1, 1]) put('paint', new THREE.BoxGeometry(0.05, 0.42, 0.42), sx * 1.05, 2.12, -6.55);              // placas de ponta
+    put('glass', new THREE.SphereGeometry(1, seg, 12, 0, Math.PI * 2, 0, Math.PI * 0.56).scale(1.06, 0.98, 1.42).rotateX(1.22), 0, 1.86, 1.0); // bolha
+    for (const sx of [-1, 1]) { put('glass', new THREE.BoxGeometry(0.04, 0.62, 0.95), sx * 1.06, 1.95, -0.25, 0, 0, sx * 0.12); // janelas traseiras
+      put('dark', new THREE.BoxGeometry(0.03, 1.0, 0.03), sx * 1.1, 1.62, 0.32, 0, 0, sx * 0.1); put('dark', new THREE.BoxGeometry(0.03, 1.0, 0.03), sx * 1.06, 1.62, -0.85, 0, 0, sx * 0.1); // linhas das portas
+      put('dark', new THREE.CylinderGeometry(0.06, 0.06, 0.25, 6).rotateZ(Math.PI / 2), sx * 0.5, 2.7, -1.62); }           // escapamentos
+    for (const sx of [-1, 1]) put('stripe', new THREE.BoxGeometry(0.04, 0.16, 2.6), sx * 1.1, 1.38, 0.05, 0, 0, sx * 0.05); // faixa lateral
+    put('stripe', new THREE.BoxGeometry(0.11, 0.5, 0.5), 0, 2.85, -7.75, -0.42);
+    put('dark', new THREE.BoxGeometry(1.8, 0.14, 2.5), 0, 0.78, 0.15);                                                    // barriga
+    put('dark', new THREE.CylinderGeometry(0.11, 0.14, 0.55, 10), 0, 3.12, 0);                                            // mastro
+    put('dark', new THREE.BoxGeometry(0.02, 0.5, 0.02), 0, 0.5, -1.2);                                                    // antena
     for (const sx of [-1, 1]) {
-      add(new THREE.CylinderGeometry(0.07, 0.07, 4.4, 8).rotateX(Math.PI / 2), m.metal, sx * 1.15, 0.1, 0.2);
-      for (const sz of [-0.9, 1.2]) add(new THREE.CylinderGeometry(0.05, 0.05, 0.85, 6).rotateZ(sx * 0.35), m.metal, sx * 0.98, 0.48, sz);
+      put('metal', new THREE.CylinderGeometry(0.065, 0.065, 4.3, 8).rotateX(Math.PI / 2), sx * 1.18, 0.07, 0.05);         // esqui
+      put('metal', new THREE.CylinderGeometry(0.065, 0.065, 0.6, 8).rotateX(Math.PI / 2 - 0.55), sx * 1.18, 0.22, 2.4);    // ponta virada
+      for (const sz of [-0.95, 1.15]) { put('metal', new THREE.CylinderGeometry(0.055, 0.055, 0.9, 6), sx * 1.06, 0.48, sz, 0, 0, sx * 0.32); }
     }
-    // rotor principal e de cauda
-    this.rotor = new THREE.Group(); this.rotor.position.set(0, 3.18, 0); this.body.add(this.rotor);
-    for (let i = 0; i < 4; i++) { const b = add(new THREE.BoxGeometry(0.3, 0.04, 5.5).translate(0, 0, 2.75), m.dark, 0, 0, 0, this.rotor); b.rotation.y = i * Math.PI / 2; }
-    this.disc = add(new THREE.CircleGeometry(5.7, 36).rotateX(-Math.PI / 2), m.disc.clone(), 0, 3.17, 0);
-    this.tail = new THREE.Group(); this.tail.position.set(0.18, 2.55, -6.25); this.body.add(this.tail);
-    for (let i = 0; i < 2; i++) { const b = add(new THREE.BoxGeometry(0.04, 1.4, 0.14), m.dark, 0, 0, 0, this.tail); b.rotation.x = i * Math.PI / 2; }
+    for (const sz of [-0.95, 1.15]) put('metal', new THREE.CylinderGeometry(0.05, 0.05, 1.95, 6).rotateZ(Math.PI / 2), 0, 0.88, sz); // travessas
+    const stripeM = new THREE.MeshStandardMaterial({ color: opts.stripe ?? 0xffffff, roughness: 0.4 });
+    const matOf = { paint, dark: m.dark, metal: m.metal, glass: m.glass, stripe: stripeM };
+    for (const k in B) { if (!B[k].length) continue; const geo = mergeGeometries(B[k].map(g => { for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal') g.deleteAttribute(a); return g; })); add(geo, matOf[k]); }
+    // rotor principal (3 pás + cubo) e de cauda (2 pás, no lado esquerdo do cone)
+    this.rotor = new THREE.Group(); this.rotor.position.set(0, 3.4, 0); this.body.add(this.rotor);
+    { const bl = []; for (let i = 0; i < 3; i++) { const g = new THREE.BoxGeometry(0.3, 0.045, 5.3).translate(0, 0, 2.95); g.rotateY(i * Math.PI * 2 / 3); bl.push(g.toNonIndexed()); } bl.push(new THREE.CylinderGeometry(0.28, 0.28, 0.16, 10).toNonIndexed());
+      for (const g of bl) for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal') g.deleteAttribute(a);
+      this.blades = add(mergeGeometries(bl), m.dark, 0, 0, 0, this.rotor); }
+    this.disc = add(new THREE.CircleGeometry(5.9, 36).rotateX(-Math.PI / 2), m.disc.clone(), 0, 3.39, 0);
+    this.tail = new THREE.Group(); this.tail.position.set(-0.22, 2.75, -7.62); this.body.add(this.tail);
+    { const tg = [new THREE.BoxGeometry(0.03, 1.5, 0.15), new THREE.BoxGeometry(0.03, 0.15, 1.5), new THREE.CylinderGeometry(0.09, 0.09, 0.12, 8).rotateZ(Math.PI / 2)].map(g => g.toNonIndexed()); for (const g of tg) for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal') g.deleteAttribute(a); add(mergeGeometries(tg), m.dark, 0, 0, 0, this.tail); }
+    this.tailDisc = add(new THREE.CircleGeometry(0.78, 20).rotateY(Math.PI / 2), m.disc.clone(), -0.24, 2.75, -7.62);
     // luzes de navegação: vermelha à esquerda, verde à direita, branca na cauda, farol vermelho no topo
     const dot = (mat, x, y, z, col, size) => { const d = add(new THREE.SphereGeometry(0.09, 8, 6), mat, x, y, z); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false })); s.scale.setScalar(size); d.add(s); return { d, s }; };
-    this.navL = dot(m.red, 1.25, 1.55, 0.4, 0xff3030, 2.2); this.navR = dot(m.green, -1.25, 1.55, 0.4, 0x30ff70, 2.2);
-    this.strobe = dot(m.white, 0, 2.95, -6.6, 0xffffff, 3.2); this.beacon = dot(m.beacon, 0, 0.7, -1.0, 0xff2020, 2.6); this.beacon2 = dot(m.beacon, 0, 3.0, -0.45, 0xff2020, 2.4);
+    this.navL = dot(m.red, 1.1, 2.12, -6.55, 0xff3030, 2.2); this.navR = dot(m.green, -1.1, 2.12, -6.55, 0x30ff70, 2.2);
+    this.strobe = dot(m.white, 0, 3.55, -7.95, 0xffffff, 3.2); this.beacon = dot(m.beacon, 0, 0.68, -0.6, 0xff2020, 2.6); this.beacon2 = dot(m.beacon, 0, 3.02, -1.45, 0xff2020, 2.4);
     // holofote: cone + mancha no chão (+ luz real só para o mais próximo, se a qualidade permitir)
     this.cone = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 1, 1, 24, 1, true).translate(0, -0.5, 0), coneMat()); this.cone.frustumCulled = false; this.cone.visible = false;
     scene.add(this.cone);
@@ -104,22 +129,38 @@ export class Heli {
   // pilotagem: inp.x gira, inp.y frente/ré, inp.up sobe, inp.down desce
   drive(dt, inp) {
     const piloted = !!this.driver; this.spool = clamp(this.spool + (piloted ? 0.55 : -0.35) * dt, 0, 1);
-    const lift = this.spool > 0.8; const fl = this.floor(this.x, this.z); const alt = this.y - fl;
-    const fwdIn = lift ? clamp(inp.y, -0.5, 1) : 0, yawIn = this.spool > 0.4 ? inp.x : 0, upIn = (inp.up ? 1 : 0) - (inp.down ? 1 : 0);
-    // inércia: velocidade horizontal persegue o alvo devagar (dá aquela "deriva" de helicóptero)
-    const [fx, fz] = this.fwd(); const tv = fwdIn * this.spec.max * (alt > 1.5 ? 1 : 0.15);
-    const k = 1 - Math.exp(-dt * (Math.abs(fwdIn) > 0.05 ? 0.75 : 0.45));
+    const lift = this.spool > 0.8; const fl = this.floor(this.x, this.z); const alt = this.y - fl; const airborne = alt > 0.6;
+    const fwdIn = lift ? clamp(inp.y, -0.6, 1) : 0, yawIn = this.spool > 0.4 ? clamp(inp.x, -1, 1) : 0, upIn = (inp.up ? 1 : 0) - (inp.down ? 1 : 0);
+    const [fx, fz] = this.fwd(); const rx = -fz, rz = fx; // frente e "direita" (+x local) no mundo
+    let lf = this.vx * fx + this.vz * fz, ls = this.vx * rx + this.vz * rz;
+    // cíclico: o manche define a ATITUDE (bico abaixa = acelera); sem comando, nivela sozinho e faz um flare suave até pairar
+    const assist = Math.abs(fwdIn) < 0.06;
+    const pitchT = !airborne ? 0 : assist ? clamp(lf * 0.012, -0.12, 0.2) : clamp(fwdIn > 0 ? -fwdIn * 0.36 : -fwdIn * 0.22, -0.36, 0.22);
+    this.cyc = this.cyc ?? 0; this.cyc += clamp(pitchT - this.cyc, -1.4 * dt, 1.4 * dt); // taxa de rolagem do disco (inércia)
+    const thrustF = airborne ? -this.cyc * 9.8 * 1.15 : (lift && fwdIn > 0.05 ? 0.6 : 0);
+    const drag = (v) => v * (0.03 + 0.0012 * Math.abs(v));
+    lf += (thrustF - drag(lf)) * dt;
+    // lateral: o helicóptero "carrega" a velocidade na curva (curva coordenada) e o deslize lateral morre devagar
+    const coord = Math.min(1, Math.abs(lf) / 12);
+    ls -= ls * Math.min(1, dt * (0.45 + 1.2 * coord));
+    if (!airborne) { lf *= Math.exp(-dt * 5); ls *= Math.exp(-dt * 5); }
+    // guinada com inércia (pedais): mais lenta em alta velocidade
+    this.yawRate += (-yawIn * (1.2 - Math.min(0.5, this.speed / 90)) - this.yawRate) * (1 - Math.exp(-dt * 2.6));
+    if (!lift && !airborne) this.yawRate *= Math.exp(-dt * 6);
+    const dh = this.yawRate * dt; this.h += dh;
+    // reprojeta a velocidade: parte acompanha o bico (curva coordenada), parte continua em linha reta (inércia)
+    const [nfx, nfz] = this.fwd(); const nrx = -nfz, nrz = nfx; const keep = 1 - coord * 0.85;
+    const wx = fx * lf + rx * ls, wz = fz * lf + rz * ls; const flf = nfx * lf + nrx * ls, fls = nfz * lf + nrz * ls; // velocidade girada com o bico
     const pvx = this.vx, pvz = this.vz;
-    this.vx += (fx * tv - this.vx) * k; this.vz += (fz * tv - this.vz) * k;
-    this.yawRate += (-yawIn * (1.25 - Math.min(0.5, this.speed / 90)) - this.yawRate) * (1 - Math.exp(-dt * 3));
-    this.h += this.yawRate * dt;
-    let tvy = lift ? upIn * (upIn > 0 ? 9 : 7) : (alt > 0.2 ? -5 : 0);
-    if (lift && upIn === 0 && alt < 0.5 && Math.abs(fwdIn) > 0.05) tvy = 3; // decola sozinho ao acelerar parado no chão
-    this.vy += (tvy - this.vy) * (1 - Math.exp(-dt * 2.2));
+    this.vx = wx * keep + flf * (1 - keep); this.vz = wz * keep + fls * (1 - keep);
+    // coletivo: sobe/desce com inércia; sem comando segura a altitude; efeito solo perto do chão
+    let tvy = lift ? upIn * (upIn > 0 ? 8.5 : 6.5) : (alt > 0.2 ? -5 : 0);
+    if (lift && upIn === 0 && alt < 0.5 && fwdIn > 0.05) tvy = 3; // decola sozinho ao acelerar parado no chão
+    if (lift && upIn === 0 && airborne && alt < 2.5) tvy += 0.6;   // efeito solo: fica "flutuando" baixo
+    this.vy += (tvy - this.vy) * (1 - Math.exp(-dt * 1.8));
     let nx = this.x + this.vx * dt, nz = this.z + this.vz * dt, ny = this.y + this.vy * dt;
     if (ny > 260) { ny = 260; this.vy = Math.min(0, this.vy); }
     let impact = 0;
-    // prédios: colide de lado se estiver abaixo do topo
     const pos = { x: nx, z: nz }; const hit = heliCollide(pos, 3.0, ny + 0.5);
     if (hit) { const vn = this.vx * hit.x + this.vz * hit.z; if (vn < 0) { impact = -vn; this.vx -= 1.4 * vn * hit.x; this.vz -= 1.4 * vn * hit.z; this.vx *= 0.5; this.vz *= 0.5; this.hitT = 0.3; } nx = pos.x; nz = pos.z; }
     nx = clamp(nx, BOUNDS.x0 - 200, BOUNDS.x1 + 450); nz = clamp(nz, BOUNDS.z0 - 250, BOUNDS.z1 + 250);
@@ -127,12 +168,13 @@ export class Heli {
     const f2 = this.floor(nx, nz);
     if (ny <= f2) { if (this.vy < -4) impact = Math.max(impact, -this.vy); ny = f2; this.vy = Math.max(0, this.vy); this.vx *= Math.exp(-dt * 6); this.vz *= Math.exp(-dt * 6); }
     this.y = ny; this.air = this.y - f2 > 0.35;
-    // atitude: bico abaixa ao acelerar, inclina nas curvas
-    const lf = this.vx * fx + this.vz * fz; const af = ((this.vx - pvx) * fx + (this.vz - pvz) * fz) / Math.max(dt, 1e-3);
-    this.vf = lf;
-    this.pitch = lerp(this.pitch, this.air ? clamp(lf * 0.006 + af * 0.03, -0.3, 0.38) : 0, Math.min(1, dt * 3));
-    this.roll = lerp(this.roll, this.air ? clamp(-this.yawRate * Math.max(6, this.speed) * 0.012, -0.45, 0.45) : 0, Math.min(1, dt * 3));
-    this.rpm = this.spool; this.steer = yawIn; this.hitT = Math.max(0, this.hitT - dt);
+    // atitude visível: arfagem = disco do cíclico; rolagem = curva coordenada + deslize; tudo limitado e auto-nivelado
+    const [gx, gz] = this.fwd(); this.vf = this.vx * gx + this.vz * gz; const side = this.vx * -gz + this.vz * gx;
+    const rollT = this.air ? clamp(-this.yawRate * Math.max(4, Math.abs(this.vf)) * 0.03 + side * 0.01, -0.5, 0.5) : 0;
+    this.pitch = lerp(this.pitch, this.air ? clamp(this.cyc, -0.38, 0.25) : 0, Math.min(1, dt * 4));
+    this.roll = lerp(this.roll, rollT, Math.min(1, dt * 2.5));
+    if (!this.air) this.cyc *= Math.exp(-dt * 4);
+    this.rpm = this.spool; this.steer = yawIn; this.hitT = Math.max(0, this.hitT - dt); this.fwdIn = fwdIn;
     this.sync(dt);
     return impact;
   }
@@ -142,8 +184,9 @@ export class Heli {
     this.root.position.set(this.x, this.y + hover, this.z); this.root.rotation.set(0, this.h, 0);
     this.body.rotation.set(this.pitch, 0, this.roll);
     this.spin += dt * (4 + 36 * this.spool) * (this.spool > 0.02 ? 1 : 0);
-    this.rotor.rotation.y = this.spin; this.tail.rotation.x = this.spin * 1.7;
-    this.disc.material.opacity = this.spool > 0.6 ? 0.1 + 0.08 * this.spool : 0;
+    this.rotor.rotation.set(-(this.fwdIn || 0) * 0.06, this.spin, 0); this.tail.rotation.x = this.spin * 2.6;
+    this.blades.position.y = -0.12 * (1 - this.spool); // pás "caem" um pouco paradas
+    this.disc.material.opacity = this.spool > 0.6 ? 0.1 + 0.08 * this.spool : 0; this.tailDisc.material.opacity = this.spool > 0.6 ? 0.18 : 0;
   }
   // luzes: navegação sempre (mais fortes à noite), holofote só à noite
   lights(night, t, wantSpot) {

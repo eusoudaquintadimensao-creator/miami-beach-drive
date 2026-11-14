@@ -153,6 +153,7 @@ export class Street {
         const cur = R.at(path, Math.max(0, c.s)); let target = c.streetR.top * c.skill;
         for (let j = cur.i; j < path.pts.length && path.cum[j] - c.s < 90; j++) { const vm = path.vmaxAt[j]; if (vm < 99) { const d = Math.max(0, path.cum[j] - c.s - 4); target = Math.min(target, Math.sqrt(vm * vm + 2 * 13 * d)); } }
         const gap = c.s - pp; target *= gap > 160 ? 0.62 : gap > 90 ? 0.8 : gap > 45 ? 0.9 : gap > 20 ? 0.97 : gap < -180 ? 1.32 : gap < -110 ? 1.18 : gap < -45 ? 1.09 : gap < -15 ? 1.03 : 1;
+        const pvs = Math.max(0, pv.speed || 0); if (gap > 200) target = Math.min(target, Math.max(10, pvs * 0.8)); else if (gap > 120) target = Math.min(target, Math.max(14, pvs * 0.95)); // líder segura até o jogador encostar
         const ghost = gap < -60 && Math.hypot(c.x - pv.x, c.z - pv.z) > 110; // longe e fora de vista: atravessa o trânsito para alcançar
         const fx = Math.sin(cur.h), fz = Math.cos(cur.h), rx = -fz, rz = fx; let blocked = false;
         const near = (ox, oz, lat, ahead) => { const dx = ox - c.x, dz = oz - c.z; const a = dx * fx + dz * fz, l = dx * rx + dz * rz; return a > 0 && a < ahead && Math.abs(l - c.lat) < 2.4; };

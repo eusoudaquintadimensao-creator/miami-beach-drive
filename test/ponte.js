@@ -140,8 +140,9 @@ fs.mkdirSync(SH, { recursive: true });
   // preso na borda (centro do carro além do tabuleiro, parado) → também volta
   R.edge = await page.evaluate(() => { const G = window.__G, P = MBD.ponte(), v = G.player.vehicle; const l = P.loop.locate(v.x, v.z, P.hint); const p = P.loop.at(l.s + 40, 9.9); v.place(p.x, p.z, p.h); v.y = p.y + 0.2; v.vf = v.vx = v.vz = 0; window.__R1 = P.respawns || 0; MBD.input.stick = [0, 0.8]; MBD.sim(90, 1 / 30); MBD.input.stick = [0, 0]; return { r1: __R1 }; });
   await page.waitForFunction('(MBD.ponte().respawns || 0) > __R1 && !MBD.ponte()._fading', { timeout: 15000 }).catch(() => {}); await sleep(300);
-  R.edge2 = await page.evaluate(() => { const G = window.__G, P = MBD.ponte(), v = G.player.vehicle; MBD.sim(3, 1 / 30); const l = P.loop.locate(v.x, v.z, P.hint); return { respawns: P.respawns || 0, lat: +l.lat.toFixed(1), onDeck: P.onDeck(v.x, v.z) }; });
-  ck('edge respawn', R.edge2.respawns > R.edge.r1 && R.edge2.onDeck && Math.abs(R.edge2.lat) < 8, R.edge2);
+  R.edge2 = await page.evaluate(() => { const G = window.__G, P = MBD.ponte(), v = G.player.vehicle; MBD.sim(3, 1 / 30); const l = P.loop.locate(v.x, v.z, P.hint); return { respawns: P.respawns || 0, lat: +l.lat.toFixed(1), onDeck: P.onDeck(v.x, v.z), spd: +v.speed.toFixed(1), stuck: +(P.stuckT || 0).toFixed(2) }; });
+  // t335: a borda agora empurra o carro de volta e ele segue andando (desliza); o respawn continua como reserva
+  ck('edge respawn/free', R.edge2.onDeck && ((R.edge2.respawns > R.edge.r1 && Math.abs(R.edge2.lat) < 8) || (R.edge2.spd > 3 && Math.abs(R.edge2.lat) <= 9.4)), R.edge2);
 
   // 10) voltas: pulo rápido pelo traçado (8 m/quadro) → 2 voltas, recorde salvo, fim de sessão
   R.laps = await page.evaluate(async () => {

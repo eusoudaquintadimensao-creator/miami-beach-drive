@@ -251,3 +251,9 @@ Testes: d/i/il/al, 0 erros, regressão drive/mech/serp/ponte/linecheck + teste n
 - Gravação: o gravador captura só o canvas → o vídeo NUNCA mostra o HUD DOM (explicar ao usuário).
 - Teste: `node test/t335.js 1280 720 low d` (ONLY=edge,crash,btn,race,raceshot). PASS desktop nos dois jogos.
 - FALTA: item 5 (ponte: moedas/prêmios, missões, cenário), item 6 (helicóptero), matriz i/il/al, regressões, bump SW (sem push).
+
+### t335 itens 5–6 (14/11 -03)
+- Item 5 `src/bridgefun.js` (BridgeFun, `G.ponte.fun`, atualizado no fim de `SeaBridge.update`): moedas $5 (InstancedMesh), maços $50, 6 caixas-prêmio ($150–400 ou nitro cheio), reaparecem (120/240/420 s); zonas de drift (4×300 m, meta 1200 pts, paga pts/15), radares (4, ≥120 km/h paga (km/h−100)×1,5, recorde), corrente de tandem (+$20×elo a cada 2,5 s, máx $100), quase-batida (+$15). Pop `#bfPop`, barra `#bfZone`, rádio reaproveita eventos (playerDrift/record/tandemClose). Cenário instanciado: navios (1/2/3), lanchas com esteira (3/5/8), balões gigantes (3/5/7), aviões (1/2/2). 14 meshes no total. Dados em `<PONTE.key>-fun`.
+- Item 6 `src/heli.js`: modelo genérico mesclado por material (≤24 meshes incl. luzes), rotor de 3 pás + cauda de 2 (discos de borrão), cíclico por atitude com inércia/arrasto, auto-nivelar + flare até pairar, curva coordenada, coletivo com trava de altitude + efeito solo, limites pitch/roll. `body.heli` deixa joystick/⤒/⤓ transparentes; `#heliHud` (horizonte, ALT, km/h, V/S).
+- SW: solara-v14-2026-11-14-t335 / neon-dist-v6-2026-11-14-t335 (NÃO publicado). Ao publicar: atualizar `/workspace/miami-test/live-drive.js` (sw v14/v6).
+- Teste: `node test/t335.js W H low tag` (ONLY=edge,crash,btn,race,raceshot,fun,heli). Matriz d/i/il/al PASS nos dois jogos.

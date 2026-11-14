@@ -368,6 +368,7 @@ export class SeaBridge {
       this.ai(dt, loc.s, pv, camera); this._chatter(dt, v, loc);
       this._maybeRespawn(dt, v, loc);
     }
+    if (this.fun) this.fun.update(dt, t, camera, loc && loc.d < 40 ? loc : null);
     this.radio.update(dt);
     this.hud();
   }

@@ -32,6 +32,7 @@ import { Voices } from './voice.js';
 import { callCar, updateCarCall, finishCarCall, SIGNATURE } from './signature.js';
 import { Serpentina } from './serpentina.js';
 import { SeaBridge } from './seabridge.js';
+import { BridgeFun } from './bridgefun.js';
 import { buildLife } from './life.js';
 import { Birds } from './birds.js';
 import { Gifts } from './gifts.js';
@@ -168,7 +169,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -593,6 +594,7 @@ function updatePrompts() {
     if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (ponteNear ? 'Aceitar a sessão de drift na ponte (até 50 m)' : raceNear ? 'Iniciar a corrida de rua (até 50 m do rival, mesmo passando)' : 'Descer do veículo') : 'Um toque chama seu veículo (para à sua frente); o próximo toque entra.'; }
     act.style.opacity = 1;
     const heli = v && v.type === 'heli';
+    document.body.classList.toggle('heli', !!heli);
     $('bReset').hidden = !rc; $('bPhoto').hidden = !!rc;
     $('bStart').hidden = !s; $('bHorn').hidden = !v || heli || !!rc; $('bNitro').hidden = !(v && v.tune); if (!v || !v.tune) input.nitro = false; const flyP = !v && (G.powers.fly || G.powers.lev || G.jet.on && !G.player.grounded); $('bDown').hidden = !heli && !flyP; if (!heli && !flyP) input.down = false; $('bPow').hidden = !!v || !(G.hero.def && G.hero.def.hero);
     const jl = heli || flyP ? '⤒<small>Subir</small>' : v && v.spec.race ? '🌀<small>Drift</small>' : v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>'; const bj = $('bJump'); if (bj._l !== jl) { bj.innerHTML = jl; bj._l = jl; }
@@ -709,6 +711,7 @@ function step(dt) {
 let heliSpot = null;
 function updateHelis(dt, t) {
   const H = G.heli, night = G.env.night;
+  { const el = $('heliHud'); const on = G.player.vehicle === H; if (el) { if (on !== !el.hidden) el.hidden = !on; if (on) { const alt = Math.max(0, H.y - H.floor(H.x, H.z)); const vs = H.vy; const h = `<span class="att"><i style="transform:translateY(${(H.pitch * 40).toFixed(1)}px) rotate(${(-H.roll * 57.3).toFixed(0)}deg)"></i></span><span>ALT <b>${Math.round(alt)}</b> m</span><span><b>${Math.round(H.speed * 3.6)}</b> km/h</span><span>${vs > 0.6 ? '▲' : vs < -0.6 ? '▼' : '◆'} ${Math.abs(vs).toFixed(1)} m/s</span>`; if (el._h !== h) { el.innerHTML = h; el._h = h; } } } }
   if (G.heliCall && !H.driver) { // o helicóptero chamado chega voando e pousa perto de você
     const C = G.heliCall; C.t += dt; const k = clamp(C.t / C.dur, 0, 1), e = 1 - (1 - k) ** 3; const fl = groundY(C.x, C.z);
     H.x = lerp(C.sx, C.x, e); H.z = lerp(C.sz, C.z, e); H.y = fl + 0.3 + (1 - smooth(0.35, 1, k)) * 38; H.h = C.h; H.spool = 1; H.air = k < 1; H.vx = H.vz = H.vy = 0; H.sync(dt);
