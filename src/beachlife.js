@@ -3,10 +3,17 @@
 // e só animado quando a câmera está perto da praia. Ninguém se machuca: são só figurantes.
 import * as THREE from 'three';
 import { rng, C } from './util.js';
-import { BEACH, WATER_Y, groundY, addBox, HOOKS } from './world.js';
+import { BEACH, WATER_Y, groundY, addBox, HOOKS, inKeep } from './world.js';
 import { partGeos, poseFor } from './people.js';
 
 const THEME = { dayStart: 6.5, dayEnd: 19.5, swim: [0xff4f6d, 0x2ab3b8, 0xffd23f, 0x7d6cf0, 0xff8a3c, 0x46c08c, 0x1e90ff, 0xffffff, 0x111111, 0xff6fa6], boards: [0xffd23f, 0xff4fb8, 0x29f0ff, 0xffffff, 0xff8a3c, 0x46c08c], net: 0xffffff, cart: [0xffffff, 0xff6fa6, 0x2ab3b8], kites: [0xff2d55, 0xffd23f, 0x29f0ff, 0x7d6cf0, 0x46c08c] };
+// rotinas por hora (t386): cada tipo de frequentador tem sua janela do dia, com uma folga individual (uns chegam antes, outros saem depois)
+const SCHED = THEME.sched || { lie: [[8.5, 17.5]], sit: [[7.5, 19.8]], volley: [[7, 19.3]], kid: [[9, 17.5]], jog: [[5.3, 9.8], [16.3, 21]], surf: [[6, 18.5]], swim: [[8.5, 18]], vendor: [[8.5, 20]], kiter: [[10, 18]] };
+export function scheduled(f, h) {
+  const j = ((f.i * 0.6180339) % 1 - 0.5) * 1.4; const w = SCHED[f.kind]; if (!w) return true;
+  for (const [a, b] of w) if (h >= a + j && h < b + j) return true;
+  return f.kind === 'jog' && f.i % 3 === 0 && h > 6 && h < 22; // alguns corredores treinam o dia todo
+}
 const SKIN = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac, 0x6b3e26, 0xd9a066];
 const HAIR = [0x1a1110, 0x3b2314, 0x6a4e2a, 0xd8b26e, 0x111111, 0x8a3b12];
 const SHORE = 384; // onde a areia encontra o mar (y = WATER_Y)
@@ -19,12 +26,12 @@ export class BeachLife {
     const r = rng(8088); this.r = r; this.figs = []; this.t = 0; this.visible = true;
     const add = (o) => { o.i = this.figs.length; o.ph = r() * 6; o.scale = o.scale || (0.9 + r() * 0.15); this.figs.push(o); return o; };
     const huts = (z) => Math.abs(((z + 560) % 140 + 140) % 140 - 0) < 5 || Math.abs(((z + 560) % 140 + 140) % 140 - 140) < 5;
-    const inCourt = (x, z, m = 2) => BEACH.courts.some(c => Math.abs(x - c.x) < c.hw + m && Math.abs(z - c.z) < c.hl + m);
+    const inCourt = (x, z, m = 2) => BEACH.courts.some(c => Math.abs(x - c.x) < c.hw + m && Math.abs(z - c.z) < c.hl + m) || inKeep(x, z, m);
     // banhistas deitados nas toalhas e sentados sob os guarda-sóis
     // trechos mais cheios (guarda-sóis e toalhas próprios, além dos espalhados da praia)
     this.umb = []; this.tow = [];
     for (const cz0 of [-470, -130, 60, 330, 500]) for (let i = 0; i < N([6, 12, 18]); i++) { const x = 338 + r() * 38, z = cz0 + (r() - 0.5) * 120; if (huts(z) || inCourt(x, z)) continue; const rr = r(); this.umb.push([x, z, rr]); this.tow.push([x + 1.5, z + (r() - 0.5) * 2, r()]); if (r() < 0.6) this.tow.push([x - 1.4, z + (r() - 0.5) * 2, r()]); }
-    const tw = BEACH.towels.concat(this.tow); const um = BEACH.umbrellas.concat(this.umb);
+    const tw = BEACH.towels.filter(([x, z]) => !inKeep(x, z, 1)).concat(this.tow); const um = BEACH.umbrellas.filter(([x, z]) => !inKeep(x, z, 1)).concat(this.umb);
     for (let i = 0; i < N([26, 48, 70]) && tw.length; i++) { const [x, z, rr] = tw.splice(Math.floor(r() * tw.length), 1)[0]; add({ kind: 'lie', x, z, h: rr * 0.6 + (r() < 0.5 ? 0 : Math.PI), day: true }); }
     for (let i = 0; i < N([14, 26, 38]) && um.length; i++) { const [x, z] = um.splice(Math.floor(r() * um.length), 1)[0]; add({ kind: 'sit', x: x + 0.9, z: z - 0.8, h: Math.PI / 2 + (r() - 0.5) * 0.6, day: true, late: true }); }
     // vôlei de praia
@@ -41,7 +48,7 @@ export class BeachLife {
     this.carts = [[336, -205], [336, 65], [336, 335]].filter(([x, z]) => !huts(z));
     for (const [x, z] of this.carts) add({ kind: 'vendor', x: x + 1.3, z, h: -Math.PI / 2, day: true, late: true });
     // pipas
-    this.kites = []; for (let i = 0; i < N([2, 3, 5]); i++) { const z = -500 + r() * 1000, x = 352 + r() * 18; const f = add({ kind: 'kiter', x, z, h: Math.PI / 2, day: true }); this.kites.push({ f, ph: r() * 6, col: THEME.kites[i % THEME.kites.length] }); }
+    this.kites = []; for (let i = 0; i < N([2, 3, 5]); i++) { const z0 = -500 + r() * 1000, x = 352 + r() * 18, z = inCourt(x, z0, 3) ? z0 + 50 : z0; const f = add({ kind: 'kiter', x, z, h: Math.PI / 2, day: true }); this.kites.push({ f, ph: r() * 6, col: THEME.kites[i % THEME.kites.length] }); }
     this.build(scene);
   }
   build(scene) {
@@ -102,10 +109,9 @@ export class BeachLife {
     const near = cam.position.x > 230 && Math.abs(cam.position.z) < 760;
     const on = near; if (on !== this.visible) { this.visible = on; for (const m of [this.torso, this.head, this.hair, this.legs, this.arms, this.boards, this.ball, this.static, this.kiteM, this.lines]) m.visible = on; }
     if (!on) return;
-    this.t += dt; const day = hour >= THEME.dayStart && hour < THEME.dayEnd, late = hour >= THEME.dayStart && hour < THEME.dayEnd + 2.5;
-    const cx = cam.position.x, cz = cam.position.z; const r = this.r;
+    this.t += dt;     const cx = cam.position.x, cz = cam.position.z; const r = this.r;
     for (const f of this.figs) {
-      f.hidden = f.kind === 'jog' ? !(day || (f.i % 3 === 0 && hour > 5 && hour < 23)) : !(day || (f.late && late));
+      f.hidden = !scheduled(f, hour); // rotina diária de cada tipo de banhista (t386)
       if (f.hidden) continue;
       if (f.kind === 'jog') { f.z += f.dir * f.v * dt; if (f.z > 610) f.dir = -1; if (f.z < -610) f.dir = 1; f.h = f.dir > 0 ? 0 : Math.PI; f.ph += dt * 10; }
       else if (f.kind === 'surf') {
