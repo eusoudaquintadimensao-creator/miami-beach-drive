@@ -68,6 +68,7 @@ export const BLOCKS = [];
   for (let i = 0; i < 3; i++) for (let j = 0; j < 8; j++) {
     const b = { x0: MX[i], x1: MX[i + 1], z0: Z9[j], z1: Z9[j + 1], kind: 'tower' };
     if (i === 2 && j === 3) b.kind = 'park';
+    if (i === 0 && j === 6) b.kind = 'mega'; // Mega Garagem (src/megagarage.js)
     BLOCKS.push(b);
   }
 }
@@ -586,6 +587,8 @@ export function buildWorld(scene, Q) {
       if (n === 1) tower(cx, cz, 36 + R() * 16, 40 + R() * 20, hpeak * (0.7 + R() * 0.45));
       else { tower(cx, z0 + 34, 30 + R() * 14, 30 + R() * 14, hpeak * (0.5 + R() * 0.5)); tower(cx, z1 - 34, 30 + R() * 14, 30 + R() * 14, hpeak * (0.45 + R() * 0.55)); }
       for (let i = 0; i < 4; i++) palmPos.push([x0 + 3 + (i % 2) * (x1 - x0 - 6), z0 + 3 + (i >> 1) * (z1 - z0 - 6), 0.85]);
+    } else if (b.kind === 'mega') {
+      ch.misc.hrect(x0, z0, x1, z1, 0.17, C(0x9a9aa2));
     } else if (b.kind === 'park') {
       ch.misc.hrect(x0, z0, x1, z1, 0.17, C(0x6faa4c));
       for (let i = 0; i < 26; i++) palmPos.push([x0 + 4 + R() * (x1 - x0 - 8), z0 + 4 + R() * (z1 - z0 - 8), 0.8 + R() * 0.4]);

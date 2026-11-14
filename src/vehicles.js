@@ -352,8 +352,9 @@ let DENT_M = null, SCRATCH_M = null;
 let TAIL_TEX = null; let BEAM_TEX = null;
 export class Vehicle {
   constructor(type, scene, Q, color, tune) {
-    const S = shared(Q); this.type = type; this.spec = SPECS[type]; const sp = this.spec;
+    const S = shared(Q); this.type = type; this.spec = SPECS[type]; let sp = this.spec;
     if (sp.race && !tune) tune = raceTune(type); if (tune && !PROFILES[type] && !sp.race && type !== 'moto') tune = null; this.tune = tune || null; if (tune) color = tune.paint;
+    if (tune && tune.model) { sp = this.spec = Object.assign({}, sp, { name: tune.model, max: sp.max * (tune.pmax || 1), acc: sp.acc * (tune.pacc || 1), grip: sp.grip * (tune.pgrip || 1) }); } // modelos da Mega Garagem: nome e desempenho próprios
     this.root = new THREE.Group(); this.body = new THREE.Group(); this.root.add(this.body); scene.add(this.root);
     this.color = color ?? sp.colors[Math.floor(Math.random() * sp.colors.length)];
     const paint = S.paint(this.color); this.wheels = []; this.front = [];

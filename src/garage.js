@@ -10,8 +10,9 @@ export class Garage {
   get isOpen() { return this.open_; }
   open() {
     const G = this.G; const v = G.player.vehicle;
-    if (!v || !TUNABLE.includes(v.type)) { G.ui.toast('Chegue de carro (esportivo, sedã, clássico, SUV ou táxi) para tunar 🔧'); return false; }
+    if (!v || !(TUNABLE.includes(v.type) || v.megaId != null)) { G.ui.toast('Chegue de carro (esportivo, sedã, clássico, SUV ou táxi) para tunar 🔧'); return false; }
     if (v.speed > 3) { G.ui.toast('Pare na oficina para tunar'); return false; }
+    this.keepM = v.tune && v.tune.model ? { model: v.tune.model, pmax: v.tune.pmax, pacc: v.tune.pacc, pgrip: v.tune.pgrip, mega: v.tune.mega, num: v.tune.num } : null;
     this.orig = v.tune ? { ...v.tune } : null; this.origColor = v.color; this.origMotor = MOTOR.lvl;
     this.draft = v.tune ? { ...v.tune } : { paint: v.color, glow: 0xff2bd6, spoiler: 2, kit: true, rim: 0x1a1a1a, text: 'SOLARA RUSH', style: 0, accent: 0xffffff };
     this.open_ = true; G.garageOpen = true; G.paused = true; if (document.pointerLockElement) document.exitPointerLock();
@@ -20,7 +21,7 @@ export class Garage {
     return true;
   }
   apply() { // reconstrói o carro do jogador com o rascunho
-    const G = this.G; this.draft.text = cleanText(this.draft.text);
+    const G = this.G; this.draft.text = cleanText(this.draft.text); if (this.keepM) Object.assign(this.draft, this.keepM);
     G.replaceVehicle(G.player.vehicle, this.draft);
     $('gCar').textContent = G.player.vehicle.spec.name;
   }
@@ -55,7 +56,8 @@ export class Garage {
   }
   close(keep) {
     const G = this.G; const v = G.player.vehicle;
-    if (keep) {
+    if (keep && v.megaId != null && G.mega) { G.mega.saveTune(v, this.draft); G.audio.chime('win'); G.ui.big('TUNADO!'); G.ui.toast(`Seu <b>${v.spec.name}</b> ficou com a sua cara! 🎨 Fica salvo na Mega Garagem`, 3600); }
+    else if (keep) {
       G.save.tune = { type: v.type, ...this.draft }; G.save.motor = MOTOR.lvl; G.persist(); G.audio.chime('win');
       G.ui.big('TUNADO!'); G.ui.toast(`Seu <b>${v.spec.name}</b> ficou insano! 🔥 Aperte <b>${G.touch ? '🔥' : 'Shift'}</b> para o nitro`, 4000);
       G.feed.unshift(['@oficina.neon', `Mais um carro saindo daqui brilhando: "${this.draft.text || 'sem nome'}" ✨🔧`, 'agora']);

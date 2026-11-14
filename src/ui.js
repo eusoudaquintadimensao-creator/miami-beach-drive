@@ -115,7 +115,7 @@ export class UI {
   phoneHome() {
     const G = this.G; const h = Math.floor(G.env.hour), m = Math.floor((G.env.hour % 1) * 60); $('phClock').textContent = `${h}:${String(m).padStart(2, '0')}`;
     $('phBack').hidden = true;
-    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['corrida', '🏁', 'Corrida', '#ff2bd6'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['dirigir', '🎛️', 'Controles', '#7d4dff'], ['ajuda', '❓', 'Ajuda', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
+    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['mega', '🏎️', 'Mega Garagem', '#ff6a00'], ['corrida', '🏁', 'Corrida', '#ff2bd6'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['dirigir', '🎛️', 'Controles', '#7d4dff'], ['ajuda', '❓', 'Ajuda', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
     const saved = G.savedAt ? `✅ Salvo às ${G.savedAt}` : '💾 Salvar progresso';
     $('phBody').innerHTML = `<div class="saveRow"><button class="saveBtn${G.savedAt ? ' ok' : ''}" id="phSaveG">${saved}</button><button class="saveBtn inst" id="phInst">📲 Instalar</button></div><div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
     $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => {
@@ -132,6 +132,7 @@ export class UI {
   }
   phonePage(p) {
     const G = this.G; const B = $('phBody'); $('phBack').hidden = false; let h = '';
+    if (p === 'mega' && G.mega) { h = G.mega.phoneHtml(); } else
     if (p === 'avatar') {
       const cur = G.hero ? G.hero.id : 'ela';
       h = `<h3>🧍 Seu avatar</h3><div class="avPick inPhone">${G.avatarCards(cur)}</div><p class="small">Fica salvo neste aparelho. Heróis originais de Solara têm um poder (tecla <b>X</b> ou botão ⚡): escalar, voar, super pulo, arrancada com escudo, levitar ou pisão de onda. Ninguém se machuca.</p>`;
