@@ -9,6 +9,7 @@ import { clamp, lerp, angDiff, smooth } from './util.js';
 import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable, roadAt } from './world.js';
 import { createEnv } from './env.js';
 import { Fleet } from './frota.js';
+import { PalmBreak } from './palmbreak.js';
 import { SeaRaces } from './marraces.js';
 import { Vehicle, SPECS, setVehicleLights, MOTOR, NITRO_STAGES, DRIFT_MAX } from './vehicles.js';
 import { Crowd, Hero } from './people.js';
@@ -100,7 +101,7 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.6;
 renderer.info.autoReset = false; renderer.shadowMap.enabled = Q.shadows; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.32, 6000); // t391: near maior = profundidade precisa (sem z-fighting/pisca no chão e na água)
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.32, 6000); // t391: near maior = profundidade precisa (sem z-fighting/pisca no chão e na água) G.camera = camera;
 let composer = null, bloom = null, grade = null, zoomBlur = null;
 function setupComposer() {
   if (!Q.bloom) return;
@@ -154,7 +155,7 @@ G.addFollowers = (n) => { save.followers += n; G.ui.stats(save.money, save.follo
 async function boot() {
   const status = (t) => { $('play').textContent = t; };
   status('Construindo a cidade…'); await nextFrame();
-  G.world = buildWorld(scene, Q); G.helipad = buildHelipad(scene, Q); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
+  G.world = buildWorld(scene, Q); G.palms = new PalmBreak(G, scene, G.world); G.helipad = buildHelipad(scene, Q); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
   G.life = buildLife(G); G.birds = new Birds(G); G.gifts = new Gifts(G);
   status('Acendendo o neon…'); await nextFrame();
   G.env = createEnv(scene, renderer, Q); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
@@ -628,6 +629,7 @@ function updatePlayer(dt) {
     // passo fixo 1/60, no máximo 3 por quadro; depois de um hitch o resto é descartado (physics-tuning)
     const F = 1 / 60; v._acc = (v._acc || 0) + dt; let impact = 0, n = 0;
     const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars, G.race.cars, G.street.cars);
+    if (G.palms) G.palms.check(v, dt); // t393: palmeira quebra antes da batida
     while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, hardBrake, limit, kick: kick && n === 0, neutral: !!input.neutral }, others, G.t)); v._acc -= F; n++; }
     if (n >= 3) v._acc = 0;
     if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
@@ -700,12 +702,16 @@ function updateCamera(dt, snap) {
   let D, H, focusY;
   if (v) {
     D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'plane' ? 2.8 : v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
-    if (lookT <= 0 && v.speed > 2) { const target = v.drifting || (v.spec.race && v.driftAng > 0.15) ? v.h + angDiff(v.h, Math.atan2(v.vx, v.vz)) * 0.55 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.spec.air ? 1.6 : 2.6)); G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
+    if (lookT <= 0 && v.speed > 2) { const sliding = v.drifting || (v.spec.race && v.driftAng > 0.15); const velA = Math.atan2(v.vx, v.vz);
+      // t402: no drift a câmera segue a direção do movimento (estrada à frente) e nunca fica mais de ~0,5 rad atrás do carro (carro sempre inteiro na tela)
+      const target = sliding ? v.h + angDiff(v.h, velA) * 0.7 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.spec.air ? 1.6 : sliding ? 4 : 2.6));
+      if (!v.spec.air) { const lag = angDiff(target, G.camYaw); if (Math.abs(lag) > 0.5) G.camYaw = target + Math.sign(lag) * 0.5; } G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
   } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly || G.jet.airPose ? 1.5 : 1); focusY = 1.55 * hk; if (G.bail && G.bail.mode === 'chute') { D = 11 * mult; focusY = 3.4; if (lookT <= 0) G.camPitch = lerp(G.camPitch, 0.04, Math.min(1, dt * 1.5)); } else if (G.bail && G.bail.mode === 'swim') focusY = 0.9; }
   const yaw = G.camYaw, pit = G.camPitch;
   const fx = p.x, fz = p.z, fy = p.y + focusY;
   let cx = fx - Math.sin(yaw) * Math.cos(pit) * D, cz = fz - Math.cos(yaw) * Math.cos(pit) * D, cy = fy + Math.sin(pit) * D + (v ? 0.6 : 0.15);
-  const tb = rayBlock(fx, fz, fy, cx, cz, cy); if (tb < 1) { const k = Math.max(0.12, tb - 0.06); cx = fx + (cx - fx) * k; cz = fz + (cz - fz) * k; cy = fy + (cy - fy) * k; }
+  let pullK = 1; const tb = rayBlock(fx, fz, fy, cx, cz, cy); if (tb < 1) { // t402: parede atrás: chega perto mas SOBE (fica por cima do carro), nunca entra na carroceria
+    const minK = v ? Math.min(1, (v.spec.len || 4.4) * 0.55 / Math.max(D, 0.1)) : 0.12; const k = Math.max(minK, tb - 0.06); pullK = k; cx = fx + (cx - fx) * k; cz = fz + (cz - fz) * k; cy = fy + (cy - fy) * k + (v ? (1 - k) * 6.5 : 0); }
   const floor = (v && v.spec.air && v.y < surfaceY(cx, cz) - 1.2 ? WATER_Y : Math.max(surfaceY(cx, cz), WATER_Y)) + 0.35; if (cy < floor) cy = floor; // por baixo da ponte a câmera fica embaixo também
   if (snap || !camInit) { camPos.set(cx, cy, cz); camInit = true; } else { const k = Math.min(1, dt * (v ? 10 : 14)); camPos.x = lerp(camPos.x, cx, k); camPos.y = lerp(camPos.y, cy, k); camPos.z = lerp(camPos.z, cz, k); }
   camera.position.copy(camPos);
@@ -714,7 +720,9 @@ function updateCamera(dt, snap) {
   const sh = trauma * trauma * (save.shake == null ? 1 : save.shake);
   if (sh > 0.0008) { const tt = G.t * 62; camera.position.x += Math.sin(tt * 1.71) * sh * 0.38; camera.position.y += Math.sin(tt * 2.27 + 1.1) * sh * 0.28; }
   trauma = Math.max(0, trauma - dt * 2.4);
-  camLook.set(fx + (v ? Math.sin(v.h) * 2 : 0), fy, fz + (v ? Math.cos(v.h) * 2 : 0)); camera.lookAt(camLook);
+  { let la = v ? v.h : 0, ld = 2; if (v && !v.spec.air && v.speed > 3) { const velA = Math.atan2(v.vx, v.vz); la = v.h + angDiff(v.h, velA) * 0.7; ld = Math.min(4.5, 2 + v.speed * 0.06); } // t402: olha um pouco à frente no sentido do movimento
+    if (v && pullK < 1) ld *= pullK; // câmera puxada pela parede: mira no carro (inteiro na tela)
+    camLook.set(fx + (v ? Math.sin(la) * ld : 0), fy - (v ? (1 - pullK) * 1.6 : 0), fz + (v ? Math.cos(la) * ld : 0)); camera.lookAt(camLook); }
   if (G.camOverride) { const o = G.camOverride; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); } // vista aérea (fotos/testes)
   const portrait = innerHeight > innerWidth; const baseF = portrait ? 72 : 60; const f = baseF + (v ? Math.min(14, v.speed * 0.28) + (v.boosting ? 9 : 0) : 0);
   if (Math.abs(camera.fov - f) > 0.05) { camera.fov = lerp(camera.fov, f, Math.min(1, dt * 3)); camera.updateProjectionMatrix(); }
@@ -837,7 +845,7 @@ function step(dt) {
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, G.bail && G.bail.coast, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mar.update(dt, t); G.fleet.update(dt); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mar.update(dt, t); G.fleet.update(dt); G.palms.update(dt, camera.position); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
   G._hudT = (G._hudT || 0) - dt; if (G._hudT <= 0) { G._hudT = 0.5; const h = $('hud'); if (G.started && !G.paused && !G.garageOpen && !G.raceMenu && !G.homeIntro && h) { let fixed = 0; if (h.classList.contains('ghide')) { h.classList.remove('ghide'); fixed++; } if (h.hidden) { h.hidden = false; fixed++; } if (document.body.classList.contains('cine')) { document.body.classList.remove('cine'); fixed++; } if (fixed) G.hudFixes = (G.hudFixes || 0) + fixed; } }
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);

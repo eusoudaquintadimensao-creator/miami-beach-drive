@@ -64,7 +64,7 @@ fs.mkdirSync(SH, { recursive: true });
   // D) placar de drift e pop-ups de bônus fora do meio da pista
   r = await ev(() => { const out = {}; for (const id of ['drift', 'bfPop']) { const el = document.getElementById(id); const hid = el.hidden; el.hidden = false; const old = el.innerHTML; if (!el.textContent.trim()) el.innerHTML = id === 'drift' ? '<b>DRIFT</b><span>1.234</span><i>×3</i>' : '<div class="bfp">+$50 <b>bônus</b></div>'; const b = el.getBoundingClientRect(); out[id] = { cx: Math.round((b.left + b.right) / 2), cy: Math.round((b.top + b.bottom) / 2), W: innerWidth, H: innerHeight }; el.innerHTML = old; el.hidden = hid; } return out; });
   const mid = (o) => o.cx > o.W * 0.3 && o.cx < o.W * 0.7 && o.cy > o.H * 0.25 && o.cy < o.H * 0.75;
-  ck('D drift fora do centro', !mid(r.drift), r.drift); ck('D bônus fora do centro', !mid(r.bfPop), r.bfPop);
+  ck('D drift fora do centro, à direita (t402)', !mid(r.drift) && r.drift.cx > r.drift.W * 0.6, r.drift); ck('D bônus fora do centro', !mid(r.bfPop), r.bfPop);
   // E) mesmo vidro em todos os botões de direção (mesma cor de borda)
   if (mobile) { r = await ev(() => { __car(); return new Promise(res => setTimeout(() => { const ids = ['drvBrake', 'drvRev', 'drvBeam', 'bNeutral', 'bAct']; res(ids.map(id => { const e = document.getElementById(id); return e && e.offsetWidth ? getComputedStyle(e).borderTopColor : null; }).filter(Boolean)); }, 500)); });
     ck('E botões com a mesma borda de vidro', r.length >= 4 && new Set(r).size === 1, r); await shot('botoes', 300); }

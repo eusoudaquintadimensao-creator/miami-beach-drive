@@ -154,7 +154,7 @@ export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
   return b;
 }
 const circles = new Map();
-export function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); a.push({ x, z, r }); }
+export function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); const o = { x, z, r }; a.push(o); return o; }
 export function removeBox(b) {
   if (!b) return;
   const i = BOXES.indexOf(b); if (i >= 0) BOXES.splice(i, 1);
@@ -189,6 +189,7 @@ export function collide(pos, r, boat = false, y = 0) {
     }
     const c = circles.get(i + ',' + j);
     if (c && !boat) for (const o of c) {
+      if (o.off) continue; // t393: palmeira quebrada não bloqueia
       const dx = pos.x - o.x, dz = pos.z - o.z, d2 = dx * dx + dz * dz, rr = r + o.r;
       if (d2 < rr * rr && d2 > 1e-6) { const d = Math.sqrt(d2); pos.x = o.x + dx / d * rr; pos.z = o.z + dz / d * rr; hit = { x: dx / d, z: dz / d }; }
     }
@@ -711,29 +712,41 @@ export function buildWorld(scene, Q) {
     LANDMARKS.push({ id: 'roda', name: 'Roda-gigante da Baía', x: x - 40, z: z + 10, r: 20, look: [x, 26, z] });
   }
 
-  // ---- palmeiras (instanciadas, com vento)
+  // ---- palmeiras (instanciadas, com vento) — t393: tronco curvo em gomos com anéis, folhas com folíolos, cachos de coco; quebram no impacto (palmbreak.js)
   const palmTime = { value: 0 }; const S0 = {};
   {
     const trunk = new MeshBuilder(), crown = new MeshBuilder();
-    const H = 9, segs = 5;
+    const H = 9, segs = 10; const bend = t => t * t * 1.6;
     for (let i = 0; i < segs; i++) {
-      const t0 = i / segs, t1 = (i + 1) / segs; const bend = t => t * t * 1.6;
-      const r0 = 0.32 - t0 * 0.12, r1 = 0.32 - t1 * 0.12;
-      const g = new THREE.CylinderGeometry(r1, r0 * 1.06, H / segs, 6, 1, true);
-      trunk.addGeo(g, new THREE.Matrix4().makeTranslation(bend((t0 + t1) / 2), H * (t0 + t1) / 2, 0), C(i % 2 ? 0x8b6d4e : 0x9c7d5c));
+      const t0 = i / segs, t1 = (i + 1) / segs;
+      const r0 = 0.34 - t0 * 0.14, r1 = 0.34 - t1 * 0.14;
+      const g = new THREE.CylinderGeometry(r1, r0 * 1.08, H / segs, 8, 1, true); // gomo: base um pouco mais larga = anel do tronco
+      const dx = bend(t1) - bend(t0), ang = Math.atan2(dx, H / segs);
+      const m = new THREE.Matrix4().makeRotationZ(-ang); m.setPosition(bend((t0 + t1) / 2), H * (t0 + t1) / 2, 0);
+      trunk.addGeo(g, m, C(i % 2 ? 0x8b6d4e : 0x9f805e).lerp(C(0x6e5a44), t0 * 0.35));
     }
-    const top = [1.6, H, 0];
-    const frond = (ang, droop, len) => {
-      const pts = 4; const dir = [Math.cos(ang), Math.sin(ang)];
-      for (let i = 0; i < pts; i++) {
-        const a = i / pts, b = (i + 1) / pts;
-        const P = (t, side) => { const w = Math.sin(t * Math.PI) * 0.75 * side; const x = dir[0] * t * len - dir[1] * w, z = dir[1] * t * len + dir[0] * w; const y = Math.sin(t * 1.3) * 1.2 - t * t * droop; return [top[0] + x, top[1] + y, top[2] + z]; };
-        const n = [0, 1, 0]; const gc = C(0x3f8a2e).lerp(C(0x7fbf3f), a * 0.6);
-        crown.quad(P(a, -1), P(b, -1), P(b, 1), P(a, 1), n, [[0, a], [0, b], [1, b], [1, a]], gc);
+    trunk.addGeo(new THREE.CylinderGeometry(0.5, 0.62, 0.35, 8), new THREE.Matrix4().makeTranslation(0, 0.17, 0), C(0x7a5f43)); // base alargada
+    const top = [bend(1), H, 0];
+    // folha (fronde) com nervura central e folíolos dos dois lados, caída nas pontas
+    const frond = (ang, droop, len, lift) => {
+      const n = 8, dir = [Math.cos(ang), Math.sin(ang)], perp = [-dir[1], dir[0]];
+      const R = (t) => [top[0] + dir[0] * t * len, top[1] + Math.sin(t * 1.4) * lift - t * t * droop, top[2] + dir[1] * t * len];
+      for (let i = 0; i < n; i++) {
+        const a = i / n, b = (i + 1) / n, A = R(a), B = R(b);
+        const g0 = C(0x2f7a26).lerp(C(0x86c247), a * 0.7), g1 = C(0x3d8d2c).lerp(C(0x9bd35a), a * 0.6);
+        crown.quad([A[0] - perp[0] * 0.05, A[1], A[2] - perp[1] * 0.05], [B[0] - perp[0] * 0.05, B[1], B[2] - perp[1] * 0.05], [B[0] + perp[0] * 0.05, B[1], B[2] + perp[1] * 0.05], [A[0] + perp[0] * 0.05, A[1], A[2] + perp[1] * 0.05], [0, 1, 0], [[0, a], [0, b], [1, b], [1, a]], C(0x5a6b2a));
+        const lw = (Math.sin(Math.PI * (a + b) / 2) * 1.0 + 0.18), hang = 0.42 * lw;
+        for (const sd of [-1, 1]) {
+          const tipA = [A[0] + perp[0] * sd * lw + dir[0] * 0.35, A[1] - hang, A[2] + perp[1] * sd * lw + dir[1] * 0.35];
+          const tipB = [B[0] + perp[0] * sd * lw * 0.9 + dir[0] * 0.3, B[1] - hang * 0.9, B[2] + perp[1] * sd * lw * 0.9 + dir[1] * 0.3];
+          crown.quad(A, B, tipB, tipA, [0, 1, 0], [[0, a], [0, b], [1, b], [1, a]], sd > 0 ? g0 : g1);
+        }
       }
     };
-    for (let i = 0; i < 9; i++) frond(i / 9 * Math.PI * 2 + (i % 2) * 0.2, 2.2 + (i % 3) * 0.6, 4.4 + (i % 2) * 0.8);
-    crown.addGeo(new THREE.SphereGeometry(0.45, 5, 4), new THREE.Matrix4().makeTranslation(top[0], top[1] - 0.3, 0), C(0x6b5a2e));
+    for (let i = 0; i < 13; i++) frond(i / 13 * Math.PI * 2 + (i % 2) * 0.17, 2.0 + (i % 3) * 0.7, 4.2 + (i % 2) * 0.9, i % 4 === 0 ? 1.6 : 1.1);
+    // cacho de cocos + "coração" da copa
+    crown.addGeo(new THREE.SphereGeometry(0.42, 7, 5), new THREE.Matrix4().makeTranslation(top[0], top[1] - 0.25, 0), C(0x5f6b2c));
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; crown.addGeo(new THREE.SphereGeometry(0.2, 6, 4), new THREE.Matrix4().makeTranslation(top[0] + Math.cos(a) * 0.36, top[1] - 0.62 - (k % 2) * 0.12, Math.sin(a) * 0.36), C(k % 2 ? 0x6b4a22 : 0x8a7a2e)); }
     const tm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
     const cm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide });
     cm.onBeforeCompile = (sh) => {
@@ -743,13 +756,18 @@ export function buildWorld(scene, Q) {
         transformed.x += sin(uTime * 1.7 + ph) * 0.18 * hgt + sin(uTime*3.1+ph*2.)*0.05*hgt; transformed.z += cos(uTime * 1.3 + ph) * 0.12 * hgt;`);
     };
     const n = palmPos.length;
-    const tmesh = new THREE.InstancedMesh(trunk.geometry(), tm, n), cmesh = new THREE.InstancedMesh(crown.geometry(), cm, n);
+    const tgeo = trunk.geometry(), cgeo = crown.geometry();
+    const tmesh = new THREE.InstancedMesh(tgeo, tm, n), cmesh = new THREE.InstancedMesh(cgeo, cm, n);
     const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3();
+    const palmList = [];
     palmPos.forEach(([x, z, sc], i) => {
       e.set(0, R() * Math.PI * 2, 0); q.setFromEuler(e); s.setScalar(sc || 1);
-      mtx.compose(new THREE.Vector3(x, groundY(x, z) + (x < 322 && x > 25 && Math.abs(z) < 610 ? 0.16 : 0), z), q, s);
-      tmesh.setMatrixAt(i, mtx); cmesh.setMatrixAt(i, mtx); addCircle(x, z, 0.4);
+      const y = groundY(x, z) + (x < 322 && x > 25 && Math.abs(z) < 610 ? 0.16 : 0);
+      mtx.compose(new THREE.Vector3(x, y, z), q, s);
+      tmesh.setMatrixAt(i, mtx); cmesh.setMatrixAt(i, mtx); const circ = addCircle(x, z, 0.4);
+      palmList.push({ i, x, y, z, sc: sc || 1, rot: e.y, m: mtx.clone(), circ, led: -1 });
     });
+    S0.palms = { list: palmList, tmesh, cmesh, tgeo, cgeo, tm, cm, H };
     tmesh.castShadow = cmesh.castShadow = true; tmesh.receiveShadow = cmesh.receiveShadow = true;
     // LED nas palmeiras (como na orla de Miami Beach): anéis/filetes instanciados, uma malha só, acendem à noite
     {
@@ -758,7 +776,7 @@ export function buildWorld(scene, Q) {
       
       const sel = []; palmPos.forEach((pp, i) => { if (pp[0] > -680) sel.push(i); });
       const lm = new THREE.InstancedMesh(led.geometry(), M.palmLed, sel.length); const cols = [0xff3fa8, 0x29f0ff]; const cc = new THREE.Color();
-      sel.forEach((i, k) => { tmesh.getMatrixAt(i, mtx); lm.setMatrixAt(k, mtx); lm.setColorAt(k, cc.setHex(cols[k % cols.length])); });
+      sel.forEach((i, k) => { tmesh.getMatrixAt(i, mtx); lm.setMatrixAt(k, mtx); lm.setColorAt(k, cc.setHex(cols[k % cols.length])); palmList[i].led = k; });
       lm.instanceMatrix.needsUpdate = true; if (lm.instanceColor) lm.instanceColor.needsUpdate = true; scene.add(lm); S0.palmLed = lm;
     }
     scene.add(tmesh, cmesh);
@@ -873,7 +891,7 @@ export function buildWorld(scene, Q) {
     SPAWNS.taxiStands.push({ x: 293.7, z: -60, h: Math.PI }, { x: -306.3, z: -230, h: 0 }, { x: 173.7, z: 220, h: Math.PI });
   }
 
-  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed };
+  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed, palms: S0.palms };
   S.setNight = (night, wet) => {
     M.deco.emissiveIntensity = night * 0.9; M.tower.emissiveIntensity = night * 0.85;
     const k = 0.55 + night * 2.4;

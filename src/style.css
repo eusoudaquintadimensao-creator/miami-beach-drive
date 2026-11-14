@@ -774,3 +774,11 @@ body.touch #bfPop .bfp{font-size:12px}body.touch #bfPop .bfp.big{font-size:13px}
 /* t400: todos os botões no MESMO vidro translúcido (mesma borda e brilho; só o ícone muda) */
 body.touch #drvBrake,body.touch #bNeutral,body.touch .drvRight #bAct,body.touch #btns button.big,body.touch #drvRev,body.touch #drvBeam,body.touch #drvGear,body.touch #drvCruise{--gEdge:rgba(120,240,255,.8)!important;--gGlow:rgba(41,240,255,.3)!important}
 body.touch #ponteQuit,body.touch #bPause,body.touch #bBack{background:var(--gFill)!important;border:1.5px solid var(--gEdge)!important;box-shadow:0 0 10px var(--gGlow),inset 0 1px 0 rgba(255,255,255,.45)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff}
+
+/* t402: placar e contagem do drift à DIREITA (ao lado dos botões), fora da pista */
+#drift{left:auto!important;right:calc(var(--sar) + 84px);top:38%!important;text-align:right}
+body.touch #drift{right:calc(var(--sar) + 12px);top:calc(var(--sat) + 262px)!important}
+body.touch.land #drift{right:calc(var(--sar) + 184px);top:calc(var(--sat) + 96px)!important;left:auto!important}
+#driftW{left:auto!important;right:calc(var(--sar) + 84px);bottom:auto!important;top:calc(38% + 70px);transform:none!important}
+body.driving.touch:not(.land) #driftW{right:calc(var(--sar) + 12px);top:calc(var(--sat) + 322px);width:140px}
+body.touch.land.driving #driftW{right:calc(var(--sar) + 184px);top:calc(var(--sat) + 152px);width:136px}
