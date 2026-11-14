@@ -92,3 +92,6 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   · testes t408.js / t410.js (prints loja-*, espelho-*, trajes-*)
   · t412 (20:45, junto na FASE 7): a pé entrar no mar andando (água até pernas/cintura, respingos, mais lento; fundo = nadar, sem travar/afundar; voltar andando)
     + passarelas/pontes sobre a areia: elevar (pilares espaçados) para carros passarem por baixo na praia; ponte da corrida e ruas continuam alinhadas. Testar praia inteira de carro + entrar/sair do mar.
+  · t413 (20:47): botão "tela limpa" (vidro, canto superior) esconde tudo não-essencial, 1 toque volta, lembra escolha; ao dirigir, extras somem sozinhos (voltam ao tocar/parar); só controles essenciais discretos nas bordas.
+    + TODAS as mensagens/toasts/falas/corrida/drift/dicas/cartões ao dirigir ficam no alto (faixa abaixo da barra), nunca sobre o carro/estrada. Testar com carro à vista nos 4 setups.
+  · progresso: src/wardrobe.js escrito (catálogo, applyLook, trajes, classe Wardrobe); heroes.js exporta attach.
