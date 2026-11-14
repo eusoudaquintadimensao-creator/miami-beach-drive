@@ -1,5 +1,5 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v10-2026-11-13-dirigir';
+const VERSION = 'solara-v11-2026-11-13-retrato';
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
   'src/style.css', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',

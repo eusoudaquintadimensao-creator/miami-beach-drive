@@ -221,7 +221,15 @@ export const DriveUI = {
     document.body.classList.toggle('drv-volante', this.mode === 'volante');
     const w = $('drvWheel'); if (w) w.hidden = !(this.driving && this.mode === 'volante');
     const h = $('drvModeHint');
-    if (h) h.textContent = !this.driving ? '' : this.mode === 'tocar' ? 'Segure a esquerda ou a direita para dirigir' : this.mode === 'inclinar' ? 'Incline o telefone para virar' : '';
+    if (h) {
+      const t = !this.driving ? '' : this.mode === 'tocar' ? 'Segure a esquerda ou a direita para dirigir' : this.mode === 'inclinar' ? 'Incline o telefone para virar' : '';
+      // dica curta na faixa de cima: aparece ao entrar no carro / trocar o modo e some sozinha
+      if (t !== this._hintTxt) {
+        this._hintTxt = t; h.textContent = t; clearTimeout(this._hintTo);
+        h.classList.toggle('on', !!t);
+        if (t) this._hintTo = setTimeout(() => h.classList.remove('on'), 4500);
+      }
+    }
   },
 
   async requestTilt() {

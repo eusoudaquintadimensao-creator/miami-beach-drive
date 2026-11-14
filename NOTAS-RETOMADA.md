@@ -181,3 +181,13 @@ Testes (nice 19): `test/drive.js` PASS desk 1280×720, iPhone 390×844, iPhone p
 Fotos: screenshots/drv-d-{controles,hud,arrows,dent,beams,track,circuito}.png e drv-{i,il,al}-*.png (melhores: drv-d-controles, drv-il-hud,
   drv-d-arrows, drv-d-dent, drv-d-beams, drv-d-track, drv-d-circuito).
 Para publicar SÓ após aprovação: git push origin main.
+
+### Publicado t328 (13/11 21:09 -03) e correções t329 (21:12–21:30 -03)
+- t328 publicado após aprovação (pt329u) e verificado ao vivo: SW solara-v10-2026-11-13-dirigir, 0 erros desk+iPhone, tela CONTROLES ok.
+- t329 (regra: toda publicação leva as correções achadas), iPhone em pé:
+  1. CONTROLES: overlay rolável e centrado com segurança (align flex-start + margin:auto), cards compactos no celular (sem min-height 200),
+     cabe sem rolar em 390×844, 844×390 e 375×667; título e Pronto sempre visíveis.
+  2. Dica de direção ("Segure a esquerda…") vai para a faixa de cima (entre minimapa e relógio) e some sozinha após 4,5 s; não cobre o Freio.
+  3. Avisos (#toast) e notificações (#note) ao dirigir ficam na faixa de cima (retrato abaixo dos ícones; paisagem no topo), centro livre.
+- SW solara-v11-2026-11-13-retrato. test/drive.js ganhou checagens t329 (título/Pronto, dica aparece/some/não cobre botões, avisos fora do centro e sem cobrir HUD).
+  PASS desk 1280×720, iPhone 390×844, iPhone paisagem 844×390, Android paisagem 915×412 — 0 erros.

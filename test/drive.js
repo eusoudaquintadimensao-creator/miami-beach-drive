@@ -420,6 +420,54 @@ fs.mkdirSync(SH, { recursive: true });
   ck('layout no carro sem sobreposição', R.layout.drive.overlap.length === 0, R.layout.drive);
   ck('centro da tela livre no carro', R.layout.drive.clutter.length === 0, R.layout.drive);
 
+  // t329: retrato/paisagem — CONTROLES rolável (título e Pronto alcançáveis), dica e avisos na faixa de cima
+  R.t329 = await page.evaluate(async (mobile) => {
+    const d = MBD.drive(); const out = {};
+    d.openSettings(); await new Promise(r => setTimeout(r, 300));
+    const ds = document.getElementById('driveSet'); ds.scrollTop = 0;
+    const h2 = ds.querySelector('h2').getBoundingClientRect(); out.titleTop = Math.round(h2.top);
+    ds.scrollTop = ds.scrollHeight; await new Promise(r => setTimeout(r, 100));
+    const cl = document.getElementById('dsClose').getBoundingClientRect(); out.closeBottom = Math.round(cl.bottom); out.H = innerHeight;
+    out.scrollable = ds.scrollHeight <= ds.clientHeight + 1 || getComputedStyle(ds).overflowY === 'auto';
+    d.closeSettings();
+    if (!mobile) return out;
+    const v = window.__G.sigCar || window.__G.vehicles.find(c => c && !c.npc && !c.spec.boat);
+    MBD.enterCar(v); document.body.classList.add('driving', 'touch'); d.setDriving(false); d.setDriving(true, v);
+    if (d.mode !== 'tocar') d.setMode('tocar');
+    window.__G.ui.toast('Teste de aviso no topo', 6000);
+    window.__G.ui.phoneNote('@teste', 'Notificação de teste longa o bastante para quebrar em duas linhas no celular.');
+    await new Promise(r => setTimeout(r, 450));
+    const rect = id => { const e = document.getElementById(id); if (!e || e.hidden) return null; const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') return null; const r = e.getBoundingClientRect(); return r.width ? r : null; };
+    const tdiv = document.querySelector('#toast div'); const tr = tdiv && tdiv.getBoundingClientRect();
+    const hint = document.getElementById('drvModeHint'); const hr = hint.getBoundingClientRect();
+    const others = ['drvBrake', 'drvRev', 'drvBeam', 'bAct', 'drvCruise', 'drvGear', 'mapw', 'topR', 'icons'].map(id => [id, rect(id)]).filter(x => x[1]);
+    const hit = (a, b) => a && b && Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+    const nr = rect('note');
+    out.hintOn = hint.classList.contains('on'); out.hintTop = Math.round(hr.top);
+    out.hintHits = others.filter(([, r]) => hit(hr, r)).map(x => x[0]);
+    out.toastBottom = tr && Math.round(tr.bottom); out.noteBottom = nr && Math.round(nr.bottom);
+    out.toastHits = others.filter(([, r]) => hit(tr, r)).map(x => x[0]).concat(hit(tr, nr) ? ['note'] : []);
+    out.noteHits = nr ? others.filter(([, r]) => hit(nr, r)).map(x => x[0]) : [];
+    const mid = { l: innerWidth * 0.3, r: innerWidth * 0.7, t: innerHeight * 0.4, b: innerHeight * 0.62 };
+    out.centerHits = [['toast', tr], ['note', nr], ['hint', hr]].filter(([, r]) => r && r.width && r.left < mid.r && r.right > mid.l && r.top < mid.b && r.bottom > mid.t).map(x => x[0]);
+    await new Promise(r => setTimeout(r, 4600));
+    out.hintAutoHide = !hint.classList.contains('on');
+    document.getElementById('note').hidden = true;
+    if (window.__G.player.vehicle) MBD.leaveCar(true); d.setDriving(false);
+    return out;
+  }, mobile);
+  { const t = R.t329;
+    ck('CONTROLES: título visível', t.titleTop >= 0, t);
+    ck('CONTROLES: Pronto alcançável', t.closeBottom <= t.H + 1, t);
+    if (mobile) {
+      ck('dica de direção aparece', t.hintOn, t);
+      ck('dica não cobre botões', t.hintHits.length === 0, t);
+      ck('dica some sozinha', t.hintAutoHide, t);
+      ck('aviso não cobre HUD', t.toastHits.length === 0 && t.noteHits.length === 0, t);
+      ck('aviso/dica fora do centro', t.centerHits.length === 0, t);
+    }
+  }
+
   // Autódromo: 1 s de stuck dispara fade
   R.auto = await page.evaluate(() => {
     const race = window.__G.race;

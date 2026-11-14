@@ -468,3 +468,40 @@ body.driving .drvRight #bAct{width:64px;height:64px;margin-bottom:2px}
 
 /* dirigindo: notificação não cobre o controle de VEL (lado esquerdo) */
 body.driving.touch #note{left:calc(var(--sal) + 92px);width:min(280px,52vw)}
+
+/* t329: tela CONTROLES sempre rolável e centrada com segurança (título e Pronto visíveis no iPhone em pé) */
+#driveSet{align-items:flex-start;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.dsBox{margin:auto}
+@media (max-width:720px){
+  .dsBox h2{font-size:30px;margin-top:4px}
+  .dsSub{margin-bottom:12px;font-size:13px}
+  .dsCards{gap:10px}
+  .dsCard{display:grid;grid-template-columns:64px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:2px;align-items:center;text-align:left;padding:12px 14px;min-height:0}
+  .dsCard h3{align-self:end}
+  .dsCard p{align-self:start}
+  .dsCard .dsIcon{grid-row:1 / span 2;width:60px;height:52px}
+  .dsCard h3{font-size:19px}
+  .dsCard p{font-size:12.5px;max-width:none}
+  #dsCal,#dsClose{margin-top:12px}
+}
+@media (max-height:460px){
+  .dsBox h2{font-size:26px}
+  .dsSub{margin-bottom:10px}
+  .dsCard{padding:10px 12px;gap:4px;min-height:0}
+  .dsIcon{width:56px;height:44px}
+  .dsCard h3{font-size:18px}
+  #dsCal,#dsClose{margin-top:10px;padding:9px 22px}
+  .dsHint{margin-top:8px}
+}
+/* t329: dica de direção na faixa de cima, some sozinha (não cobre o Freio) */
+#drvModeHint{opacity:0;transition:opacity .4s ease}
+#drvModeHint.on{opacity:1}
+body.touch.driving:not(.land) #drvModeHint{top:calc(var(--sat) + 14px);bottom:auto;left:calc(var(--sal) + 146px);transform:none;width:108px;max-width:none;white-space:normal;font-size:11px;line-height:1.3}
+/* t329: avisos e notificações na faixa de cima ao dirigir; centro livre */
+body.touch.driving:not(.land) #toast{top:calc(var(--sat) + 140px);left:calc(var(--sal) + 146px);right:calc(var(--sar) + 10px);width:auto;transform:none;align-items:stretch}
+body.touch.driving #toast div{font-size:13px;padding:7px 12px}
+body.touch.driving:not(.land) #note{top:calc(var(--sat) + 140px);left:calc(var(--sal) + 146px);right:calc(var(--sar) + 10px);width:auto;font-size:12px;padding:8px 10px}
+body.touch.driving:not(.land):has(#note:not([hidden])) #toast{top:calc(var(--sat) + 250px)}
+body.touch.land.driving #toast{top:calc(var(--sat) + 56px);width:min(40vw,360px)}
+body.touch.land.driving #note{top:calc(var(--sat) + 56px);left:calc(var(--sal) + 168px);width:240px;font-size:12px;padding:8px 10px}
+body.touch.land.driving:has(#note:not([hidden])) #toast{left:calc(var(--sal) + 420px);transform:none;width:min(30vw,280px)}
