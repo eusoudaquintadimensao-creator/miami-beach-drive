@@ -107,27 +107,27 @@ export function createEnv(scene, renderer, Q) {
     fog: true,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uT: { value: 0 }, uSun: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uZen: { value: new THREE.Color() },
-      uNight: { value: 0 }, uRain: { value: 0 }, uWv: { value: wv }, uWd: { value: wd }, uShore: { value: SHORE_X }, uY: { value: WATER_Y }, uDetail: { value: Q.level === 'low' ? 0 : 1 },
+      uNight: { value: 0 }, uRain: { value: 0 }, uPh: { value: new THREE.Vector4() }, uTa: { value: 0 }, uTb: { value: 0 }, uTf: { value: 0 }, uTn: { value: 0 }, uWv: { value: wv }, uWd: { value: wd }, uShore: { value: SHORE_X }, uY: { value: WATER_Y }, uDetail: { value: Q.level === 'low' ? 0 : 1 },
     }]),
-    vertexShader: `uniform float uT, uShore; uniform vec4 uWv[4]; uniform vec2 uWd[4]; varying vec3 vW; varying float vDamp;
+    vertexShader: `uniform float uT, uShore; uniform vec4 uPh; uniform vec4 uWv[4]; uniform vec2 uWd[4]; varying vec3 vW; varying float vDamp;
       #include <fog_pars_vertex>
       void main(){ vec4 w = modelMatrix*vec4(position,1.); float damp = (w.x>330. && w.x<uShore+60.) ? clamp((w.x-uShore+10.)/70.,0.15,1.) : 1.; float y=0.;
-        for(int i=0;i<4;i++){ y += sin(dot(w.xz,uWd[i])*uWv[i].x*6.283 + uT*uWv[i].z)*uWv[i].y; }
-        w.y += y*damp*0.6; vW = w.xyz; vDamp = damp; vec4 mvPosition = viewMatrix*w; gl_Position = projectionMatrix*mvPosition;
+        for(int i=0;i<4;i++){ y += sin(mod(dot(w.xz,uWd[i])*uWv[i].x, 1.)*6.2831853 + uPh[i])*uWv[i].y; }
+        w.y += clamp(y,-0.6,0.6)*damp*0.6; /* nunca sobe acima do chão */ vW = w.xyz; vDamp = damp; vec4 mvPosition = viewMatrix*w; gl_Position = projectionMatrix*mvPosition;
         #include <fog_vertex>
       }`,
-    fragmentShader: `uniform float uT, uNight, uRain, uShore, uY, uDetail; uniform vec3 uSun, uSunCol, uHor, uZen; uniform vec4 uWv[4]; uniform vec2 uWd[4]; varying vec3 vW; varying float vDamp;
+    fragmentShader: `uniform float uT, uNight, uRain, uShore, uY, uDetail, uTa, uTb, uTf, uTn; uniform vec4 uPh; uniform vec3 uSun, uSunCol, uHor, uZen; uniform vec4 uWv[4]; uniform vec2 uWd[4]; varying vec3 vW; varying float vDamp;
       #include <fog_pars_fragment>
       float hsh(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);} 
       float nz(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hsh(i),hsh(i+vec2(1,0)),f.x),mix(hsh(i+vec2(0,1)),hsh(i+vec2(1,1)),f.x),f.y);} 
       void main(){
         vec2 g = vec2(0.);
-        for(int i=0;i<4;i++){ float k=uWv[i].x*6.283; g += uWd[i]*cos(dot(vW.xz,uWd[i])*k + uT*uWv[i].z)*uWv[i].y*k; }
+        for(int i=0;i<4;i++){ float k=uWv[i].x*6.2831853; g += uWd[i]*cos(mod(dot(vW.xz,uWd[i])*uWv[i].x, 1.)*6.2831853 + uPh[i])*uWv[i].y*k; }
         g *= vDamp*0.6;
-        vec2 p = vW.xz*0.35;
-        g += vec2(sin(vW.x*0.9+uT*1.7+sin(vW.z*0.3)), cos(vW.z*1.1-uT*1.3+sin(vW.x*0.25)))*0.06;
-        if (uDetail > 0.5) { float e=0.15; float a=nz(p+uT*0.4), b=nz(p+vec2(e,0.)+uT*0.4), c=nz(p+vec2(0.,e)+uT*0.4);
-          float a2=nz(p*2.7-uT*0.6), b2=nz(p*2.7+vec2(e,0.)-uT*0.6), c2=nz(p*2.7+vec2(0.,e)-uT*0.6);
+        vec2 p = mod(vW.xz, 1000.)*0.35;
+        g += vec2(sin(mod(vW.x*0.9, 6.2831853)+uTa+sin(mod(vW.z*0.3, 6.2831853))), cos(mod(vW.z*1.1, 6.2831853)-uTb+sin(mod(vW.x*0.25, 6.2831853))))*0.06;
+        if (uDetail > 0.5) { float e=0.15; float a=nz(p+uTn*0.4), b=nz(p+vec2(e,0.)+uTn*0.4), c=nz(p+vec2(0.,e)+uTn*0.4);
+          float a2=nz(p*2.7-uTn*0.6), b2=nz(p*2.7+vec2(e,0.)-uTn*0.6), c2=nz(p*2.7+vec2(0.,e)-uTn*0.6);
           g += (vec2(b-a,c-a)/e*0.16 + vec2(b2-a2,c2-a2)/e*0.09)*(1.+uRain*2.); }
         vec3 n = normalize(vec3(-g.x, 1., -g.y));
         vec3 v = normalize(cameraPosition - vW);
@@ -143,14 +143,16 @@ export function createEnv(scene, renderer, Q) {
         float sp = pow(max(dot(r, normalize(uSun)),0.), 380.) * 8.0 + pow(max(dot(r, normalize(uSun)),0.), 40.)*0.25;
         col += uSunCol*sp*(1.-uRain*0.8);
         // espuma na arrebentação
-        if (vW.x > 330.) { float d = vW.x - uShore; float f = smoothstep(14.,0.,d)*smoothstep(-6.,2.,d); float lines = smoothstep(0.55,1.,sin(d*0.55 - uT*1.6 + nz(vW.xz*0.1)*3.)*0.5+0.5);
-          float fo = clamp(f*(0.55+lines*0.8)*nz(vW.xz*0.8+uT*0.3)*1.6,0.,1.); col = mix(col, vec3(0.95)*(0.4+0.6*max(uSun.y+0.2,0.25)), fo); }
+        if (vW.x > 330.) { float d = vW.x - uShore; float f = smoothstep(14.,0.,d)*smoothstep(-6.,2.,d); float lines = smoothstep(0.55,1.,sin(d*0.55 - uTf + nz(mod(vW.xz, 1000.)*0.1)*3.)*0.5+0.5);
+          float fo = clamp(f*(0.55+lines*0.8)*nz(mod(vW.xz, 1000.)*0.8+uTn*0.3)*1.6,0.,1.); col = mix(col, vec3(0.95)*(0.4+0.6*max(uSun.y+0.2,0.25)), fo); }
+        col = clamp(col, 0., 6.); if (!(col.r >= 0.) || !(col.g >= 0.) || !(col.b >= 0.)) col = water; // nunca cores saturadas por estouro numérico
         gl_FragColor = vec4(col, 1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`
   });
+  om.polygonOffset = true; om.polygonOffsetFactor = 2; om.polygonOffsetUnits = 4; // em celulares com depth de 16 bits a água (0,6 m abaixo) não "atravessa" o chão
   const ocean = new THREE.Mesh(og, om); ocean.position.y = WATER_Y; ocean.renderOrder = -1; scene.add(ocean); E.ocean = ocean;
   // poças do pântano: mesma água, menor
   E.setTime = (h) => { E.hour = ((h % 24) + 24) % 24; E._envT = -999; };
@@ -188,13 +190,13 @@ export function createEnv(scene, renderer, Q) {
     E.moon.position.copy(camPos).addScaledVector(sunDir.clone().negate().setY(Math.abs(sunDir.y) * 0.6 + 0.25).normalize(), 2900); E.moon.lookAt(camPos);
     E.moon.material.opacity = smooth(0.4, 0.9, E.night) * (1 - E.cloud * 0.6);
     sky.position.copy(camPos);
-    if (E.clouds) { const u = E.clouds.material.uniforms; u.uT.value = t; u.uCover.value = E.cloud; u.uSun.value.copy(sunDir); u.uSunCol.value.copy(K.sun).lerp(new THREE.Color(1, 1, 1), dayAmt * 0.5).multiplyScalar(0.4 + dayAmt * 0.8); u.uShade.value.copy(K.hs).multiplyScalar(0.55 - gray * 0.25); E.clouds.position.x = camPos.x; E.clouds.position.z = camPos.z; }
+    if (E.clouds) { const u = E.clouds.material.uniforms; u.uT.value = t % 20000; u.uCover.value = E.cloud; u.uSun.value.copy(sunDir); u.uSunCol.value.copy(K.sun).lerp(new THREE.Color(1, 1, 1), dayAmt * 0.5).multiplyScalar(0.4 + dayAmt * 0.8); u.uShade.value.copy(K.hs).multiplyScalar(0.55 - gray * 0.25); E.clouds.position.x = camPos.x; E.clouds.position.z = camPos.z; }
     // oceano
-    const ou = om.uniforms; ou.uT.value = t; ou.uSun.value.copy(moon ? ld : sunDir); ou.uSunCol.value.copy(K.sun).multiplyScalar(moon ? 0.3 : dayAmt * 1.2);
+    const ou = om.uniforms; ou.uT.value = t % 600; { const TAU = Math.PI * 2; ou.uPh.value.set((t * WAVES[0][2]) % TAU, (t * WAVES[1][2]) % TAU, (t * WAVES[2][2]) % TAU, (t * WAVES[3][2]) % TAU); ou.uTa.value = (t * 1.7) % TAU; ou.uTb.value = (t * 1.3) % TAU; ou.uTf.value = (t * 1.6) % TAU; ou.uTn.value = t % 2000; } // fases pequenas: GPUs de celular perdem precisão com sin() de números grandes ou.uSun.value.copy(moon ? ld : sunDir); ou.uSunCol.value.copy(K.sun).multiplyScalar(moon ? 0.3 : dayAmt * 1.2);
     ou.uHor.value.copy(fogC).multiplyScalar(1.05); ou.uZen.value.copy(K.hs).multiplyScalar(0.8 - E.night * 0.5); ou.uNight.value = E.night; ou.uRain.value = E.rain;
     ocean.position.x = Math.round(camPos.x / 20) * 20; ocean.position.z = Math.round(camPos.z / 20) * 20;
     // chuva
-    const ru = E.rainMesh.material.uniforms; ru.uT.value = t; ru.uCam.value.copy(camPos); ru.uA.value = E.rain; E.rainMesh.visible = E.rain > 0.02;
+    const ru = E.rainMesh.material.uniforms; ru.uT.value = t % (4000 / 28); ru.uCam.value.copy(camPos); ru.uA.value = E.rain; E.rainMesh.visible = E.rain > 0.02;
     if (E.rain > 0.7 && Math.random() < dt * 0.04) E.flash = 1;
     E.flash = Math.max(0, E.flash - dt * 3);
     // reflexos: atualiza conforme o tempo passa
