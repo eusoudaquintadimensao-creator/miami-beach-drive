@@ -703,11 +703,11 @@ function updateCamera(dt, snap) {
   const mult = [1, 1.45, 0.7][G.camMode];
   let D, H, focusY;
   if (v) {
-    D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'plane' ? 2.8 : v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
+    D = (v.spec.cam * mult + Math.min(v.speed, 40) * 0.05) * (innerHeight > innerWidth && !v.spec.air ? 1.1 : 1); H = 0; focusY = v.type === 'plane' ? 2.8 : v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
     if (lookT <= 0 && v.speed > 2) { const sliding = v.drifting || (v.spec.race && v.driftAng > 0.15); const velA = Math.atan2(v.vx, v.vz);
       // t402: no drift a câmera segue a direção do movimento (estrada à frente) e nunca fica mais de ~0,5 rad atrás do carro (carro sempre inteiro na tela)
       const target = sliding ? v.h + angDiff(v.h, velA) * 0.7 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.spec.air ? 1.6 : sliding ? 4 : 2.6));
-      if (!v.spec.air) { const lag = angDiff(target, G.camYaw); if (Math.abs(lag) > 0.5) G.camYaw = target + Math.sign(lag) * 0.5; } G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
+      if (!v.spec.air) { const lm = innerHeight > innerWidth ? 0.32 : 0.5; const lag = angDiff(target, G.camYaw); if (Math.abs(lag) > lm) G.camYaw = target + Math.sign(lag) * lm; } /* retrato: tela estreita, segura mais perto */ G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
   } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly || G.jet.airPose ? 1.5 : 1); focusY = 1.55 * hk; if (G.bail && G.bail.mode === 'chute') { D = 11 * mult; focusY = 3.4; if (lookT <= 0) G.camPitch = lerp(G.camPitch, 0.04, Math.min(1, dt * 1.5)); } else if (G.bail && G.bail.mode === 'swim') focusY = 0.9; }
   const yaw = G.camYaw, pit = G.camPitch;
   const fx = p.x, fz = p.z, fy = p.y + focusY;
@@ -722,7 +722,7 @@ function updateCamera(dt, snap) {
   const sh = trauma * trauma * (save.shake == null ? 1 : save.shake);
   if (sh > 0.0008) { const tt = G.t * 62; camera.position.x += Math.sin(tt * 1.71) * sh * 0.38; camera.position.y += Math.sin(tt * 2.27 + 1.1) * sh * 0.28; }
   trauma = Math.max(0, trauma - dt * 2.4);
-  { let la = v ? v.h : 0, ld = 2; if (v && !v.spec.air && v.speed > 3) { const velA = Math.atan2(v.vx, v.vz); la = v.h + angDiff(v.h, velA) * 0.7; ld = Math.min(4.5, 2 + v.speed * 0.06); } // t402: olha um pouco à frente no sentido do movimento
+  { let la = v ? v.h : 0, ld = 2; if (v && !v.spec.air && v.speed > 3) { const velA = Math.atan2(v.vx, v.vz); la = v.h + angDiff(v.h, velA) * 0.7; ld = Math.min(4.5, 2 + v.speed * 0.06); if (innerHeight > innerWidth) ld *= 0.55; } // t402: olha um pouco à frente no sentido do movimento
     if (v && pullK < 1) ld *= pullK; // câmera puxada pela parede: mira no carro (inteiro na tela)
     camLook.set(fx + (v ? Math.sin(la) * ld : 0), fy - (v ? (1 - pullK) * 1.6 : 0), fz + (v ? Math.cos(la) * ld : 0)); camera.lookAt(camLook); }
   if (G.camOverride) { const o = G.camOverride; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); } // vista aérea (fotos/testes)
