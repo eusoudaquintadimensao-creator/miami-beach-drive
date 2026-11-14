@@ -254,7 +254,7 @@ export class Orla {
 #ggInfo{font-size:13px;opacity:.9}#gymGame kbd,#orlaCard kbd{background:#fff2;border-radius:4px;padding:0 4px}
 body.touch #orlaCard,body.touch #gymGame{bottom:auto;top:calc(var(--sat,0px) + 322px);max-width:calc(100vw - 150px);padding:8px 10px}
 body.touch #orlaCard button,body.touch #gymGame button{min-width:0;flex:1}
-body.touch.land #orlaCard,body.touch.land #gymGame{top:auto;bottom:calc(var(--sab,0px) + 56px);max-width:min(440px,50vw)}
+body.touch.land #orlaCard,body.touch.land #gymGame{top:auto;bottom:calc(var(--sab,0px) + 8px);max-width:min(420px,44vw)}
 body.touch #gymGame #ggGo{min-height:52px;font-size:17px}`; document.head.appendChild(st); }
     const host = document.getElementById('hud') || document.body;
     const card = document.createElement('div'); card.id = 'orlaCard'; card.hidden = true; host.appendChild(card); this.cardEl = card;
