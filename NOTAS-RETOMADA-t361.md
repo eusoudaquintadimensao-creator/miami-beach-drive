@@ -64,3 +64,9 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] correções: hidroavião embarca pela asa (alcance 5 m); adapt congela durante gravação. q7 (t392+t361 × 4 × 2; /tmp/q7*.txt): t392 8/8 PASS
 - [x] t361 8/8 PASS, t398 d/i PASS; push 19:13 (Solara 5de91c9, Neon 7a9f8ce)
 - [x] 19:15 site MIAMI DRIVE republicado; live: 4 sw.js (Pages + site) = solara-v23-2026-11-14-orla / neon-dist-v15-2026-11-14-orla, livever 4 alvos 0 erros, live-drive site-d + pages-i ok nos 2 jogos. FASE 5 CONCLUÍDA.
+
+## FASE 6 (t405 fita no topo + t406 controles nas bordas + t407 legível no sol) — publish aprovado
+- [x] src/topbar.js (#topBar: ▦/✕ + #icons + #quick; recolhida = ▦ ⏸ ↩; posição medida entre minimapa e relógio, desvia de HUDs na linha, 2ª linha no retrato; localStorage topMin-v1)
+- [x] CSS bloco t405/t406/t407 no fim do style.css (vidro branco espelhado, borda branca 0.92, sombra escura no texto; carro: grid Freio/Ré/Sair/Alto na borda direita, VEL/N/🎛️ esquerda; a pé 2×2 52 px no canto; 🚘 duplicado escondido no touch)
+- [x] test/t405.js PASS d/i/il/al Solara (prints botoes405-*); Solara a3d4246 SW solara-v24-2026-11-14-vidro
+- [ ] Neon port (neon-dist-v16-2026-11-14-vidro) → t405 ×4 → matriz curta (t400,t401,t398,t387,t335,t402,t391 ×4 ×2) → push → site → live
