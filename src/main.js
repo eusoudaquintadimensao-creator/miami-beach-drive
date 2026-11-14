@@ -387,6 +387,7 @@ function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.
 
 // ---------------- entrar e sair
 function nearestVehicle() {
+  if (G.bail && G.bail.mode && G.bail.mode !== 'roll') return null; // no ar ou nadando: nada para entrar
   const p = G.player; let best = null, bd = 1e9;
   for (const v of G.vehicles) { if (v.driver || v.noEnter) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'plane' ? 10 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
   return best;

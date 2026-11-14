@@ -174,7 +174,7 @@ export class Bailout {
       if (!v || !v.abandon) continue; if (v.driver) { v.abandon = false; v.auto = 0; continue; }
       const far = camera ? Math.hypot(v.x - camera.position.x, v.z - camera.position.z) : 0, dp = Math.hypot(v.x - p.x, v.z - p.z);
       if (v.air) v.abAir += dt; else if (v.speed < 0.6) v.abT += dt;
-      const home = v.type === 'heli' ? [HELIPAD.x, HELIPAD.z, -Math.PI / 2, THEME.heliHome] : [SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h, THEME.planeHome];
+      const home = v.type === 'heli' ? [HELIPAD.x, HELIPAD.z, -Math.PI / 2, HELIPAD.name] : [SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h, SEAPLANE_BASE.name];
       const back = v.type === 'plane' ? (v.abAir > 6 && far > 160) || v.abAir > 40 || (v.abT > 6 && dp > 25) : (v.abT > 12 && dp > 30) || (v.abT > 1 && isWater(v.x, v.z) && dp > 30) || v.abAir > 120;
       if (back) { v.place(home[0], home[1], home[2]); v.abandon = false; v.auto = 0; if (v.type === 'heli') v.spool = 0; G.ui.toast((v.type === 'heli' ? '🚁 O helicóptero pousou sozinho e voltou ao ' : '✈️ O hidroavião planou até a água e voltou ao ') + '<b>' + home[3] + '</b>', 2600); }
     }
