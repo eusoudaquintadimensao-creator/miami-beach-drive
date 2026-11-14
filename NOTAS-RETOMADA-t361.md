@@ -78,3 +78,6 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
   1 personagem feminina nova original (pele morena quente, cabelo cacheado escuro, elegante; sem semelhança com pessoa real, sem nome real);
   prédio na orla com porta grande → loja de roupas grande e iluminada, andar entre araras, comprar roupa/sapato/chapéu/óculos/bolsa com dinheiro de corrida,
   vestir na hora, espelho com poses/reações, salvar comprados+vestidos por personagem; loja no GPS do celular.
+- t410 (junto da FASE 7): 2ª loja no prédio vizinho da orla — trajes de super-herói; cada herói original com trajes distintos e poderes diferentes
+  (armadura nano-metálica brilhante, ligas de metal raro, variantes voo/escudo/velocidade), compra com dinheiro de corrida, vestir, espelho, salvar.
+  SÓ designs e nomes originais (nada de Marvel/Iron Man/vibranium).
