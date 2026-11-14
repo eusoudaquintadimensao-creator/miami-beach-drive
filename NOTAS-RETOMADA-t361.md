@@ -95,3 +95,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   · t413 (20:47): botão "tela limpa" (vidro, canto superior) esconde tudo não-essencial, 1 toque volta, lembra escolha; ao dirigir, extras somem sozinhos (voltam ao tocar/parar); só controles essenciais discretos nas bordas.
     + TODAS as mensagens/toasts/falas/corrida/drift/dicas/cartões ao dirigir ficam no alto (faixa abaixo da barra), nunca sobre o carro/estrada. Testar com carro à vista nos 4 setups.
   · progresso: src/wardrobe.js escrito (catálogo, applyLook, trajes, classe Wardrobe); heroes.js exporta attach.
+  · commit 68aa7a0: lojas+guarda-roupa+Marisol funcionando no Solara (falta: teste t408, t412, t413, porte Neon)
