@@ -31,6 +31,7 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 ## FASE 3 (pedido 13:10: E, F, G) — publicar em subfases (E primeiro)
 - [x] E código Solara: src/megagarage.js (bloco 'mega' em world.js i=0 j=6, galpão x -642..-558 z 322..428, porta leste z=375; 50 modelos CATALOG; carros de verdade perto (N/R por qualidade) + vitrine instanciada; save.mega {owned,tunes}; ficha #megaCard; E/🚗 compra; 🎨 abre a Oficina no carro; app 🏎️ no celular com endereço e GPS). Vehicle aceita tune.model/pmax/pacc/pgrip. Probe /workspace/t380/p-mega.js OK.
 - [x] E port Neon (Mega Garagem Prisma, 6d760fe) + test/t380.js (ONLY=mega) PASS d/i/il/al Solara
-- [ ] E matriz completa (logs /workspace/t380/E-*.txt) → SW v18/v10 → push → site
+- [x] E matriz completa 32/32 PASS (t380,t367,t361,t335 × d/i/il/al × 2 jogos; /workspace/t380/E-*.txt) → SW solara-v18-2026-11-14-garagem (04cc35e) / neon-dist-v10-2026-11-14-garagem (c3257c5) → push → site Cloudflare redeploy 13:50; live-drive OK nos 4 alvos (/workspace/t380/live-*.txt)
+- [ ] G: OSM extraído (/workspace/osm/miami.json → compact.py → miami-c.json 694 KB / 234 KB gz, q=4 m delta, vias por classe + nomes indexados). Rascunho do app em /workspace/t380/stage/ (gpsosm.js, gps.css, t380-gps.txt). Falta: assets/osm/miami.json, ui.js app 'gps', SW CORE, port Neon (tema night), matriz, publicar
 - [ ] F vida/realismo/praia/NPCs/mapa completo
 - [ ] G app GPS OpenStreetMap
