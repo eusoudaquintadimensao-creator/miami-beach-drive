@@ -52,6 +52,7 @@ import { Birds } from './birds.js';
 import { Gifts } from './gifts.js';
 import { Street } from './street.js';
 import { DriveUI, respawnFade } from './driveui.js';
+import { setupTopBar } from './topbar.js';
 
 const SAVE_KEY = 'mbd-solara-v1';
 const $ = (id) => document.getElementById(id);
@@ -448,9 +449,10 @@ G.backInfo = backInfo;
   const qk = 'quickMin-v1', qb = $('qMore'), qd = $('quick');
   const apply = (m) => { qd.classList.toggle('min', m); qb.textContent = m ? '▦' : '✕'; qb.title = m ? 'Mostrar atalhos' : 'Ocultar atalhos'; };
   const pref = () => { const v = localStorage.getItem(qk); return v === null ? innerWidth > innerHeight : v === '1'; };
-  apply(pref()); addEventListener('resize', () => { if (localStorage.getItem(qk) === null) apply(innerWidth > innerHeight); });
+  apply(pref()); addEventListener('resize', () => { if (!G.topBar && localStorage.getItem(qk) === null) apply(innerWidth > innerHeight); });
   qb.onclick = (e) => { e.stopPropagation(); const m = !qd.classList.contains('min'); localStorage.setItem(qk, m ? '1' : '0'); apply(m); };
 }
+setupTopBar(G); // t405: todos os atalhos numa fita de vidro no topo (substitui o recolher do t399)
 $('bPhone').onclick = () => G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); $('bMap').onclick = () => G.ui.openMap(); $('bRadio').onclick = () => { G.audio.init(); G.radioSet(G.audio.station + 1); }; $('bCam').onclick = () => cycleCam();
 function cycleCam() { G.camMode = (G.camMode + 1) % 3; G.ui.toast(['Câmera normal', 'Câmera distante', 'Câmera próxima'][G.camMode], 1400); }
 G.radioSet = (i) => { const st = G.audio.setStation(i); save.station = G.audio.station; G.ui.radio(st); persist(); };

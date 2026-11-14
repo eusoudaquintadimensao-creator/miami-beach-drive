@@ -782,3 +782,60 @@ body.touch.land #drift{right:calc(var(--sar) + 184px);top:calc(var(--sat) + 96px
 #driftW{left:auto!important;right:calc(var(--sar) + 84px);bottom:auto!important;top:calc(38% + 70px);transform:none!important}
 body.driving.touch:not(.land) #driftW{right:calc(var(--sar) + 12px);top:calc(var(--sat) + 322px);width:140px}
 body.touch.land.driving #driftW{right:calc(var(--sar) + 184px);top:calc(var(--sat) + 152px);width:136px}
+
+/* ——— t405/t406/t407: fita de atalhos no topo + vidro branco espelhado legível no sol; controles colados nas bordas ——— */
+body{--gFill:linear-gradient(165deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.12) 44%,rgba(18,22,32,.30) 56%,rgba(18,22,32,.40) 100%);--gEdge:rgba(255,255,255,.92);--gGlow:rgba(0,0,0,.28);--gPress:linear-gradient(165deg,rgba(255,255,255,.70),rgba(255,255,255,.38) 50%,rgba(40,48,64,.45))}
+body .wg,#topBar button,body.touch #btns button,body.touch .glassDrv,body.touch #drvBrake,body.touch #drvRev,body.touch #drvBeam,body.touch #drvCruise,body.touch #drvGear,body.touch .drvRight #bAct,body.touch #bNeutral{
+  background:var(--gFill)!important;
+  backdrop-filter:blur(8px) saturate(1.5) brightness(.92)!important;-webkit-backdrop-filter:blur(8px) saturate(1.5) brightness(.92)!important;
+  border:1.5px solid rgba(255,255,255,.92)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.28),0 3px 10px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.18)!important;
+  color:#fff!important;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.95),0 0 1px #000!important;opacity:1!important}
+#topBar button:active,#topBar button.on,body.touch #btns button:active,body.touch #btns button.on,body.touch .drvBtn:active,body.touch .drvBtn.on,body.touch .drvBig.on,body.touch .drvRight #bAct:active,body.touch #bNeutral.on,body.touch #drvBeam.on{background:var(--gPress)!important;border-color:#fff!important;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 10px rgba(255,255,255,.55),inset 0 0 10px rgba(255,255,255,.45)!important}
+body.touch #btns button small,body.touch .drvBtn small,body.touch .drvRight #bAct small,body.touch #drvCruise *{text-shadow:0 0 2px #000,0 1px 2px #000!important;color:#fff!important;font-weight:800}
+html body.touch #drvBrake{border-color:rgba(255,215,215,.96)!important}
+html body.touch #bNeutral{border-color:rgba(255,245,200,.96)!important}
+
+/* fita do topo */
+#topBar{position:absolute;top:calc(var(--sat) + 8px);right:calc(var(--sar) + 140px);display:flex;align-items:center;gap:5px;padding:3px;border-radius:14px;z-index:9;
+  background:linear-gradient(165deg,rgba(255,255,255,.16),rgba(20,24,34,.16));border:1px solid rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.15),0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);max-width:70vw;pointer-events:auto}
+#tbStrip{display:flex;align-items:center;gap:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x;min-width:0;flex:1 1 auto}
+#tbStrip::-webkit-scrollbar{display:none}
+#topBar #icons,#topBar #quick{position:static!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:5px!important;width:auto!important;transform:none!important;top:auto!important;left:auto!important;right:auto!important;opacity:1!important;visibility:visible!important;margin:0!important}
+#topBar #quick[hidden]{display:none!important}
+body.racing #topBar #quick{display:none!important}
+#topBar button{flex:0 0 auto;width:38px!important;height:38px!important;border-radius:11px!important;font-size:18px!important;padding:0!important;line-height:1!important;display:flex;align-items:center;justify-content:center}
+body.touch #topBar button{width:34px!important;height:34px!important;font-size:16px!important;border-radius:10px!important}
+#topBar #qMore{display:flex!important;font-weight:900;font-size:15px!important}
+#topBar #bBack[hidden]{display:none!important}
+#topBar.min #tbStrip{overflow:hidden}
+#topBar.min #quick{display:none!important}
+#topBar.min #icons button:not(#bPause):not(#bBack){display:none!important}
+body.driving.touch #topBar #quick{display:none!important}
+body.touch.recording #topBar #icons{visibility:visible!important}
+body.touch.recording #topBar #icons button:not(#bRec):not(#bPause){display:none!important}
+body.hasTopBar:not(.touch) #note{top:calc(var(--sat) + 62px)}
+
+/* a pé: Pular/Chamar/Força/Foto menores, no canto inferior direito; joystick menor no canto esquerdo */
+body.touch:not(.driving) #btns{right:calc(var(--sar) + 8px)!important;bottom:calc(var(--sab) + 10px)!important;top:auto!important;gap:7px!important;grid-template-columns:repeat(2,52px)!important;width:auto!important}
+body.touch:not(.driving) #btns button{width:52px!important;height:52px!important;font-size:17px!important;border-radius:50%!important}
+body.touch:not(.driving) #btns button.big{width:52px!important;height:52px!important}
+body.touch:not(.driving) #btns button small{font-size:8.5px!important}
+body.touch #stick{background:radial-gradient(circle,rgba(255,255,255,.10),rgba(18,22,32,.22))!important;border:1.5px solid rgba(255,255,255,.85)!important;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 3px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.6)!important}
+body.touch #knob{background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.85),rgba(210,220,235,.45))!important;border:1.5px solid #fff!important;box-shadow:0 0 0 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.35)!important}
+
+/* no carro (t406): direita = Freio no canto, Ré ao lado, Sair e Alto subindo pela borda; esquerda = VEL na borda, N e 🎛️ ao lado */
+body.driving.touch .drvRight{position:absolute!important;right:calc(var(--sar) + 8px)!important;bottom:calc(var(--sab) + 10px)!important;left:auto!important;top:auto!important;transform:none!important;display:grid!important;grid-template-columns:54px 64px!important;grid-template-areas:". beam" ". act" "rev brake"!important;gap:8px!important;align-items:end!important;justify-items:center!important;width:auto!important}
+body.driving.touch .drvRight #drvBeam{grid-area:beam!important;width:46px!important;height:46px!important}
+body.driving.touch .drvRight #bAct{grid-area:act!important;width:46px!important;height:46px!important;margin:0!important;font-size:17px!important}
+body.driving.touch .drvRight #drvRev{grid-area:rev!important;width:54px!important;height:54px!important}
+body.driving.touch .drvRight #drvBrake{grid-area:brake!important;width:64px!important;height:64px!important}
+body.driving.touch .drvRight > *{position:static!important;margin:0!important;transform:none!important}
+body.driving.touch #drvCruise{left:calc(var(--sal) + 8px)!important;bottom:calc(var(--sab) + 10px)!important;top:auto!important;width:44px!important;height:120px!important}
+body.driving.touch #drvGear{left:calc(var(--sal) + 60px)!important;bottom:calc(var(--sab) + 10px)!important;top:auto!important;width:42px!important;height:42px!important}
+body.driving.touch #btns #bNeutral,body.driving.touch #bNeutral{left:calc(var(--sal) + 60px)!important;bottom:calc(var(--sab) + 60px)!important;top:auto!important;right:auto!important;width:42px!important;height:42px!important}
+body.driving.touch #btns{right:calc(var(--sar) + 140px)!important;bottom:calc(var(--sab) + 10px)!important;top:auto!important}
+body.driving.touch #btns button:not(#bNeutral){width:46px!important;height:46px!important}
+body.touch #topBar #qCar{display:none!important} /* 🚘 Chamar já está no botão grande (sem duplicado) */
+body.touch.land:not(.driving) #note{top:calc(var(--sat) + 58px)!important;left:calc(var(--sal) + 132px)!important;width:min(270px,36vw)!important;font-size:12px!important;padding:7px 10px!important}
+body.touch:not(.land):not(.driving) #note{top:calc(var(--sat) + 146px)!important;left:calc(var(--sal) + 10px)!important;right:auto!important;width:calc(100vw - 20px - var(--sal) - var(--sar))!important;max-width:380px;font-size:12px!important;padding:7px 10px!important}
