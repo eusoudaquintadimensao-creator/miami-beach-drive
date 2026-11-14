@@ -258,3 +258,8 @@ Testes: d/i/il/al, 0 erros, regressão drive/mech/serp/ponte/linecheck + teste n
 - SW: solara-v14-2026-11-14-t335 / neon-dist-v6-2026-11-14-t335 (NÃO publicado). Ao publicar: atualizar `/workspace/miami-test/live-drive.js` (sw v14/v6).
 - Teste: `node test/t335.js W H low tag` (ONLY=edge,crash,btn,race,raceshot,fun,heli). Matriz d/i/il/al PASS nos dois jogos.
 - Final t335 (14/11 ~01:45 -03): t335 d/i/il/al PASS; ponte d/dh/i/il/al PASS (teste de borda agora aceita "respawn OU sai andando livre"); mech/drive d/i/il/al PASS; serp PASS; linecheck 0 hits. 0 erros de console. Commits locais, NADA publicado (aguardando aprovação). Notas locais t332 (e8ebc1d/16351aa) vão junto no próximo push aprovado.
+
+## Publicado (14/11/2026, ~01:50 Brasília)
+- Lote t335 + correção do SW publicado no GitHub Pages. O SW agora só apaga caches da própria família (prefixo antes de "v"), porque o domínio é compartilhado (github.io com o Mestre Solar; site novo com os dois jogos). Conferido no ar desktop e iPhone (`/workspace/miami-test/live-drive.js`): 0 erros.
+- Os dois jogos também estão no site **MIAMI DRIVE SOLARA 2088**: https://miami-drive-solara-2088.conhecimento-solar.workers.dev (`/solara-bay/` e `/neon-distrito/`). O projeto do site fica em `/workspace/miami-drive-site` (ver NOTAS.md lá). Depois de mudar o jogo: push aqui + `build.sh` e publicar o site de novo.
+- Os testes `live-drive.js` aceitam `SITE=<url do site>` para testar a cópia do site.
