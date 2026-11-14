@@ -69,4 +69,5 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] src/topbar.js (#topBar: ▦/✕ + #icons + #quick; recolhida = ▦ ⏸ ↩; posição medida entre minimapa e relógio, desvia de HUDs na linha, 2ª linha no retrato; localStorage topMin-v1)
 - [x] CSS bloco t405/t406/t407 no fim do style.css (vidro branco espelhado, borda branca 0.92, sombra escura no texto; carro: grid Freio/Ré/Sair/Alto na borda direita, VEL/N/🎛️ esquerda; a pé 2×2 52 px no canto; 🚘 duplicado escondido no touch)
 - [x] test/t405.js PASS d/i/il/al Solara (prints botoes405-*); Solara a3d4246 SW solara-v24-2026-11-14-vidro
-- [ ] Neon port (neon-dist-v16-2026-11-14-vidro) → t405 ×4 → matriz curta (t400,t401,t398,t387,t335,t402,t391 ×4 ×2) → push → site → live
+- [x] Neon port + t405 ×4 PASS (Neon commit acima)
+- [ ] matriz q9 (t400 t401 t398 t387 t335 t402 t391 t390 t386 t392 t367 t361 ×4 ×2; /tmp/q9s.txt /tmp/q9n.txt) → push → site → live
