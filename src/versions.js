@@ -7,6 +7,7 @@ export const VERSIONS = [
 ];
 export function versionLink(v, loc = location) {
   if (!v.copy) return v.url;
+  if (/\.github\.io$/.test(loc.hostname || '')) return v.url; // GitHub Pages: cada jogo tem seu repositório
   const m = loc.pathname.match(/^(.*\/)(solara-bay|neon-distrito)\/(?:index\.html)?$/); // estamos numa cópia do site
   return m ? loc.origin + m[1] + v.copy : v.url;
 }
