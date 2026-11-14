@@ -39,3 +39,12 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [ ] F vida/realismo/praia/NPCs/mapa completo
 - [ ] G app GPS OpenStreetMap
+
+## FASE 4 (t386 praia + t387 botões + t388 bug urgente + t390 pular) — um publish só
+- [x] t386 pesquisa: /workspace/pesquisa-praia/PESQUISA-PRAIA-PT.md
+- [x] t386 código: BEACH.keep + rotinas por hora (beachlife SCHED); src/orla.js (Calçadão Onda, postos variados, academia supino/barra/corrida com minijogo e recordes em save.orla, futebol 5x5 com placar, 2 quadras de tênis com rali, roda do pôr do sol, 2 músicos com gorjeta, pedidos bola/chinelo/coco). Neon: tema Via Fluxo/Academia Pulso/Arena Plasma/Quadras Íon. test/t386.js
+- [x] t388 causa: shader da água (plano 3200 m em WATER_Y, também sob a cidade) usava sin/cos de G.t crescente × até 2.3 e coordenadas grandes → GPU de celular (mediump/precisão) gera deslocamento/cor lixo: água atravessa a avenida em faixas coloridas. Correção env.js: fases mod 2π na CPU (uPh, uTa/uTb/uTf), uT % 600, deslocamento limitado (nunca sobe acima do chão), cor clamp + guarda NaN, polygonOffset. test/t388.js + scanbig.js
+- [x] t387: botões de vidro (blur, borda neon, pressionado mais claro), mais altos em retrato e paisagem; paisagem dirigindo em grade 2×2 à direita; N ao lado do VEL (sem sobrepor o 🎁/giftHud). test/t387.js (prints botoes-*)
+- [x] t390: src/bailout.js — Sair com carro >6 m/s = pulo + rolamento (carro na banguela até parar, pedestres desviam: v.coast); heli/avião no ar = salto + paraquedas automático (velame colorido, ~3,2 m/s, joystick/A-D vira, W/S velocidade, ⤓ desce mais rápido), pouso em chão/telhado; água = nado (margem ou resgate em 20 s); <8 m = pulo curto. Heli abandonado paira 5 s e desce (auto), volta ao heliponto; avião plana e volta ao hidroporto. test/t390.js (prints pular-*)
+- [x] SW solara-v22-2026-11-14-praia / neon-dist-v14-2026-11-14-praia
+- [ ] matriz (t390,t388,t387,t386,t383,t380,t367,t361,t335 × d/i/il/al × 2) → push → site → live
