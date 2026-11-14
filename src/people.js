@@ -59,6 +59,9 @@ export class Crowd {
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.75 });
     const mk = (g, c, m = mat) => { const im = new THREE.InstancedMesh(g, m, c); im.castShadow = Q.level !== 'low'; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(im); return im; };
     this.torso = mk(G.torso, n); this.head = mk(G.head, n); this.hair = mk(G.hair, n); this.legs = mk(G.leg, n * 2); this.arms = mk(G.arm, n * 2);
+    // sapatos e cabelo comprido (metade das pessoas): mais realismo, mesmas chamadas instanciadas
+    this.shoes = mk(new THREE.BoxGeometry(0.12, 0.08, 0.25).translate(0, -0.86, 0.05), n * 2, new THREE.MeshStandardMaterial({ roughness: 0.6 }));
+    const lh = new THREE.CapsuleGeometry(0.115, 0.2, 2, 8); lh.scale(1.05, 1, 0.6); lh.translate(0, 1.52, -0.08); this.hairL = mk(lh, n);
     this.dogs = mk(dogGeo(), n, new THREE.MeshStandardMaterial({ roughness: 0.85 })); this.bags = mk(new THREE.BoxGeometry(0.26, 0.3, 0.1).translate(0, -0.15, 0), n, new THREE.MeshStandardMaterial({ roughness: 0.6 }));
     this.peds = []; const r = rng(4242); this.r = r;
     for (let i = 0; i < n; i++) {
@@ -67,6 +70,7 @@ export class Crowd {
       const skin = new THREE.Color(pick(r, SKIN));
       this.torso.setColorAt(i, new THREE.Color(pick(r, SHIRT))); this.head.setColorAt(i, skin); this.hair.setColorAt(i, new THREE.Color(pick(r, HAIR)));
       const pc = new THREE.Color(pick(r, PANTS)); this.legs.setColorAt(i * 2, pc); this.legs.setColorAt(i * 2 + 1, pc); this.arms.setColorAt(i * 2, skin); this.arms.setColorAt(i * 2 + 1, skin);
+      { const sc = new THREE.Color(pick(r, [0xffffff, 0x111111, 0x8d6e63, 0xff4fb8, 0x2ab3b8, 0xe9d8a6])); this.shoes.setColorAt(i * 2, sc); this.shoes.setColorAt(i * 2 + 1, sc); this.hairL.setColorAt(i, this.hair.instanceColor ? new THREE.Color().fromArray(this.hair.instanceColor.array, i * 3) : sc); }
       this.dogs.setColorAt(i, new THREE.Color(pick(r, DOGC))); this.bags.setColorAt(i, new THREE.Color(pick(r, [0xff4fb8, 0xffd23f, 0x29f0ff, 0xf5f5f5, 0x8e24aa])));
       p.scale = 0.9 + r() * 0.18; this.peds.push(p);
     }
@@ -199,7 +203,7 @@ export class Crowd {
     const camX = cam.position.x, camZ = cam.position.z;
     for (const p of this.peds) {
       const far = p.hidden || Math.abs(p.x - camX) > 180 || Math.abs(p.z - camZ) > 180;
-      if (far) { this.torso.setMatrixAt(p.i, _z); this.head.setMatrixAt(p.i, _z); this.hair.setMatrixAt(p.i, _z); for (const k of [0, 1]) { this.legs.setMatrixAt(p.i * 2 + k, _z); this.arms.setMatrixAt(p.i * 2 + k, _z); } this.dogs.setMatrixAt(p.i, _z); this.bags.setMatrixAt(p.i, _z); continue; }
+      if (far) { this.torso.setMatrixAt(p.i, _z); this.head.setMatrixAt(p.i, _z); this.hair.setMatrixAt(p.i, _z); for (const k of [0, 1]) { this.legs.setMatrixAt(p.i * 2 + k, _z); this.arms.setMatrixAt(p.i * 2 + k, _z); } this.dogs.setMatrixAt(p.i, _z); this.bags.setMatrixAt(p.i, _z); this.hairL.setMatrixAt(p.i, _z); this.shoes.setMatrixAt(p.i * 2, _z); this.shoes.setMatrixAt(p.i * 2 + 1, _z); continue; }
       const m = p.mode === 'line' || p.mode === 'walk' || p.mode === 'wander' ? 'walk' : p.mode === 'idle' && p.act2 === 'phone' && !p.looking ? 'phone' : p.mode === 'shop' ? 'idle' : p.mode;
       const pose = poseFor(m, p.ph, p.moving === 2 ? 0.9 : p.moving ? 0.55 : 0, p.ex);
       const y = surfaceY(p.x, p.z) + (p.mode === 'sit' && p.slot && p.slot.table && p.slot.y ? p.slot.y : 0);
@@ -208,7 +212,8 @@ export class Crowd {
       _b.compose(_p, _q, _s);
       if (pose.lie) _b.multiply(_m.makeTranslation(0, -0.9, 0));
       this.torso.setMatrixAt(p.i, _b); this.head.setMatrixAt(p.i, _b); this.hair.setMatrixAt(p.i, _b);
-      for (const [k, sx, ang] of [[0, -0.1, pose.legL], [1, 0.1, pose.legR]]) { _m.makeRotationX(ang).setPosition(sx, 0.93, 0); this.legs.setMatrixAt(p.i * 2 + k, _m.premultiply(_b)); }
+      for (const [k, sx, ang] of [[0, -0.1, pose.legL], [1, 0.1, pose.legR]]) { _m.makeRotationX(ang).setPosition(sx, 0.93, 0); this.legs.setMatrixAt(p.i * 2 + k, _m.premultiply(_b)); this.shoes.setMatrixAt(p.i * 2 + k, _m); }
+      this.hairL.setMatrixAt(p.i, p.i % 2 === 0 ? _b : _z);
       for (const [k, sx, ang] of [[0, -0.27, pose.armL], [1, 0.27, pose.armR]]) { _m.makeRotationX(ang).setPosition(sx, 1.49, 0); this.arms.setMatrixAt(p.i * 2 + k, _m.premultiply(_b)); }
       // sacola na mão direita
       if (p.bag && !pose.lie && p.mode !== 'sit') { _m.makeRotationX(pose.armR * 0.3).setPosition(0.3, 0.92, 0.04); this.bags.setMatrixAt(p.i, _m.premultiply(_b)); } else this.bags.setMatrixAt(p.i, _z);
@@ -219,7 +224,7 @@ export class Crowd {
         this.dogs.setMatrixAt(p.i, _m.compose(_p, _q, _s));
       } else this.dogs.setMatrixAt(p.i, _z);
     }
-    for (const m of [this.torso, this.head, this.hair, this.legs, this.arms, this.dogs, this.bags]) m.instanceMatrix.needsUpdate = true;
+    for (const m of [this.torso, this.head, this.hair, this.legs, this.arms, this.dogs, this.bags, this.hairL, this.shoes]) m.instanceMatrix.needsUpdate = true;
   }
 }
 

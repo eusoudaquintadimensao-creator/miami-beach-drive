@@ -376,6 +376,9 @@ export class Vehicle {
       const tl = new THREE.Mesh(cached('tl' + type, () => { const g = new THREE.BoxGeometry(0.46, 0.13, 0.06); const a = g.clone().translate(-w / 2 + 0.33, ty, tz); const b = g.translate(w / 2 - 0.33, ty, tz); const bar = new THREE.BoxGeometry(w * 0.5, 0.035, 0.05).translate(0, ty + 0.03, tz); return mergeTwo(mergeTwo(a, b), bar); }), S.tail);
       this.body.add(new THREE.Mesh(cached('pl' + type, () => new THREE.BoxGeometry(0.5, 0.13, 0.03).translate(0, 0.52, rz - 0.15)), S.plate));
       this.body.add(hl, tl); this.tailMesh = tl;
+      // retrovisores e maçanetas (detalhe realista, uma malha só por modelo)
+      this.body.add(new THREE.Mesh(cached('mir' + type, () => { const [gz, gy] = P.glass[0]; let g = null; for (const sx of [-1, 1]) { const h = new THREE.BoxGeometry(0.1, 0.13, 0.2).translate(sx * (w / 2 + 0.07), gy + 0.07, gz - 0.16); const st = new THREE.BoxGeometry(0.1, 0.04, 0.06).translate(sx * (w / 2 + 0.01), gy + 0.03, gz - 0.12); const m = mergeTwo(h, st); g = g ? mergeTwo(g, m) : m;
+        for (const dz of type === 'sport' ? [-0.75] : [-0.55, -1.55]) { const hd = new THREE.BoxGeometry(0.03, 0.035, 0.18).translate(sx * (w / 2 - 0.01), gy - 0.13, gz + dz); g = mergeTwo(g, hd); } } return g; }), S.trim));
       if (type === 'classic') { // para-lamas arredondados e cromados
         for (const z of [sp.wb / 2, -sp.wb / 2]) for (const sx of [-1, 1]) { const f = new THREE.Mesh(cached('fd', () => new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.55, 0.75, 1.15)), paint); f.position.set(sx * (w / 2 - 0.08), 0.4, z * 0.98); this.body.add(f); }
         this.body.add(new THREE.Mesh(cached('cb', () => new THREE.BoxGeometry(w * 0.9, 0.12, 0.12).translate(0, 0.36, fz + 0.12)), S.chrome));
