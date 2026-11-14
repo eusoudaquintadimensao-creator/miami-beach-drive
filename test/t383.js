@@ -1,0 +1,30 @@
+// Teste t383: "Versões do jogo" na tela inicial. Uso: node test/t383.js W H q tag
+const puppeteer = require('puppeteer-core'); const fs = require('fs');
+const PORT = process.env.PORT || 8765; const [,, W = 1280, H = 720, q = 'low', out = 'd'] = process.argv;
+const mobile = Math.min(+W, +H) < 600; const SH = process.env.SHOTS || '/workspace/t361-prints/'; const GAME = process.env.GAME || 'solara'; const CUR = process.env.CUR || (/neon/.test(GAME) ? 'neon' : 'solara');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); fs.mkdirSync(SH, { recursive: true });
+(async () => {
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader'] });
+  const page = await browser.newPage(); await page.setViewport({ width: +W, height: +H, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: mobile ? 2 : 1 });
+  const errs = []; page.on('pageerror', e => errs.push('PAGE: ' + e.message)); page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  const fail = []; const ck = (n, ok, info) => { console.log((ok ? 'ok   ' : 'FAIL ') + n + ' ' + JSON.stringify(info)); if (!ok) fail.push(n); };
+  await page.goto(`http://localhost:${PORT}/?q=${q}`, { waitUntil: 'load' }); await sleep(1500);
+  const r1 = await page.evaluate(() => { const b = document.getElementById('verBtn'); b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { vis: !b.hidden && r.width > 50 && r.top >= 0 && r.bottom <= innerHeight, txt: b.textContent }; });
+  if (mobile) await page.tap('#verBtn'); else await page.click('#verBtn'); await sleep(400);
+  const r2 = await page.evaluate(async (CUR) => { const P = document.getElementById('verPanel'); const box = P.querySelector('.verBox').getBoundingClientRect(); const cards = [...P.querySelectorAll('a.verCard')];
+    const cr = cards.map(a => { const r = a.getBoundingClientRect(); return { v: a.dataset.v, href: a.getAttribute('href'), cur: a.classList.contains('cur'), em: a.querySelector('em').textContent, inBox: r.left >= box.left - 1 && r.right <= box.right + 1, ow: a.scrollWidth > a.clientWidth + 2 }; });
+    const site = P.querySelector('a.verSite'); const M = await import('./src/versions.js');
+    const copy = { s: M.versionLink(M.VERSIONS[0], { origin: 'https://x.dev', pathname: '/neon-distrito/' }), n: M.versionLink(M.VERSIONS[1], { origin: 'https://x.dev', pathname: '/solara-bay/index.html' }), sky: M.versionLink(M.VERSIONS[2], { origin: 'https://x.dev', pathname: '/solara-bay/' }) };
+    return { open: !P.hidden, box: [box.left, box.top, box.right, box.bottom].map(Math.round), inView: box.top >= 0 && box.bottom <= innerHeight + 1 && box.left >= 0 && box.right <= innerWidth + 1, cr, site: site && site.href, copy, cur: CUR }; }, CUR);
+  await sleep(300); await page.screenshot({ path: `${SH}${GAME}-${out}-versoes.png` });
+  const r3 = await page.evaluate(() => { document.querySelector('#verPanel a.verCard.cur').click(); const a = document.getElementById('verPanel').hidden; document.getElementById('verBtn').click(); document.getElementById('verX').click(); return { curClose: a, xClose: document.getElementById('verPanel').hidden, url: location.href }; });
+  const byV = Object.fromEntries(r2.cr.map(c => [c.v, c]));
+  ck('versões: botão na tela inicial', r1.vis && /Versões do jogo/.test(r1.txt), r1);
+  ck('versões: 3 versões, a atual marcada', r2.open && r2.cr.length === 3 && r2.cr.filter(c => c.cur).length === 1 && byV[r2.cur].cur && /você está aqui/.test(byV[r2.cur].em), r2.cr);
+  ck('versões: links certos', (r2.cur === 'solara' || byV.solara.href === 'https://eusoudaquintadimensao-creator.github.io/miami-beach-drive/') && (r2.cur === 'neon' || byV.neon.href === 'https://eusoudaquintadimensao-creator.github.io/neon-distrito/') && byV.sky.href === 'https://oasis-berry-horizon-kite.grok.me' && /solara-sky-2088\.conhecimento-solar\.workers\.dev/.test(r2.site), { cr: r2.cr, site: r2.site });
+  ck('versões: nas cópias do site aponta para a cópia irmã', r2.copy.s === 'https://x.dev/solara-bay/' && r2.copy.n === 'https://x.dev/neon-distrito/' && /grok\.me/.test(r2.copy.sky), r2.copy);
+  ck('versões: painel cabe na tela', r2.inView && r2.cr.every(c => c.inBox && !c.ow), { box: r2.box, cr: r2.cr.map(c => [c.inBox, c.ow]) });
+  ck('versões: fecha (✕ e tocar na atual), sem sair da página', r3.curClose && r3.xClose && /localhost/.test(r3.url), r3);
+  console.log('errors:', errs.slice(0, 5)); if (errs.length) fail.push('console errors ' + errs.length);
+  console.log(fail.length ? 'FAIL ' + out + ': ' + fail.join(' | ') : 'PASS ' + out); await browser.close(); process.exit(fail.length ? 1 : 0);
+})();
