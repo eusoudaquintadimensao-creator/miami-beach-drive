@@ -721,3 +721,16 @@ body.touch #quick.min{width:auto}
 body.touch #quick button{opacity:.88}
 body.touch.land #quick button{width:34px;height:34px;font-size:15px;border-radius:10px}
 body.touch.land #quick{width:150px;gap:5px}
+
+/* ——— t391: corridas no mar (pórtico dourado) ——— */
+#marTip{position:absolute;left:50%;bottom:calc(var(--sab) + 120px);transform:translateX(-50%);background:rgba(4,24,40,.78);border:1px solid #ffc93c;box-shadow:0 0 14px rgba(255,201,60,.45);padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:86vw;pointer-events:auto;z-index:8}
+#marTip[hidden],#marHud[hidden]{display:none}#marTip small{display:block;opacity:.85;font-size:12px}
+#marTip .stAsk{display:flex;gap:8px;justify-content:center;margin-top:6px}#marTip .stAsk button{min-height:38px;min-width:104px;border-radius:10px;border:0;font-weight:800;font-size:14px;color:#fff;background:#23405a}#marTip .stAsk button[data-k=ok]{background:linear-gradient(90deg,#ffc93c,#7d4dff)}
+body.touch #marTip{bottom:auto;top:calc(var(--sat) + 58px)}
+#marHud{position:absolute;left:50%;top:calc(var(--sat) + 12px);transform:translateX(-50%);background:rgba(4,20,34,.76);border:1px solid rgba(255,201,60,.7);border-radius:12px;padding:5px 14px;font-weight:800;font-size:13px;text-align:center;color:#dff;pointer-events:none;z-index:8;max-width:90vw}
+#marHud b{color:#ffe08a;margin-right:6px}#marHud .pos{color:#ffd23f}body.touch #marHud{top:calc(var(--sat) + 58px)}
+#marHud .pbar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:3px;overflow:hidden}#marHud .pbar i{display:block;height:100%;background:linear-gradient(90deg,#ffc93c,#ff4fb8)}
+body.driving.touch:not(.land) #marTip{top:calc(var(--sat) + 322px);max-width:calc(100vw - 150px);padding:8px 10px}
+body.driving.touch:not(.land) #marTip button{min-width:0;flex:1}
+body.driving.touch.land #marTip{top:calc(var(--sat) + 140px);max-width:min(480px,52vw)}
+#marHud .chat{display:block;font-size:11.5px;opacity:.92;margin-top:3px;max-width:min(520px,80vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

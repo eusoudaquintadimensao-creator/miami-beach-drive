@@ -8,6 +8,8 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { clamp, lerp, angDiff, smooth } from './util.js';
 import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable } from './world.js';
 import { createEnv } from './env.js';
+import { Fleet } from './frota.js';
+import { SeaRaces } from './marraces.js';
 import { Vehicle, SPECS, setVehicleLights, MOTOR, NITRO_STAGES, DRIFT_MAX } from './vehicles.js';
 import { Crowd, Hero } from './people.js';
 import { Avatar, AVATARS, AVATAR_IDS, preloadAvatars } from './avatar.js';
@@ -169,6 +171,7 @@ async function boot() {
   });
   for (const s of SPAWNS.taxiStands) { const v = new Vehicle('taxi', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
   for (const s of SPAWNS.boats) { const v = new Vehicle('boat', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
+  G.fleet = new Fleet(G, SPECS); // t391: 3 lanchas de luxo, 1 iate e 3 jet skis
   G.heli = new Heli(scene, Q, { color: 0xff2d55, stripe: 0xffffff }); G.heli.place(HELIPAD.x, HELIPAD.z, -Math.PI / 2); G.vehicles.push(G.heli);
   G.seabase = buildSeaplaneBase(scene, Q); G.plane = new Plane(scene, Q); G.plane.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h); G.vehicles.push(G.plane);
   G.helis = new HeliFleet(G, Q.helis);
@@ -179,7 +182,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mega = new MegaGarage(G); G.beach = new BeachLife(G, scene, Q); G.bail = new Bailout(G, scene); G.orla = new Orla(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mar = new SeaRaces(G); G.mega = new MegaGarage(G); G.beach = new BeachLife(G, scene, Q); G.bail = new Bailout(G, scene); G.orla = new Orla(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -424,6 +427,7 @@ function onActTap(n) {
   if (p.vehicle) {
     if (G.ponte && G.ponte.canAccept()) { G.ponte.accept(); return; } // aceitar a sessão da ponte (até 50 m do pórtico)
     if (G.boatRace && G.boatRace.canAccept() && !G.boatRace.declined) { G.boatRace.accept(); return; }
+    if (G.mar && G.mar.canAccept() && !G.mar.declined) { G.mar.accept(); return; } // t391: corrida no mar aberto
     const near = G.street && !G.street.race && G.street.nearRival(50);
     if (near) { G.street.flash(); return; }
     if (n === 1) exitVehicle();
@@ -470,6 +474,7 @@ function action() {
   if (G.race.active) { G.race.askQuit(); return; }
   if (p.vehicle && G.ponte && G.ponte.canAccept()) { G.ponte.accept(); return; } // E perto do pórtico = aceitar a sessão da ponte
   if (p.vehicle && G.boatRace && G.boatRace.canAccept() && !G.boatRace.declined) { G.boatRace.accept(); return; }
+  if (p.vehicle && G.mar && G.mar.canAccept() && !G.mar.declined) { G.mar.accept(); return; }
   if (p.vehicle && G.street && !G.street.race && G.street.nearRival(50)) { G.street.flash(); return; } // E perto de um rival = iniciar corrida de rua
   if (p.vehicle) return exitVehicle();
   if (G.orla && G.orla.act()) return; // E na orla: treinar, gorjeta, roda, pedidos
@@ -490,8 +495,8 @@ function action() {
 const SEAT = { sport: [0.4, -0.3, -0.45], sedan: [0.4, -0.12, -0.35], taxi: [0.4, -0.12, -0.35], classic: [0.36, -0.12, -0.3], suv: [0.42, 0.15, -0.2], moto: [0, 0.42, -0.32], heli: [-0.42, 0.72, 1.0], plane: [0.3, 1.55, 0.75] };
 function seatHero(v) {
   const g = G.hero.g; v.body.add(g); g.rotation.set(0, 0, 0); g.visible = true; G.powers.reset(); g.scale.setScalar(Math.min(1, 1.8 / ((G.hero.def && G.hero.def.height) || 1.75)));
-  if (v.spec.boat) g.position.set(0, 0.82, -0.2); else { const s = v.spec.seat || SEAT[v.type] || SEAT.sedan; g.position.set(s[0], s[1], s[2]); }
-  G.hero.pose(v.spec.boat ? 'idle' : 'drive', 0, 0.3);
+  if (v.spec.boat && v.spec.seat) { const s = v.spec.seat; g.position.set(s[0], s[1], s[2]); } else if (v.spec.boat) g.position.set(0, 0.82, -0.2); else { const s = v.spec.seat || SEAT[v.type] || SEAT.sedan; g.position.set(s[0], s[1], s[2]); }
+  G.hero.pose(v.spec.boat && !v.spec.sit ? 'idle' : 'drive', 0, 0.3);
 }
 function exitVehicle() {
   const p = G.player, v = p.vehicle; if (!v) return;
@@ -772,7 +777,7 @@ function step(dt) {
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, G.bail && G.bail.coast, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mar.update(dt, t); G.fleet.update(dt); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
   G._hudT = (G._hudT || 0) - dt; if (G._hudT <= 0) { G._hudT = 0.5; const h = $('hud'); if (G.started && !G.paused && !G.garageOpen && !G.raceMenu && !G.homeIntro && h) { let fixed = 0; if (h.classList.contains('ghide')) { h.classList.remove('ghide'); fixed++; } if (h.hidden) { h.hidden = false; fixed++; } if (document.body.classList.contains('cine')) { document.body.classList.remove('cine'); fixed++; } if (fixed) G.hudFixes = (G.hudFixes || 0) + fixed; } }
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
