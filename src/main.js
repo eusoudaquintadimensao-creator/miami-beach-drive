@@ -306,7 +306,8 @@ addEventListener('keydown', (e) => {
   if (G.orla && G.orla.busy() && !G.paused && (e.code === 'Space' || e.code === 'Enter')) { G.orla.tap(); e.preventDefault(); return; }
   if (e.code === 'KeyV' && !e.repeat && $('recPanel').hidden) { G.rec.toggle(); return; }
   if (e.code === 'Escape' && !$('recPanel').hidden) { $('recPanel').hidden = true; G.paused = false; return; }
-  if (e.code === 'Escape') { if (!$('bigmap').hidden) G.ui.closeMap(); else if (!$('photo').hidden) { $('photo').hidden = true; G.paused = false; } else if (G.phoneOpen) G.ui.closePhone(); else if (!document.pointerLockElement) G.ui.openPhone(); }
+  if (e.code === 'Escape' && G.pauseOpen) { G.closePause(); return; }
+  if (e.code === 'Escape') { if (!$('bigmap').hidden) G.ui.closeMap(); else if (!$('photo').hidden) { $('photo').hidden = true; G.paused = false; } else if (G.phoneOpen) G.ui.closePhone(); else if (!document.pointerLockElement) G.openPause(); } // t400: Esc = pausa (celular continua no P)
   if (G.paused && !['KeyM', 'KeyP'].includes(e.code)) return;
   if (e.code === 'KeyE' || e.code === 'KeyF' && false) action();
   if (e.code === 'KeyT') G.race.resetCar();
@@ -381,6 +382,36 @@ hold('bPow', () => G.powers.trigger());
 hold('bReset', () => G.race.resetCar());
 $('bRec').onclick = () => { G.audio.init(); G.rec.toggle(); };
 $('rpClose').onclick = () => { $('recPanel').hidden = true; G.paused = false; };
+// t400: ⏸ Pausa (menu Continuar / Voltar ao modo anterior / Configurações / Controles) e ↩ Voltar direto
+function backInfo() {
+  const p = G.player, v = p.vehicle;
+  if (G.race && G.race.active) return { label: '🏳️ Sair da corrida', go: () => G.race.askQuit() };
+  if (G.street && G.street.race) return { label: '🏳️ Sair do racha', go: () => G.street.end(false, '🏳️ Você saiu do racha') };
+  if (G.ponte && G.ponte.on) return { label: '🏳️ Sair da Ponte do Mar', go: () => G.ponte.quit() };
+  if (G.boatRace && G.boatRace.race) return { label: '🏳️ Sair da regata', go: () => G.boatRace.end(false, '🏳️ Você saiu da regata') };
+  if (G.mar && G.mar.race) return { label: '🏳️ Sair da corrida no mar', go: () => G.mar.end(false, '🏳️ Você saiu da corrida no mar') };
+  if (G.missions && G.missions.active) return { label: '↩ Cancelar missão', go: () => G.missions.cancel() };
+  if (v) return { label: v.spec.boat ? '↩ Sair do barco' : v.type === 'heli' || v.type === 'plane' ? '↩ Sair da aeronave' : '↩ Sair do veículo', go: () => exitVehicle(), veh: true };
+  return null;
+}
+G.backInfo = backInfo;
+{
+  const ic = $('icons');
+  const mk = (id, txt, title) => { const b = document.createElement('button'); b.id = id; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); return b; };
+  const bP = mk('bPause', '⏸', 'Pausar (Esc)'), bB = mk('bBack', '↩', 'Voltar ao modo anterior'); bB.hidden = true; ic.prepend(bP, bB);
+  const pm = document.createElement('div'); pm.id = 'pauseMenu'; pm.hidden = true;
+  pm.innerHTML = '<div class="pmBox"><b>⏸ Pausado</b><button data-k="go">▶ Continuar</button><button data-k="back" hidden></button><button data-k="cfg">⚙️ Configurações</button><button data-k="ctl">🎮 Controles</button></div>';
+  document.body.appendChild(pm);
+  G.openPause = () => { if (!G.started || G.phoneOpen || G.garageOpen) return; const bi = backInfo(); const bb = pm.querySelector('[data-k=back]'); bb.hidden = !bi; if (bi) bb.textContent = bi.label; pm.hidden = false; G.paused = true; G.pauseOpen = true; if (document.pointerLockElement) document.exitPointerLock(); };
+  G.closePause = () => { if (pm.hidden) return; pm.hidden = true; G.pauseOpen = false; G.paused = false; };
+  pm.addEventListener('pointerdown', e => e.stopPropagation());
+  pm.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) { if (e.target === pm) G.closePause(); return; } e.stopPropagation(); const k = b.dataset.k; G.closePause();
+    if (k === 'back') { const bi = backInfo(); if (bi) bi.go(); } else if (k === 'cfg') G.ui.openPhone('ajustes'); else if (k === 'ctl') G.drive && G.drive.openSettings(); });
+  bP.addEventListener('pointerdown', e => e.stopPropagation()); bB.addEventListener('pointerdown', e => e.stopPropagation());
+  bP.onclick = (e) => { e.stopPropagation(); G.audio.init(); G.pauseOpen ? G.closePause() : G.openPause(); };
+  bB.onclick = (e) => { e.stopPropagation(); G.audio.init(); const bi = backInfo(); if (bi) bi.go(); };
+  setInterval(() => { const bi = G.started && !G.paused ? backInfo() : null; const want = !!bi && !bi.veh; if (bB.hidden === want) bB.hidden = !want; if (bi) bB.title = bi.label.replace(/^\S+\s/, ''); }, 400);
+}
 { // t399: atalhos recolhíveis (paisagem começa recolhido para não cobrir a cidade); lembra a escolha
   const qk = 'quickMin-v1', qb = $('qMore'), qd = $('quick');
   const apply = (m) => { qd.classList.toggle('min', m); qb.textContent = m ? '▦' : '✕'; qb.title = m ? 'Mostrar atalhos' : 'Ocultar atalhos'; };

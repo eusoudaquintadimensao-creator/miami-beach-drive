@@ -124,7 +124,7 @@ fs.mkdirSync(SH, { recursive: true });
       const P = [[S.sx, S.sz], ...S.cps]; const cues = []; let maxGap = 0; const places = new Set(); const v = G.player.vehicle; const tc = document.getElementById('turnCue');
       for (let i = 0; i < P.length - 1 && St.race; i++) { const a = P[i], b = P[i + 1]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); const h = Math.atan2(b[0] - a[0], b[1] - a[1]);
         for (let d = 0; d < L && St.race; d += 0.9) { const x = a[0] + Math.sin(h) * d, z = a[1] + Math.cos(h) * d; v.place(x, z, h); v.vf = 26; v.vx = Math.sin(h) * 26; v.vz = Math.cos(h) * 26; MBD.sim(1, 1 / 30);
-          if (!St.race) break; if (!tc.hidden) cues.push([i, tc.textContent.includes('ESQUERDA') ? 'L' : 'R', Math.round(L - d)]); places.add(St.place()); for (const c of St.race.ais) { const g = c.s - St.playerProg(); if (Math.abs(g) > Math.abs(maxGap)) maxGap = g; } } }
+          if (!St.race) break; if (!tc.hidden) cues.push([i, (tc.dataset.dir === 'L' ? 'L' : 'R'), Math.round(L - d)]); places.add(St.place()); for (const c of St.race.ais) { const g = c.s - St.playerProg(); if (Math.abs(g) > Math.abs(maxGap)) maxGap = g; } } }
       // curvas esperadas (sinal do ângulo: + = esquerda)
       const exp = []; for (let i = 1; i < P.length - 1; i++) { const a = P[i - 1], b = P[i], c = P[i + 1]; const d = __ad(Math.atan2(b[0] - a[0], b[1] - a[1]), Math.atan2(c[0] - b[0], c[1] - b[1])); if (Math.abs(d) > 0.35) exp.push([i - 1, d > 0 ? 'L' : 'R']); }
       const got = {}; for (const [i, s] of cues) got[i] = got[i] || s; o.cueOk = exp.every(([i, s]) => got[i] === s); o.exp = exp; o.got = got;

@@ -119,7 +119,7 @@ export class Street {
       if (Math.abs(d) < 0.35) continue;
       let dist = Math.hypot(b[0] - p.x, b[1] - p.z); for (let j = S.k + 1; j < i; j++) dist += 0; // (curva no próximo portão ou depois)
       if (i > S.k + 1) { dist = Math.hypot(P[S.k + 1][0] - p.x, P[S.k + 1][1] - p.z); for (let j = S.k + 1; j < i; j++) dist += Math.hypot(P[j + 1][0] - P[j][0], P[j + 1][1] - P[j][1]); }
-      return { left: d > 0, dist, sharp: Math.abs(d) > 1.2 }; // +x fica à esquerda de quem anda para +z
+      return { left: d > 0, dist, sharp: Math.abs(d) > 1.2, i }; // +x fica à esquerda de quem anda para +z
     }
     return null;
   }
@@ -210,7 +210,12 @@ export class Street {
     const G = this.G, S = this.race, el = document.getElementById('stHud'), ar = document.getElementById('stArrow'); if (!el) return;
     const tc = document.getElementById('turnCue');
     if (!S) { el.hidden = true; if (ar) ar.hidden = true; if (tc) tc.hidden = true; return; }
-    if (tc) { const nt = S.t >= 0 ? this.nextTurn() : null; const show = nt && nt.dist < 140; if (show) { const h = `<i>${nt.left ? '⬅' : '➡'}</i><b>CURVA À ${nt.left ? 'ESQUERDA' : 'DIREITA'}</b><small>${Math.max(0, Math.round(nt.dist / 5) * 5)} m${nt.sharp ? ' · fechada' : ''}</small>`; if (tc._h !== h) { tc.innerHTML = h; tc._h = h; } tc.classList.toggle('left', nt.left); tc.classList.toggle('near', nt.dist < 45); } if (tc.hidden === !!show) tc.hidden = !show; S.cue = show ? (nt.left ? 'L' : 'R') : ''; }
+    if (tc) { const nt = S.t >= 0 ? this.nextTurn() : null; const show = nt && nt.dist < 140; // t400: só a seta de vidro + distância pequena, no alto; some sozinha e volta perto da curva
+      if (show) { const key = nt.i + (nt.left ? 'L' : 'R'); if (tc._key !== key) { tc._key = key; tc._t0 = G.t; }
+        const h = `<i>${nt.left ? '⬅' : '➡'}</i><small>${Math.max(0, Math.round(nt.dist / 5) * 5)} m</small>`; if (tc._h !== h) { tc.innerHTML = h; tc._h = h; }
+        const near = nt.dist < 45; tc.dataset.dir = nt.left ? 'L' : 'R'; tc.title = `Curva à ${nt.left ? 'esquerda' : 'direita'}${nt.sharp ? ' (fechada)' : ''}`;
+        tc.classList.toggle('left', nt.left); tc.classList.toggle('near', near); tc.classList.toggle('sharp', nt.sharp); tc.classList.toggle('dim', !near && G.t - tc._t0 > 2.6); }
+      if (tc.hidden === !!show) tc.hidden = !show; S.cue = show ? (nt.left ? 'L' : 'R') : ''; }
     const pos = this.place(); S.pos = pos; const tt = Math.max(0, S.t);
     el.hidden = false; el.innerHTML = `<b>🌙 ${ROUTES[S.ri].name}</b><span>5 corredores</span><span>Portão ${Math.min(S.k + 1, S.cps.length)}/${S.cps.length}</span><span class="pos">${pos}º/${S.ais.length + 1}</span><span>${Math.floor(tt / 60)}:${String(Math.floor(tt % 60)).padStart(2, '0')}</span>`;
     const c = S.cps[S.k]; if (ar && c) { const p = G.player, dx = c[0] - p.x, dz = c[1] - p.z; const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw); const f = dx * fx + dz * fz, r = dx * -fz + dz * fx; ar.hidden = false; ar.style.transform = `translateX(-50%) rotate(${Math.atan2(r, f)}rad)`; ar.dataset.d = Math.round(Math.hypot(dx, dz)); ar.querySelector('i').textContent = Math.round(Math.hypot(dx, dz)) + ' m'; }
