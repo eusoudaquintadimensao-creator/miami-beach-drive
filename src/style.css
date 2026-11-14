@@ -657,3 +657,50 @@ body.touch.land #megaCard{top:auto;bottom:calc(var(--sab) + 56px);max-width:min(
 .verCard.cur{border-color:var(--c);background:rgba(255,255,255,.16)}
 .verSite{align-self:flex-end;font-size:12.5px;color:#9feaff;margin:-2px 6px 2px}
 @media (max-height:500px){.verBox{width:min(640px,100%)}.verList{display:grid;grid-template-columns:1fr 1fr;gap:8px}.verCard{padding:9px}.verSite{grid-column:span 2;align-self:center}}
+
+/* ——— t387: controles do celular em placas de vidro high-tech, mais altos (retrato e paisagem) ——— */
+:root{--gEdge:rgba(120,240,255,.85);--gGlow:rgba(41,240,255,.38);--gFill:linear-gradient(155deg,rgba(120,240,255,.22),rgba(18,12,44,.30) 60%,rgba(255,79,184,.14));--gPress:linear-gradient(155deg,rgba(120,240,255,.55),rgba(255,79,184,.42))}
+body.touch #btns button,body.touch #icons button,body.touch #quick button,body.touch .glassDrv,body.touch #drvBrake,body.touch #drvRev,body.touch #drvBeam,body.touch #drvCruise,body.touch #drvGear,body.touch .drvRight #bAct,body.touch #bNeutral{
+  background:var(--gFill)!important;
+  backdrop-filter:blur(14px) saturate(1.5);-webkit-backdrop-filter:blur(14px) saturate(1.5);
+  border:1.5px solid var(--gEdge)!important;
+  box-shadow:0 0 10px var(--gGlow),inset 0 0 14px rgba(120,240,255,.14),inset 0 1px 0 rgba(255,255,255,.45),0 4px 14px rgba(0,0,0,.25)!important;
+  color:#fff;text-shadow:0 0 6px rgba(120,240,255,.9),0 1px 2px rgba(0,0,0,.85)
+}
+body.touch #btns button small,body.touch .drvBtn small,body.touch .drvRight #bAct small{font-weight:800;letter-spacing:.04em;text-shadow:0 1px 2px #000,0 0 5px rgba(120,240,255,.8)}
+body.touch #btns button.big,body.touch .drvRight #bAct{--gEdge:rgba(255,120,210,.9);--gGlow:rgba(255,79,184,.42)}
+body.touch #drvBrake{--gEdge:rgba(255,110,110,.95);--gGlow:rgba(255,70,70,.45)}
+body.touch #bNeutral{--gEdge:rgba(255,215,90,.95)!important;--gGlow:rgba(255,210,63,.45)}
+body.touch #btns button:active,body.touch #btns button.on,body.touch #icons button:active,body.touch #quick button:active,body.touch #quick button.on,body.touch .drvBtn:active,body.touch .drvBtn.on,body.touch .drvBig.on,body.touch .drvRight #bAct:active,body.touch .drvRight #bAct.on,body.touch #bNeutral.on,body.touch #drvGear:active,body.touch #drvBrake.on,body.touch #drvBrake:active,body.touch #drvRev.on,body.touch #drvRev:active,body.touch #drvBeam.on,body.touch #drvBeam:active{
+  background:var(--gPress)!important;border-color:#fff!important;box-shadow:0 0 18px var(--gGlow),0 0 4px #fff,inset 0 0 16px rgba(255,255,255,.35)!important
+}
+body.touch #stick{background:radial-gradient(circle,rgba(120,240,255,.10),rgba(18,12,44,.22));border:1.5px solid var(--gEdge);box-shadow:0 0 12px var(--gGlow),inset 0 0 18px rgba(120,240,255,.15);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.touch #knob{background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.75),rgba(120,240,255,.35));border:1.5px solid rgba(255,255,255,.8);box-shadow:0 0 12px var(--gGlow)}
+/* retrato: tudo sobe ~80 px (base livre para ver o jogo) */
+body.touch:not(.land) #btns{bottom:calc(var(--sab) + 96px)}
+body.touch:not(.land) #stick{top:calc(100% - 200px - var(--sab))}
+body.touch:not(.land) #area{bottom:calc(var(--sab) + 300px)}
+body.touch:not(.land) #radio{bottom:calc(var(--sab) + 384px)}
+body.touch:not(.land) #nitroW{bottom:calc(var(--sab) + 342px)}
+body.touch:not(.land) #serpHud{bottom:calc(var(--sab) + 348px)}
+body.touch:not(.land) #talk{bottom:calc(var(--sab) + 276px)}
+body.driving.touch:not(.land) .drvRight{bottom:calc(var(--sab) + 92px)}
+body.driving.touch:not(.land) #btns{bottom:calc(var(--sab) + 412px)}
+body.driving.touch:not(.land) #drvCruise{bottom:calc(var(--sab) + 92px)}
+body.driving.touch:not(.land) #drvGear{bottom:calc(var(--sab) + 274px)}
+body.driving.touch:not(.land) #btns #bNeutral{bottom:calc(var(--sab) + 330px)}
+body.driving.touch:not(.land) #drvWheel{bottom:calc(var(--sab) + 70px)}
+/* paisagem: botões mais altos nas laterais */
+body.touch.land #btns{bottom:calc(var(--sab) + 56px)}
+body.touch.land #stick{top:calc(100% - 166px - var(--sab))}
+body.touch.land #nitroW{bottom:calc(var(--sab) + 60px)}
+body.touch.land.driving .drvRight{display:grid;grid-template-columns:64px 80px;grid-template-areas:"beam act" "rev brake";gap:10px;align-items:end;justify-items:center;bottom:calc(var(--sab) + 48px)}
+body.touch.land.driving .drvRight #drvBeam{grid-area:beam}body.touch.land.driving .drvRight #drvRev{grid-area:rev}body.touch.land.driving .drvRight #drvBrake{grid-area:brake}body.touch.land.driving .drvRight #bAct{grid-area:act}
+body.touch.land.driving #btns{bottom:calc(var(--sab) + 48px);right:calc(var(--sar) + 176px);grid-template-columns:repeat(2,56px)}
+body.touch.land.driving #drvCruise{bottom:calc(var(--sab) + 48px);height:140px}
+body.touch.land.driving #drvGear{left:calc(var(--sal) + 76px);bottom:calc(var(--sab) + 48px)}
+body.touch.land.driving #btns #bNeutral{left:calc(var(--sal) + 76px);bottom:calc(var(--sab) + 104px)}
+body.touch.land.driving #giftHud{top:calc(var(--sat) + 104px)}
+/* academia/pedidos da orla em paisagem: no rodapé central, sem cobrir botões */
+body.touch.land #orlaCard,body.touch.land #gymGame{bottom:calc(var(--sab) + 8px);max-width:min(400px,40vw)}
+body.orlaUi #area{visibility:hidden;opacity:0}

@@ -279,7 +279,7 @@ body.touch #gymGame #ggGo{min-height:52px;font-size:17px}`; document.head.append
     return best;
   }
   card() {
-    const el = this.cardEl, s = this.focus; if (!s) { if (!el.hidden) el.hidden = true; this._ck = null; return; }
+    const el = this.cardEl, s = this.focus; document.body.classList.toggle('orlaUi', !!s || !!this.game); if (!s) { if (!el.hidden) el.hidden = true; this._ck = null; return; }
     const html = s.html(), key = s.id + html; if (this._ck === key && !el.hidden) return; this._ck = key;
     el.innerHTML = `<div>${html}</div><div class="oBtns"><button class="hot">${s.btn}</button></div><small>${this.G.touch || document.body.classList.contains('touch') ? '' : '<kbd>E</kbd> para '}${s.btn.replace(/^\S+\s/, '').toLowerCase()}</small>`; el.hidden = false;
   }
