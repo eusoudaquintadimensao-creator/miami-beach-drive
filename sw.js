@@ -1,5 +1,6 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v14-2026-11-14-t335';
+const VERSION = 'solara-v15-2026-11-14-site';
+const FAM = VERSION.replace(/v\d.*$/, ''); // só apaga caches antigos DESTE jogo (o domínio é dividido com outros apps/jogos)
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
   'src/style.css', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',
@@ -18,7 +19,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION && k.startsWith(FAM)).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request; if (req.method !== 'GET') return;
