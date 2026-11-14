@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { clamp, canvasTex } from './util.js';
-import { surfaceY, addCircle, addBox, HOOKS } from './world.js';
+import { surfaceY, addCircle, addBox, removeBox, HOOKS } from './world.js';
 import { Vehicle, SPECS, raceTune, RACE_CARS } from './vehicles.js';
 
 export const HOME = { x: -470, z: 650, name: 'Casa Solara' };
@@ -11,7 +11,8 @@ export const HOME_ZONE = { x0: -522, x1: -418, z0: 612, z1: 718 };
 export function inHomeZone(x, z, m = 0) { return x > HOME_ZONE.x0 - m && x < HOME_ZONE.x1 + m && z > HOME_ZONE.z0 - m && z < HOME_ZONE.z1 + m; }
 const KEY = 'mbd-casa-v1';
 const $ = (id) => document.getElementById(id);
-const BAYS = [12.6, 17.2, 21.8, 28.6]; // 4ª vaga (fora, ao lado da garagem): carro presente da ponte // centros das vagas (x local); carros de frente para a rua (norte)
+const BAYS = [12.6, 17.2, 21.8, 31.4, 36.6, 41.8]; // t367: vagas 4–6 = garagem de prêmios da ponte (porta de enrolar, abre ao completar a volta)
+const PG = { x0: 28.2, x1: 45, z0: -10.4, z1: 4.2 }; // 4ª vaga (fora, ao lado da garagem): carro presente da ponte // centros das vagas (x local); carros de frente para a rua (norte)
 
 export class Home {
   constructor(G) {
@@ -41,6 +42,11 @@ export class Home {
     // garagem aberta (3 vagas), parede dos fundos e lateral, teto
     box('white', 14.4, 3.6, 0.4, 17.2, 0, 4.2); box('white', 0.4, 3.6, 14.6, 24.2, 0, -2.9); box('slab', 15.2, 0.3, 15.2, 17.2, 3.6, -2.9); box('trim', 15.2, 0.5, 0.3, 17.2, 3.1, -10.4);
     box('floor', 14, 0.08, 14, 17.2, 0.02, -2.9);
+    // garagem de prêmios (3 vagas, fechada): paredes, teto, piso brilhante, faixas e acesso
+    box('white', PG.x1 - PG.x0, 3.6, 0.4, (PG.x0 + PG.x1) / 2, 0, PG.z1); box('white', 0.4, 3.6, PG.z1 - PG.z0, PG.x0, 0, (PG.z0 + PG.z1) / 2); box('white', 0.4, 3.6, PG.z1 - PG.z0, PG.x1, 0, (PG.z0 + PG.z1) / 2);
+    box('slab', PG.x1 - PG.x0 + 0.8, 0.3, PG.z1 - PG.z0 + 0.8, (PG.x0 + PG.x1) / 2, 3.6, (PG.z0 + PG.z1) / 2); box('trim', PG.x1 - PG.x0 + 0.8, 0.6, 0.3, (PG.x0 + PG.x1) / 2, 3.3, PG.z0);
+    box('floor', PG.x1 - PG.x0 - 0.4, 0.08, PG.z1 - PG.z0 - 0.2, (PG.x0 + PG.x1) / 2, 0.02, (PG.z0 + PG.z1) / 2); box('pave', 17, 0.1, 25, (PG.x0 + PG.x1) / 2, 0, -23);
+    for (const x of [34, 39.2]) box('stripe', 0.12, 0.09, 6, x, 0.03, -4);
     for (const x of [14.9, 19.5]) box('stripe', 0.12, 0.09, 6, x, 0.03, -4);
     // piscina com borda e muro baixo até o mar
     box('pool', 15.6, 0.16, 5.6, -3, 0.12, 17); 
@@ -63,6 +69,13 @@ export class Home {
     const neon = new THREE.MeshBasicMaterial({ color: 0xff3fb4, toneMapped: false }); this.neon = neon;
     const ng = mergeGeometries([new THREE.BoxGeometry(23.4, 0.08, 0.08).translate(-4, 6.9, 9.42).toNonIndexed(), new THREE.BoxGeometry(25, 0.08, 0.08).translate(-2, 3.6, -8.55).toNonIndexed(), new THREE.BoxGeometry(15.2, 0.08, 0.08).translate(17.2, 3.9, -10.55).toNonIndexed()]);
     this.g.add(new THREE.Mesh(ng, neon));
+    { const pg = new THREE.Mesh(new THREE.BoxGeometry(PG.x1 - PG.x0 + 0.8, 0.08, 0.08), neon); pg.position.set((PG.x0 + PG.x1) / 2, 3.95, PG.z0 - 0.2); this.g.add(pg); }
+    // porta de enrolar com o aviso (some no teto quando abre)
+    const dt = canvasTex(512, 128, (g, w, h) => { for (let y = 0; y < h; y += 8) { g.fillStyle = y % 16 ? '#c9ccd2' : '#b4b8c0'; g.fillRect(0, y, w, 8); } g.font = 'bold 34px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#1b1530'; g.fillText('🔒 PRÊMIOS DA PONTE', w / 2, h / 2 - 16, w - 24); g.font = 'bold 22px sans-serif'; g.fillText('complete 1 volta na Ponte para abrir', w / 2, h / 2 + 22, w - 24); }, { clamp: true });
+    this.pdoor = new THREE.Mesh(new THREE.BoxGeometry(PG.x1 - PG.x0 - 0.4, 3.3, 0.14), [this.mats.white, this.mats.white, this.mats.white, this.mats.white, new THREE.MeshStandardMaterial({ map: dt, roughness: 0.5, metalness: 0.3 }), new THREE.MeshStandardMaterial({ map: dt, roughness: 0.5, metalness: 0.3 })]);
+    this.pdoor.position.set((PG.x0 + PG.x1) / 2, 1.65, PG.z0 + 0.1); this.g.add(this.pdoor); this.doorY = 0;
+    const ps = canvasTex(512, 96, (g, w, h) => { g.fillStyle = '#16121f'; g.fillRect(0, 0, w, h); g.font = 'bold 46px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#ffd23f'; g.shadowBlur = 16; g.fillStyle = '#fff3c4'; g.fillText('🏆 GARAGEM DE PRÊMIOS', w / 2, h / 2 + 3, w - 28); }, { clamp: true });
+    const psm = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.3), new THREE.MeshBasicMaterial({ map: ps, toneMapped: false })); psm.position.set((PG.x0 + PG.x1) / 2, 4.6, PG.z0 - 0.3); psm.rotation.y = Math.PI; this.g.add(psm);
     // placa com o nome
     const sign = canvasTex(512, 128, (g, w, h) => { g.fillStyle = '#16121f'; g.fillRect(0, 0, w, h); g.font = 'bold 64px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#ff3fb4'; g.shadowBlur = 18; g.fillStyle = '#ffd6f1'; g.fillText('CASA SOLARA', w / 2, h / 2 + 4); }, { clamp: true });
     const sm = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.25), new THREE.MeshBasicMaterial({ map: sign, toneMapped: false })); sm.position.set(2.5, 5.1, -4.66); sm.rotation.y = Math.PI; this.g.add(sm);
@@ -82,12 +95,17 @@ export class Home {
     const X = HOME.x, Z = HOME.z;
     addBox(X - 14, Z - 8, X + 10, Z + 6, 6.9); addBox(X - 15, Z + 6, X + 7, Z + 8.7, 6.9);
     addBox(X + 10, Z + 4, X + 24.4, Z + 4.4, 3.9); addBox(X + 24, Z - 10.2, X + 24.4, Z + 4.4, 3.9);
+    addBox(X + PG.x0 - 0.2, Z + PG.z1 - 0.2, X + PG.x1 + 0.2, Z + PG.z1 + 0.2, 3.9); addBox(X + PG.x0 - 0.2, Z + PG.z0, X + PG.x0 + 0.2, Z + PG.z1, 3.9); addBox(X + PG.x1 - 0.2, Z + PG.z0, X + PG.x1 + 0.2, Z + PG.z1, 3.9);
+    this.doorBox = addBox(X + PG.x0, Z + PG.z0 - 0.1, X + PG.x1, Z + PG.z0 + 0.3, 3.4) || null;
   }
   // carros na garagem: o seu tunado, o carro de corrida escolhido e a moto (criados só quando você está perto)
   garageList() {
     const G = this.G; const T = G.save.tune; const rd = G.race && G.race.data || { car: 'rc_gt', liv: 0 };
     return [{ type: T && T.type || 'sport', tune: T ? { ...T } : { paint: 0x1f6bff, glow: 0x29f0ff, spoiler: 2, kit: true, rim: 0x1a1a1a, text: 'CASA SOLARA', style: 0, accent: 0xffffff } },
-      { type: rd.car, tune: raceTune(rd.car, rd.liv || 0, 1) }, { type: 'moto', tune: undefined }].concat(G.save.giftCar ? [{ type: G.save.giftCar.type, tune: { ...G.save.giftCar.tune } }] : []);
+      { type: rd.car, tune: raceTune(rd.car, rd.liv || 0, 1) }, { type: 'moto', tune: undefined }].concat(this.prizeCars());
+  }
+  unlocked() { const S = this.G.save; return !!(S && (S.giftCars || S.giftCar)); }
+  prizeCars() { const S = this.G.save; if (!S) return []; if (S.giftCars) return S.giftCars.map(c => ({ type: c.type, tune: { ...c.tune } })); if (S.giftCar) return [{ type: S.giftCar.type, tune: { ...S.giftCar.tune } }]; return [];
   }
   spawnCars() {
     const G = this.G; const list = this.garageList();
@@ -105,6 +123,9 @@ export class Home {
   update(dt, t, night, cam) {
     const d = Math.hypot(cam.position.x - HOME.x, cam.position.z - HOME.z); const vis = d < 700; this.g.visible = vis; if (!vis) return;
     this.mats.glass.emissiveIntensity = 0.05 + night * 1.6; this.mats.pool.emissiveIntensity = 0.25 + night * 1.4; this.neon.color.setHex(0xff3fb4).multiplyScalar(0.6 + night * 2);
+    { const open = this.unlocked(); const ty = open ? 3.2 : 0; this.doorY += clamp(ty - this.doorY, -dt * 1.4, dt * 1.4); this.pdoor.position.y = 1.65 + this.doorY; this.pdoor.scale.y = 1 - this.doorY / 3.6;
+      if (open && this.doorBox) { removeBox(this.doorBox); this.doorBox = null; this.carsT = 0; }
+      const S = this.G.save, pp = this.G.player; if (open && S.giftDoorNew && Math.hypot(pp.x - HOME.x - 36, pp.z - HOME.z) < 60) { S.giftDoorNew = false; this.G.persist && this.G.persist(); this.G.ui.toast('🏆 A <b>garagem de prêmios</b> abriu! Seus 3 carros tunados da ponte estão lá dentro', 3600); } }
     this.ring.material.opacity = 0.45 + Math.sin(t * 3) * 0.25; this.icon.position.y = 2.9 + Math.sin(t * 2) * 0.12;
     const p = this.G.player; const dp = Math.hypot(p.x - HOME.x, p.z - HOME.z);
     if (dp < 240 && !this.carsT) { this.carsT = 1; this.spawnCars(); } else if (dp > 320) this.carsT = 0;

@@ -438,7 +438,9 @@ export class Vehicle {
     const sp = this.spec; const [fx, fz] = this.fwd(); const rx = -fz, rz = fx;
     let vf = this.vx * fx + this.vz * fz, vl = this.vx * rx + this.vz * rz;
     const vx0 = this.vx, vz0 = this.vz;
-    const thr = inp.y;
+    // t367: ponto morto (Neutro): o motor gira solto (acelerar só sobe o giro), o carro segue na banguela; o freio continua
+    const neutral = !!inp.neutral && !this.spec.boat; const thr = neutral ? Math.min(0, inp.y) : inp.y;
+    if (neutral) this.revN = clamp((this.revN || 0.1) + (inp.y > 0.05 ? 1.3 : -1.1) * dt, 0.1, 1); else this.revN = 0;
     let surf = 1, offroad = false;
     if (!sp.boat) {
       const gy = groundY(this.x, this.z); const rd = roadAt(this.x, this.z);
@@ -598,7 +600,7 @@ export class Vehicle {
       else this.bob = this.bobS + (this.bob - this.bobS) * 0.9;
     }
     this.spin += vf * dt / (sp.wr || 1);
-    this.rpm = clamp(Math.abs(vf) / sp.max, 0, 1);
+    this.rpm = clamp(Math.abs(vf) / sp.max, 0, 1); if (neutral) this.rpm = Math.max(this.rpm, this.revN);
     this.sync(dt);
     return impact;
   }

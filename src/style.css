@@ -311,7 +311,7 @@ body.touch #giftHud{left:calc(var(--sal) + 10px);top:calc(var(--sat) + 146px);fl
 body.touch.land #giftHud{top:calc(var(--sat) + 128px)}
 body.touch .gChip{font-size:15px;padding:3px 7px}
 /* Liga da Madrugada */
-#stTip{position:absolute;left:50%;bottom:calc(var(--sab) + 80px);transform:translateX(-50%);background:rgba(20,8,40,.72);border:1px solid #b45cff;box-shadow:0 0 14px rgba(180,92,255,.5);padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:86vw}
+#stTip{position:absolute;left:50%;bottom:calc(var(--sab) + 120px);transform:translateX(-50%);background:rgba(20,8,40,.72);border:1px solid #b45cff;box-shadow:0 0 14px rgba(180,92,255,.5);padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:86vw}
 body.touch #stTip{bottom:auto;top:calc(58% - 74px)}
 #stHud{position:absolute;top:calc(var(--sat) + 12px);left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:rgba(20,8,40,.72);border:1px solid #29f0ff;box-shadow:0 0 14px rgba(41,240,255,.4);border-radius:14px;padding:7px 14px;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
 #stHud .pos{font-size:22px;font-weight:900;color:#ffd23f}
@@ -574,3 +574,38 @@ body.touch #heliHud{bottom:auto;top:calc(var(--sat) + 120px);font-size:12px}body
 #giftInfo .chips{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center;font-size:13px;align-items:center}#giftInfo .chips i{display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid #fff8;vertical-align:middle;margin-right:2px}
 #giftInfo small{display:block;margin-top:6px;opacity:.8;font-size:12px}
 #giftScreen .gBtns{display:flex;gap:10px;margin-top:14px}#giftScreen .gBtns button{flex:1;min-height:46px;border-radius:12px;border:0;font-weight:800;font-size:15px;background:#2a2f45;color:#fff}#giftScreen #giftDrive{background:linear-gradient(90deg,#7d4dff,#ff4fb8)}
+
+/* t367: fim da corrida da ponte (pódio + escolha) e lista dos 3 carros presentes */
+#ponteEnd{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,rgba(255,210,63,.35),rgba(4,6,14,.86));padding:12px;overflow:auto}
+#ponteEnd[hidden]{display:none}
+#ponteEnd .gCard{max-width:440px;width:100%;margin:auto;background:rgba(14,12,30,.95);border:2px solid #ffd23f;box-shadow:0 0 34px rgba(255,210,63,.4);border-radius:18px;padding:16px 18px;color:#fff;text-align:center;animation:gpop .45s cubic-bezier(.2,1.6,.4,1)}
+#ponteEnd .peMed{font-size:54px}#ponteEnd h2{margin:2px 0;font-size:26px;letter-spacing:2px;color:#ffd23f;text-shadow:0 0 12px #ff4fb8}#ponteEnd p{margin:4px 0 8px;opacity:.92}#ponteEnd .pePrize{font-size:13px}#ponteEnd .pePrize b{color:#45ff9a;font-size:17px}
+#ponteEnd .gBtns{display:flex;gap:10px;margin-top:12px}#ponteEnd .gBtns button{flex:1;min-height:46px;border-radius:12px;border:0;font-weight:800;font-size:15px;background:#2a2f45;color:#fff}#ponteEnd #peExit{background:linear-gradient(90deg,#ff8a00,#ff4fb8)}
+#ponteHud{white-space:normal}#ponteHud .pos{color:#ffd23f}#ponteHud .pos.p1{color:#45ff9a}
+#giftInfo .gList{display:flex;flex-direction:column;gap:6px;text-align:left;margin:6px 0}#giftInfo .gList div{background:rgba(255,255,255,.06);border-radius:10px;padding:6px 10px;font-size:13px}#giftInfo .gList div b{display:inline;font-size:14px;color:#7dfcff;margin:0}
+#giftInfo .gList i{display:inline-block;width:13px;height:13px;border-radius:50%;border:1px solid #fff8;vertical-align:middle;margin-right:6px}
+
+/* t367: convite do racha com Aceitar/Recusar e botão Neutro */
+#stTip{pointer-events:auto}#stTip small{display:block;opacity:.85;font-size:12px;margin-top:2px}
+#stTip .stAsk{display:flex;gap:8px;justify-content:center;margin-top:6px}#stTip .stAsk button{min-height:38px;min-width:104px;border-radius:10px;border:0;font-weight:800;font-size:14px;color:#fff;background:#3a2f55}#stTip .stAsk button[data-k=ok]{background:linear-gradient(90deg,#b45cff,#ff4fb8)}
+#bNeutral{font-weight:900;font-size:22px!important;border-color:#ffd23f!important}#bNeutral.on{background:rgba(255,210,63,.6)!important;box-shadow:0 0 14px rgba(255,210,63,.7)}
+
+/* t367: Raia das Lanchas */
+#boatTip{position:absolute;left:50%;bottom:calc(var(--sab) + 120px);transform:translateX(-50%);background:rgba(4,24,40,.78);border:1px solid #29f0ff;box-shadow:0 0 14px rgba(41,240,255,.45);padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:86vw;pointer-events:auto;z-index:8}
+#boatTip[hidden],#boatHud[hidden]{display:none}#boatTip small{display:block;opacity:.85;font-size:12px}
+#boatTip .stAsk{display:flex;gap:8px;justify-content:center;margin-top:6px}#boatTip .stAsk button{min-height:38px;min-width:104px;border-radius:10px;border:0;font-weight:800;font-size:14px;color:#fff;background:#23405a}#boatTip .stAsk button[data-k=ok]{background:linear-gradient(90deg,#29f0ff,#7d4dff)}
+body.touch #boatTip{bottom:auto;top:calc(var(--sat) + 58px)}
+#boatHud{position:absolute;left:50%;top:calc(var(--sat) + 12px);transform:translateX(-50%);background:rgba(4,20,34,.76);border:1px solid rgba(41,240,255,.6);border-radius:12px;padding:5px 14px;font-weight:800;font-size:13px;text-align:center;color:#dff;pointer-events:none;z-index:8;max-width:90vw}
+#boatHud b{color:#7dfcff;margin-right:6px}#boatHud .pos{color:#ffd23f}body.touch #boatHud{top:calc(var(--sat) + 58px)}
+#boatHud .pbar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:3px;overflow:hidden}#boatHud .pbar i{display:block;height:100%;background:linear-gradient(90deg,#29f0ff,#ff4fb8)}
+/* t367: Neutro fica na coluna esquerda (acima do 🎛️), longe da pilha da direita; convites no meio livre; HUD da ponte abaixo dos ícones no paisagem */
+body.driving.touch #btns #bNeutral{position:fixed;left:calc(var(--sal) + 14px);bottom:calc(var(--sab) + 258px);width:48px;height:48px;z-index:8;font-size:18px!important}
+body.driving.touch #bNeutral small{font-size:8px}
+body.touch.land.driving #btns #bNeutral{bottom:calc(var(--sab) + 220px)}
+body.driving.touch:not(.land) #stTip,body.driving.touch:not(.land) #boatTip{top:calc(var(--sat) + 322px);max-width:calc(100vw - 150px);padding:8px 10px}
+body.driving.touch:not(.land) #stTip .stAsk button,body.driving.touch:not(.land) #boatTip button{min-width:0;flex:1}
+body.driving.touch.land #stTip,body.driving.touch.land #boatTip{top:calc(var(--sat) + 140px);max-width:min(480px,52vw)}
+body.touch.land.ponteOn #ponteHud{top:calc(var(--sat) + 58px)}
+body.touch.land.ponteOn #radioSub{top:calc(var(--sat) + 132px)}
+/* racha no retrato: legenda do rádio vai para baixo, entre as colunas (não cobre seta, placar nem aviso de curva) */
+body.touch:not(.land).stRace #radioSub{top:auto;bottom:calc(var(--sab) + 64px);max-width:calc(100vw - 170px)}

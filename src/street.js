@@ -7,6 +7,7 @@ import { groundY, HOOKS, NODES, SEGS, addBox, removeBox } from './world.js';
 import { respawnFade } from './driveui.js';
 import { Vehicle, randomTune, raceTune, NITRO } from './vehicles.js';
 import { STREET } from './phrases.js';
+import { Radio } from './radio.js';
 
 export const STREET_KEY = 'mbd-ruas-v1';
 export const ROUTES = [
@@ -43,12 +44,15 @@ export class Street {
       g.visible = false; G.scene.add(g); return g; };
     this.gate = mk(0x29f0ff, 0.85); this.gate2 = mk(0xff2bd6, 0.35);
     HOOKS.map.push((g, X, Z) => { g.font = '15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (const r of ROUTES) { g.fillStyle = '#000b'; g.beginPath(); g.arc(X(r.start[0]) + 14, Z(r.start[1]), 10, 0, 7); g.fill(); g.fillText('🏎️', X(r.start[0]) + 14, Z(r.start[1]) + 1); } });
+    this.declined = {}; this.radio = new Radio(G, {}); this.chatT = 12;
     this.wire();
   }
   persist() { try { localStorage.setItem(STREET_KEY, JSON.stringify(this.save)); } catch (e) { } }
   wire() {
     const c = document.getElementById('stClose'); if (c) c.onclick = () => this.closeResult();
     const a = document.getElementById('stApply'); if (a) a.onclick = () => this.applyLivery();
+    // t367: convite com Aceitar/Recusar (até 50 m do rival)
+    const tip = document.getElementById('stTip'); if (tip) { tip.addEventListener('pointerdown', (e) => e.stopPropagation()); tip.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation(); if (b.dataset.k === 'ok') this.flash(); else this.decline(); }); }
   }
   // próximo rival de cada rota (o primeiro ainda não vencido, liberado pela reputação). Vencidos aceitam revanche.
   rivalFor(ri) {
@@ -74,6 +78,7 @@ export class Street {
     });
   }
   nearRival(maxD = 50) { const p = this.G.player; let best = null, bd = maxD; for (const i in this.waiting) { const w = this.waiting[i]; const d = Math.hypot(w.v.x - p.x, w.v.z - p.z); if (d < bd) { bd = d; best = { ...w, ri: +i, d }; } } return best; }
+  decline() { const n = this.nearRival(50); if (!n) return; this.declined[n.ri] = true; this.say(n.r, pick(STREET.idle)); this.G.ui.toast('👋 Racha recusado · volte quando quiser (saia de perto e chegue de novo)', 2200); const el = document.getElementById('stTip'); if (el) { el.hidden = true; el._h = ''; } }
   // piscar o farol: desafia o rival mais próximo
   flash() {
     const G = this.G, p = G.player; this.flashT = 0.5; if (this.race) { this._flashWhy = 'already'; return false; } const v = p.vehicle;
@@ -100,8 +105,9 @@ export class Street {
     }
     v.streetR = w.r;
     this.race = { ri, r: w.r, v, ais, path, k: 0, t: -3.5, sx, sz, h, cps: R.pts, beepK: 4, oldMusic: null, done: [] };
-    this.say(w.r, pick(STREET.challenge)); G.ui.toast(`🏁 <b>${R.name}</b> · 5 corredores · siga o GPS e as setas`, 3000);
-    this.hold(pv); this.setGates(); this.buildCourse(R); G.setRoute(null); this.routeLine(); this.hud(true); this.stuckT = 0; this._fading = false;
+    this.say(w.r, pick(STREET.challenge)); G.ui.toast(`🏁 <b>${R.name}</b> · 5 corredores · siga o GPS e as setas · ⚙️ ponha em <b>Neutro</b>, acelere e solte no VAI!`, 3400);
+    { const fem = ['bia', 'duda'], mas = ['tche', 'lipe', 'valdo']; const nm = {}; for (const c of ais) { const r = c.streetR; const pool = r.fem ? fem : mas; const k = pool.find(x => !nm[x]) || pool[0]; nm[k] = r.name; } this.radio.names = Object.assign({ bia: 'Bia (rádio)', duda: 'Duda (rádio)', tche: 'Tchê (rádio)', lipe: 'Lipe (rádio)', valdo: 'Valdo (rádio)' }, nm); this.radio.load(); this.radio.reset(); this.chatT = 9; setTimeout(() => this.race && this.radio.say('stStart', null, 0, true), 900); }
+    this.hold(pv); this.clearGrid(pv); this.setGates(); this.buildCourse(R); G.setRoute(null); this.routeLine(); this.hud(true); this.stuckT = 0; this._fading = false;
   }
   // GPS: o trajeto inteiro que falta no minimapa (linha roxa) — atualizado a cada quadro
   routeLine() { const S = this.race; if (!S) return; const p = this.G.player; this.G.route = [[p.x, p.z], ...S.cps.slice(S.k)]; }
@@ -117,6 +123,26 @@ export class Street {
     }
     return null;
   }
+  // largada: em Neutro com o giro na faixa verde (55–95%) = largada perfeita (sai embalado + nitro); giro no máximo = patina
+  // pista livre na largada: carros do trânsito parados na frente do grid vão para outra rua
+  clearGrid(pv) { const T = this.G.traffic; if (!T || !pv) return; const fx = Math.sin(pv.h), fz = Math.cos(pv.h);
+    for (const o of T.cars) { if (!o.active) continue; const dx = o.x - pv.x, dz = o.z - pv.z; const a = dx * fx + dz * fz, l = Math.abs(dx * fz - dz * fx); if ((a > -12 && a < 70 && l < 10) || Math.hypot(dx, dz) < 14) T.spawn(o, pv.x, pv.z); } }
+  launch(pv) {
+    const G = this.G, S = this.race; this.clearGrid(pv); const inN = G.setNeutral && pv.revN > 0; const r = pv.revN || 0; S.launch = 'normal';
+    if (inN) { const [fx, fz] = [Math.sin(pv.h), Math.cos(pv.h)];
+      if (r >= 0.55 && r <= 0.95) { S.launch = 'perfect'; pv.vx = fx * 14; pv.vz = fz * 14; pv.vf = 14; if (pv.tune) pv.nitro = Math.min(1, (pv.nitro || 0) + 0.35); G.ui.big('LARGADA PERFEITA!'); this.radio.say('stLaunch', null, 0, true); }
+      else if (r > 0.95) { S.launch = 'spin'; pv.vf = 3; G.ui.toast('🔥 Giro alto demais: patinou na largada! Solte entre 55% e 95%', 2000); }
+      else G.ui.toast('⚙️ Giro baixo na largada · acelere mais em Neutro', 1800);
+      G.setNeutral(false); }
+  }
+  // conversa dos corredores pelo rádio durante o racha (situação: liderando, atrás, nitro, curva, reta final)
+  chatter(dt) {
+    const S = this.race, R = this.radio, pv = this.G.player.vehicle; if (!S || S.t < 1 || !pv) return;
+    if (pv.boosting && !this._bw) R.say('stNitro', null, 14); this._bw = !!pv.boosting;
+    if (S.cue && !this._cue) R.say('stTurn', null, 18); this._cue = !!S.cue;
+    if (!S.finalSaid && S.k >= S.cps.length - 1) { S.finalSaid = true; R.say('stFinal', null, 0, true); }
+    this.chatT -= dt; if (this.chatT <= 0) { this.chatT = 9 + Math.random() * 6; R.say((S.pos || 3) === 1 ? 'stLead' : 'stChase', null, 8); }
+  }
   posOf(c) { const S = this.race; return c.done ? 1e6 - (c.doneT || 0) : c.s; }
   place() { const S = this.race; if (!S) return 1; const me = S.playerDone ? 1e6 - S.playerDoneT : this.playerProg(); let k = 1; for (const c of S.ais) if (this.posOf(c) > me) k++; return k; }
   hold(pv) { const S = this.race; pv.x = S.sx; pv.z = S.sz; pv.h = S.h; pv.vx = pv.vz = pv.vf = 0; pv.y = groundY(pv.x, pv.z); const p = this.G.player; p.x = pv.x; p.z = pv.z; pv.sync(0); }
@@ -126,17 +152,21 @@ export class Street {
   }
   playerProg() { const S = this.race, p = this.G.player; const pts = [[S.sx, S.sz], ...S.cps]; let base = 0; for (let i = 1; i <= S.k; i++) base += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); const a = pts[S.k], b = pts[S.k + 1] || a; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); return base + Math.max(0, L - Math.hypot(b[0] - p.x, b[1] - p.z)); }
   update(dt, t, cam) {
-    const G = this.G; this.updateMeets(dt);
+    const G = this.G; this.updateMeets(dt); this.radio.update(dt);
+    { const on = !!this.race; if (this._bodyRace !== on) { this._bodyRace = on; document.body.classList.toggle('stRace', on); } }
     if (this.flashT > 0) this.flashT -= dt;
     // dica quando está perto de um rival
-    this.promptT -= dt; if (this.race) { const el = document.getElementById('stTip'); if (el && !el.hidden) el.hidden = true; } else if (this.promptT <= 0) { this.promptT = 0.4; const n = this.nearRival(50); const el = document.getElementById('stTip'); if (el) { if (n) { el.innerHTML = `${n.r.boss ? '👑' : '🏎️'} <b>${n.r.name}</b> · ${ROUTES[n.ri].name}<br>${G.touch ? 'toque 🏁 no botão de entrar (ou 💡)' : 'aperte <b>L</b> ou o botão de entrar'} para aceitar (até 50 m)${this.save.rep < n.r.need ? ` · 🔒 rep ${n.r.need}` : ''}`; el.hidden = false; } else el.hidden = true; } }
+    this.promptT -= dt; if (this.race) { const el = document.getElementById('stTip'); if (el && !el.hidden) el.hidden = true; } else if (this.promptT <= 0) { this.promptT = 0.4;
+      const p = G.player; for (const i in this.declined) { const R = ROUTES[i]; if (Math.hypot(R.start[0] - p.x, R.start[1] - p.z) > 90) delete this.declined[i]; }
+      const n0 = this.nearRival(50); const n = n0 && !this.declined[n0.ri] ? n0 : null; const el = document.getElementById('stTip');
+      if (el) { if (n) { const h = `${n.r.boss ? '👑' : '🏎️'} <b>${n.r.name}</b> te chamou pro racha · ${ROUTES[n.ri].name}<br><small>5 corredores · GPS e setas até a chegada${this.save.rep < n.r.need ? ` · 🔒 rep ${n.r.need}` : ''} · ${G.touch ? '' : 'L = aceitar · '}dica: largue em ⚙️ Neutro</small><div class="stAsk"><button data-k="ok">🏁 Aceitar</button><button data-k="no">✖ Recusar</button></div>`; if (el._h !== h) { el.innerHTML = h; el._h = h; } el.hidden = false; this.asked = (this.asked || 0) + 1; } else { el.hidden = true; el._h = ''; } } }
     for (const g of [this.gate, this.gate2]) if (g.visible) { g.userData.ar.position.y = 10.5 + Math.sin(t * 4) * 0.5; g.userData.ar.rotation.y = t * 2; }
     const S = this.race; if (!S) return;
     const pv = G.player.vehicle; const v = S.v;
     if (!pv) { this.end(false, 'Você saiu do carro — racha cancelado'); return; }
     S.t += dt;
     if (S.t < 0) { this.hold(pv); const k = Math.ceil(-S.t); if (k < S.beepK && k <= 3) { S.beepK = k; G.ui.big(String(k)); G.audio.chime && G.audio.chime('ok'); } for (const c of S.ais) c.sync(dt); this.routeLine(); this.hud(); return; }
-    if (S.beepK > 0) { S.beepK = 0; G.ui.big('VAI!'); G.audio.chime && G.audio.chime('win'); }
+    if (S.beepK > 0) { S.beepK = 0; G.ui.big('VAI!'); G.audio.chime && G.audio.chime('win'); this.launch(pv); }
     // checkpoints do jogador
     const c = S.cps[S.k]; const p = G.player; if (c && Math.hypot(c[0] - p.x, c[1] - p.z) < 18) { S.k++; G.audio.chime && G.audio.chime('ok'); if (S.k >= S.cps.length) { S.playerDone = true; S.playerDoneT = S.t; const pl = 1 + S.ais.filter(c => c.done).length; this.end(pl === 1, null, pl); return; } this.setGates(); }
     {
@@ -155,6 +185,7 @@ export class Street {
         const gap = c.s - pp; target *= gap > 160 ? 0.62 : gap > 90 ? 0.8 : gap > 45 ? 0.9 : gap > 20 ? 0.97 : gap < -180 ? 1.32 : gap < -110 ? 1.18 : gap < -45 ? 1.09 : gap < -15 ? 1.03 : 1;
         const pvs = Math.max(0, pv.speed || 0); if (gap > 200) target = Math.min(target, Math.max(10, pvs * 0.8)); else if (gap > 120) target = Math.min(target, Math.max(14, pvs * 0.95)); // líder segura até o jogador encostar
         const ghost = gap < -60 && Math.hypot(c.x - pv.x, c.z - pv.z) > 110; // longe e fora de vista: atravessa o trânsito para alcançar
+        if (gap < -240 && ghost && S.t > 3) c.s = pp - 200; // ficou muito para trás fora de vista: reaparece no retrovisor (sempre tem disputa)
         const fx = Math.sin(cur.h), fz = Math.cos(cur.h), rx = -fz, rz = fx; let blocked = false;
         const near = (ox, oz, lat, ahead) => { const dx = ox - c.x, dz = oz - c.z; const a = dx * fx + dz * fz, l = dx * rx + dz * rz; return a > 0 && a < ahead && Math.abs(l - c.lat) < 2.4; };
         let bSpd = 99; if (!ghost) for (const o of G.traffic.cars) { if (o.active && near(o.x, o.z, 0, 18)) { blocked = true; bSpd = Math.min(bSpd, o.speed || 0); break; } }
@@ -168,7 +199,7 @@ export class Street {
       let dh = c2.h - c.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; c.h += dh * Math.min(1, dt * 7); c.steer = clamp(dh * 2.5, -1, 1);
       c.x = c2.x + fx * back - fz * c.lat; c.z = c2.z + fz * back + fx * c.lat; c.y = groundY(c.x, c.z); c.spin += c.vf * dt / c.spec.wr; c.vx = fx * c.vf; c.vz = fz * c.vf; c.sync(dt);
     }
-    this.routeLine();
+    this.routeLine(); this.chatter(dt);
     if (S.ais.every(c => c.done) && !S.lateT) { S.lateT = S.t; G.ui.toast('Todos os rivais cruzaram a chegada! Termine o trajeto 🏁', 2200); }
     if (S.lateT && S.t - S.lateT > 45) { this.end(false); return; }
     if (this.arrows) for (const a of this.arrows.children) { if (a.userData.gps) continue; a.position.y = 0.18 + Math.sin(t * 6 + (a.userData.ph || 0)) * 0.08; a.userData.m && (a.userData.m.opacity = 0.75 + Math.sin(t * 5 + (a.userData.ph || 0)) * 0.2); }
@@ -187,6 +218,7 @@ export class Street {
   end(win, msg, place) {
     const G = this.G, S = this.race; if (!S) return; this.clearCourse(); this.race = null; this.gate.visible = this.gate2.visible = false; G.setRoute(null); G.route = null; this.hud();
     if (!place) place = win ? 1 : S.ais.length + 1;
+    if (!msg) this.radio.say(win ? 'stWin' : 'stLose', null, 0, true); else this.radio.reset();
     const r = S.r, s = this.save; s.races++;
     for (const c of S.ais) this.removeCar(c);
     if (msg) { G.ui.toast(msg, 2600); this.persist(); return { win: false, cancel: true }; }

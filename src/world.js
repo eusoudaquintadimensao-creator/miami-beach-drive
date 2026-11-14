@@ -145,6 +145,7 @@ export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
     for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j++) {
       const k = i + ',' + j; let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(b);
     }
+  return b;
 }
 const circles = new Map();
 export function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); a.push({ x, z, r }); }

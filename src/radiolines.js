@@ -128,6 +128,108 @@ export const RADIO = {
     ['lipe', 'Tá tudo certo! De volta na ponte, sorriso no rosto!'],
     ['bia', 'Respira e acelera! A gente te espera!'],
   ],
+  // ---- t367: paisagem, fauna, pódio e posições na ponte
+  island: [
+    ['bia', 'Olha aquela ilha! Que lugar bonito, gente!'],
+    ['tche', 'Bah, olha a ilha ali do lado! Mansão, palmeira e piscina. Quero morar lá, tchê!'],
+    ['duda', 'Ilha nova à vista! Parece cartão-postal!'],
+    ['lipe', 'Mano, olha essa ilha! Cada minuto aparece uma diferente. A gente tá viajando!'],
+    ['valdo', 'Capaz! Que ilha linda! Dá até vontade de parar pra pescar.'],
+    ['bia', 'Olha que lugar bonito! Até o mar ficou mais azul!'],
+    ['duda', 'Que vista! Essa ponte leva a gente pra cada lugar!'],
+    ['lipe', 'Olha as mansões na ilha! Um dia eu compro uma… com o troco do pastel!'],
+    ['tche', 'Mas bah, que paraíso! Palmeira pra todo lado!'],
+  ],
+  wildlife: [
+    ['valdo', 'Olha os jacarés tomando sol! Esses aí tão de férias!'],
+    ['bia', 'Jacaré na areia! Relaxa, ele só quer bronzear!'],
+    ['lipe', 'Ó os jacarés ali! Tranquilos, nem ligaram pro barulho do motor!'],
+    ['duda', 'Flamingos e jacarés na mesma ilha! Que safári lindo!'],
+  ],
+  pretty: [
+    ['bia', 'Olha esse pôr do sol na ponte! Que lugar bonito!'],
+    ['duda', 'Que dia lindo! Céu azul e asfalto liso!'],
+    ['lipe', 'Olha os golfinhos pulando ali! Tão torcendo pra gente!'],
+    ['tche', 'Bah, que paisagem! Até as gaivotas tão acompanhando!'],
+    ['valdo', 'Olha os veleiros lá longe! Que calmaria boa!'],
+  ],
+  carNice: [
+    ['bia', 'Teu carro tá bonito demais! Brilha mais que o neon da ponte!'],
+    ['tche', 'Bah, que carro bonito tu tem, tchê! Bem tunado!'],
+    ['lipe', 'Teu carro tá um charme! Combina com a vista!'],
+    ['duda', 'Que pintura linda! Teu carro é o mais estiloso da ponte!'],
+  ],
+  posUp: [
+    ['duda', 'Subiu de posição! Bora pro primeiro!'],
+    ['tche', 'Bah, passou mais um! Tá voando, tchê!'],
+    ['lipe', 'Ganhou posição! Desse jeito o pódio é teu!'],
+    ['bia', 'Mais uma posição! Que pilotagem gostosa de ver!'],
+  ],
+  win1: [
+    ['tche', 'Primeiro lugar! Bah, tchê, tu é o rei da ponte!'],
+    ['bia', 'Venceu! Primeiro lugar com estilo! Que orgulho!'],
+    ['valdo', 'Primeirão! O véio tirou o chapéu pra ti, piá!'],
+  ],
+  podium: [
+    ['duda', 'Pódio garantido! Na próxima o primeiro é teu!'],
+    ['lipe', 'Pódio! Faltou só um pouquinho. Revanche já!'],
+    ['bia', 'Subiu no pódio! Que corrida divertida!'],
+  ],
+  // ---- t367: rachas de rua (rádio da madrugada)
+  stStart: [
+    ['tche', 'Racha valendo! Segue o GPS e as setas que ninguém se perde!'],
+    ['bia', 'Bora! Cinco carros tunados e muita alegria! Valendo!'],
+    ['duda', 'Atenção! As ruas tão fechadas com cones, é só seguir as setas!'],
+    ['lipe', 'Vai começar! Quem chegar por último paga o açaí!'],
+  ],
+  stLaunch: [
+    ['tche', 'Bah, que largada perfeita! Saiu igual foguete!'],
+    ['bia', 'Largada perfeita! Soltou na hora certinha!'],
+  ],
+  stLead: [
+    ['lipe', 'Tu tá na frente, mano! Eu tô vendo só tua lanterna!'],
+    ['duda', 'Que ritmo! Tá liderando a corrida!'],
+    ['valdo', 'Ô piá, devagar! O véio não alcança!'],
+    ['bia', 'Liderança! Segura a linha e curte a cidade!'],
+  ],
+  stChase: [
+    ['tche', 'Vem me pegar, tchê! Tô logo ali na frente!'],
+    ['lipe', 'Tá ficando pra trás! Bota um nitro nisso!'],
+    ['duda', 'Ainda dá tempo! Na próxima curva tu passa!'],
+    ['bia', 'Calma que dá! Segue as setas e acelera na reta!'],
+  ],
+  stNitro: [
+    ['lipe', 'Nitro ligado! Até o semáforo ficou com inveja!'],
+    ['tche', 'Bah, que nitro! O carro até assobiou!'],
+    ['duda', 'Que arrancada de nitro! Brilhou a rua inteira!'],
+  ],
+  stTurn: [
+    ['bia', 'Curva chegando! Olha a seta e vira certinho!'],
+    ['valdo', 'Ó a curva, piá! Os cones tão mostrando o caminho!'],
+    ['duda', 'Curva logo ali! Freia um pouquinho e acelera na saída!'],
+  ],
+  stFinal: [
+    ['tche', 'Reta final! Agora é tudo, tchê!'],
+    ['bia', 'Última reta! Dá pra ver a chegada!'],
+    ['lipe', 'Reta final! Pé embaixo e sorriso no rosto!'],
+  ],
+  stWin: [
+    ['duda', 'Venceu o racha! A cidade inteira viu!'],
+    ['tche', 'Bah, vitória! Tu é o terror das ruas, tchê! No bom sentido!'],
+  ],
+  stLose: [
+    ['valdo', 'Foi por pouco! Na revanche tu leva!'],
+    ['lipe', 'Quase! Mais um nitro e era teu!'],
+  ],
+  // ---- t367: lanchas
+  boatStart: [
+    ['bia', 'Corrida de lanchas! Segura o chapéu que vai molhar!'],
+    ['tche', 'Bah, lancha tunada na água! Bora fazer onda, tchê!'],
+  ],
+  boatWin: [
+    ['duda', 'Venceu na água também! Capitão de verdade!'],
+    ['lipe', 'Ganhou a corrida de lanchas! Até os golfinhos comemoraram!'],
+  ],
 };
 // todas as falas (para o gerador de voz)
 export function radioBank() { const out = []; for (const k in RADIO) for (const [d, t] of RADIO[k]) out.push([d, t]); return out; }

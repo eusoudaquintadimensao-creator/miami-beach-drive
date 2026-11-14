@@ -28,6 +28,7 @@
   <div id="quick"><button id="qRace" title="Corrida no Autódromo Neon">🏁</button><button id="qJet" title="Mochila a jato (J)">🎒</button><button id="qHeli" title="Chamar o helicóptero (G)">🚁</button><button id="qPlane" title="Hidroporto: avião anfíbio Baía Anfíbia A1 (Y)">✈️</button><button id="qCar" title="Chamar veículo (B)">🚘</button><button id="qHome" title="Ir para casa">🏠</button><button id="qPonte" title="Ponte do Mar: drift sobre o mar com 5 pilotos (O)">🌉</button><button id="qSerp" title="Circuito Serpentina (K)">🐍</button><button id="qFlash" title="Piscar o farol: desafiar rival da Liga da Madrugada (L)">💡</button></div>
   <div id="giftHud" hidden></div>
   <div id="stTip" hidden></div>
+  <div id="boatTip" hidden></div><div id="boatHud" hidden></div>
   <div id="stHud" hidden></div>
   <div id="stArrow" hidden><b>▲</b><i></i></div>
   <div id="stRes" hidden><div class="stBox"><h3></h3><div class="stBody"></div><div class="stBtns"><button id="stApply" hidden>🎨 Aplicar pintura</button><button id="stClose">Continuar</button></div></div></div>
@@ -44,6 +45,7 @@
       <button id="bHorn" hidden>📯<small>Buzina</small></button>
       <button id="bStart" hidden>▶<small>Iniciar</small></button>
       <button id="bNitro" hidden>🔥<small>Nitro</small></button>
+      <button id="bNeutral" hidden title="Neutro / ponto morto (Z)">N<small>Neutro</small></button>
       <button id="bDown" hidden>⤓<small>Descer</small></button>
       <button id="bPow" hidden>⚡<small>Poder</small></button>
       <button id="bReset" hidden>↺<small>Pista</small></button>
@@ -98,5 +100,6 @@
 </div>
 <noscript><p style="color:#fff;padding:20px">Ative o JavaScript para jogar.</p></noscript>
 <script type="module" src="src/main.js"></script>
-  <div id="giftScreen" hidden><div class="gCard"><div class="gIco">🎁🏎️</div><h2>PRESENTE DA PONTE!</h2><p>Você completou uma volta inteira. Bah, que pilotagem!</p><div id="giftInfo"></div><div class="gBtns"><button id="giftLater">Continuar</button><button id="giftDrive">🚗 Dirigir agora</button></div></div></div>
+  <div id="ponteEnd" hidden><div class="gCard"><div id="peBody"></div><div class="gBtns"><button id="peMore">🔁 Mais voltas</button><button id="peExit">⬇️ Sair pela saída</button></div></div></div>
+  <div id="giftScreen" hidden><div class="gCard"><div class="gIco">🎁🏎️</div><h2>PRESENTES DA PONTE!</h2><p>Você completou uma volta inteira. A garagem de prêmios da sua casa abriu: 3 carros tunados são seus!</p><div id="giftInfo"></div><div class="gBtns"><button id="giftLater">Continuar</button><button id="giftDrive">🚗 Dirigir agora</button></div></div></div>
 </body></html>

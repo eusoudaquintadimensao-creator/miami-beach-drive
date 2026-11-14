@@ -129,7 +129,7 @@ fs.mkdirSync(SH, { recursive: true });
     ck('ponte Desistir visível sem sobrepor', R.p1.quitVis && R.p1.ov.length === 0 && R.p1.off.length === 0, { ov: R.p1.ov, off: R.p1.off });
     ck('ponte Desistir encerra e volta à rampa', !R.p2.on && R.p2.quitHidden && !R.p2.onLoop && R.p2.quits === 1, R.p2);
     ck('ponte presente: tela', R.p3.giftVis && R.p3.paused && R.p3.saved, R.p3);
-    ck('ponte presente: dirigir + salvo', R.p4.type === 'rc_hyper' && R.p4.gift && R.p4.glow && !R.p4.paused && R.p4.ls && R.p4.homeList === 4, R.p4);
+    ck('ponte presente: dirigir + salvo', R.p4.type === 'rc_hyper' && R.p4.gift && R.p4.glow && !R.p4.paused && R.p4.ls && R.p4.homeList === 6, R.p4);
   }
   if (want('radio')) {
     R.radio = await ev(async () => { const G = window.__G, P = MBD.ponte(), Rd = P.radio; Rd.idx = null; Rd.loading = null; await Rd.load();

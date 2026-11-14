@@ -26,7 +26,13 @@ export const PONTE = {
 };
 const LAPS = 2;
 // carro presente por completar uma volta inteira na ponte (t361): esportivo original "Aurora X1 · Maré Neon"
-export const GIFT_CAR = { id: 'mare-neon', type: 'rc_hyper', name: 'Aurora X1 · Maré Neon', tune: { paint: 0x7d4dff, glow: 0x29f0ff, spoiler: 2, kit: true, rim: 0xffd23f, text: 'MARÉ NEON', style: 1, accent: 0xffffff, num: 88, livery: 1 } };
+export const GIFT_CAR = { id: 'mare-neon', type: 'rc_hyper', name: 'Aurora X1 · Maré Neon', desc: 'violeta metálico · neon ciano · rodas douradas', tune: { paint: 0x7d4dff, glow: 0x29f0ff, spoiler: 2, kit: true, rim: 0xffd23f, text: 'MARÉ NEON', style: 1, accent: 0xffffff, num: 88, livery: 1 } };
+// t367: completar a volta libera os 3 carros tunados trancados na garagem de prêmios da casa (porta abre)
+export const GIFT_CARS = [GIFT_CAR,
+  { id: 'coral-sunset', type: 'rc_muscle', name: 'Trovão V8 · Coral Pôr do Sol', desc: 'coral perolado · neon rosa · rodas cromadas', tune: { paint: 0xff6f59, glow: 0xff2bd6, spoiler: 1, kit: true, rim: 0xd8dde3, text: 'PÔR DO SOL', style: 2, accent: 0xffd23f, num: 21, livery: 1 } },
+  { id: 'onda-verde', type: 'rc_jdm', name: 'Kaze RS · Onda Verde', desc: 'verde menta · neon verde · rodas pretas', tune: { paint: 0x2ee6a6, glow: 0x45ff9a, spoiler: 2, kit: true, rim: 0x111111, text: 'ONDA VERDE', style: 0, accent: 0x111111, num: 7, livery: 1 } }];
+// prêmio por colocação no fim das voltas (dinheiro do jogo)
+const PRIZE = [1500, 900, 500, 200, 120, 80];
 // ritmo de drift (de lado, sem tirar de grip): ~72 km/h nas retas em S e aceleração lateral menor que no grip
 const DRIFT_PACE = { cruise: 20, lat: 6 };
 const HALF_W = 9; // meia largura do asfalto (tabuleiro de 18 m)
@@ -263,7 +269,7 @@ export class SeaBridge {
     });
   }
   placeCars(sP) {
-    const slots = [-30, -15, 14, 28, 44], lanes = [-4.2, 3.6, -3.0, 4.4, -1.2];
+    const slots = [-40, -24, -10, 12, 26], lanes = [-4.2, 3.6, -3.0, 4.4, -1.2]; this.shift = 0; this.perf = 0; // começa em 3º; pilotar bem leva ao 1º (nunca pior que 3º)
     this.cars.forEach((r, k) => { r.slot = slots[k]; r.laneBase = lanes[k]; r.total = (sP + r.slot + this.L) % this.L; r.lat = r.laneBase; r.spd = 0; r.dy = 0; r._rel = r.slot; const p = this.loop.at(r.total, r.lat); r.place(p.x, p.z, p.h); r.y = p.y + 0.2; r.active = true; r.root.visible = true; r._lw = null; if (this.G.vehicles.indexOf(r) < 0) this.G.vehicles.push(r); });
     this.slotT = 40;
   }
@@ -276,7 +282,7 @@ export class SeaBridge {
     let driftN = 0;
     for (const r of this.cars) {
       if (!r.active) continue;
-      const target = sP + r.slot; const err = wrapD(target - r.total, L);
+      const target = sP + r.slot + (this.shift || 0); const err = wrapD(target - r.total, L);
       if (Math.abs(err) > 360) { r.total = (target + L) % L; r.spd = pv; }
       const k8 = Math.abs(P.at(r.total + 8).k); let top = this.cruise * 1.25;
       for (let d = 0; d <= 60; d += 6) { const kk = Math.abs(P.at(r.total + d).k); if (kk > 1e-4) top = Math.min(top, Math.sqrt(8.5 / kk + 2 * 9 * d)); }
@@ -327,12 +333,32 @@ export class SeaBridge {
     if (!this.on) return; const G = this.G; G.drift.bank && G.drift.bank(); const pts = Math.max(0, Math.round(G.drift.total - this.session));
     this.on = false; this.hideCars(); this.data.runs++;
     if (pts > this.data.bestScore) this.data.bestScore = pts; saveData(this.data);
-    if (finished) { this.radio.say('finish', null, 0, true); G.ui.toast(`🏁 <b>${PONTE.name}</b> · ${pts.toLocaleString('pt-BR')} pts · melhor volta ${fmtT(this.best || 0)} · recorde ${fmtT(this.data.bestLap)}`, 4200); G.addFollowers && G.addFollowers(Math.min(10, 2 + Math.floor(pts / 1500))); }
+    if (finished) { const pl = this._pos || 3; const prize = PRIZE[pl - 1] || 80; this.data.podium = this.data.podium || [0, 0, 0]; if (pl <= 3) this.data.podium[pl - 1]++; saveData(this.data);
+      G.addMoney && G.addMoney(prize); this.radio.say(pl === 1 ? 'win1' : 'podium', null, 0, true) || this.radio.say('finish', null, 0, true); G.addFollowers && G.addFollowers(Math.min(10, 2 + Math.floor(pts / 1500)));
+      this.lastFinish = { place: pl, prize, pts, best: this.best || 0, km: (this.odo || 0) / 1000 }; this.showEnd(); }
     else if (pts > 20) G.ui.toast(`${PONTE.icon} Sessão encerrada · ${pts.toLocaleString('pt-BR')} pts · recorde de pontos ${this.data.bestScore.toLocaleString('pt-BR')}`, 3000);
     this.hud(true);
   }
+  // fim das voltas: pódio + prêmio e a escolha — sair pela rampa (guiado) ou continuar dando voltas
+  showEnd() {
+    const G = this.G, el = $('ponteEnd'); if (!el) return; if (G.giftOpen) { this._endPending = true; return; } this._endPending = false; const F = this.lastFinish; const med = ['🥇', '🥈', '🥉'][F.place - 1] || '🏁';
+    $('peBody').innerHTML = `<div class="peMed">${med}</div><h2>${F.place}º LUGAR!</h2><p>${F.place === 1 ? 'Venceu a corrida da ponte! Que pilotagem!' : F.place === 2 ? 'Pódio! Faltou só um pouquinho pro 1º.' : 'Pódio garantido! Drift e velocidade levam você ao 1º.'}</p><p class="pePrize">Prêmio: <b>$${F.prize.toLocaleString('pt-BR')}</b> · ${F.pts.toLocaleString('pt-BR')} pts · ${F.km.toFixed(1).replace('.', ',')} km · melhor volta ${fmtT(F.best)}</p>`;
+    el.hidden = false; G.paused = true; G.ponteEndOpen = true; if (document.pointerLockElement) document.exitPointerLock(); G.audio.chime && G.audio.chime('win'); G.ui.big(F.place === 1 ? 'VITÓRIA!' : 'PÓDIO!');
+    const close = () => { el.hidden = true; G.paused = false; G.ponteEndOpen = false; };
+    $('peExit').onclick = () => { close(); this.exitGuided(); }; $('peMore').onclick = () => { close(); this.noAuto = false; this.start(true); G.ui.toast(`🔁 Mais voltas na ${PONTE.name}! Os 5 pilotos continuam com você`, 2400); };
+  }
+  // sair guiado: carro no topo da rampa de saída, de frente para a descida, com seta e aviso
+  exitGuided() {
+    const G = this.G; this.noAuto = true; this.exitT = 8;
+    respawnFade(() => { const v = G.player.vehicle; if (!v || v.spec.boat || v.spec.air) return; const p = this.ramp.at(this.ramp.L - 40, 0); const h = p.h + Math.PI; v.place(p.x, p.z, h); v.y = p.y + 0.2; v.vf = v.vx = v.vz = 0; G.player.x = p.x; G.player.z = p.z; G.player.h = h; G.camYaw = h; G.snapCam && G.snapCam(); v.sync(0);
+      G.setRoute && G.setRoute([GATE.x, GATE.z - 30]); G.ui.toast(`⬇️ <b>Saída da ${PONTE.name}</b> · siga a rampa e o GPS de volta para a cidade`, 3600); });
+  }
   // progresso até a bandeirada (0–1): voltas completas + parte da volta atual
   progress() { if (!this.on || !this.lapStart) return 0; return clamp(((Math.min(this.lap, LAPS) - 1) * this.L + clamp(this.prog, 0, this.L)) / (LAPS * this.L), 0, 1); }
+  // colocação ao vivo: carros da IA à frente do jogador no traçado (+1)
+  position() { const loc = this._loc; if (!this.on || !loc) return this._pos || 3; let k = 1; for (const r of this.cars) if (r.active && wrapD(r.total - loc.s, this.L) > 0) k++; this._pos = k; return k; }
+  // desempenho → posição: drift/velocidade alta empurram os rivais para trás (até o 1º); bater ou ir devagar devolve (no máximo 3º)
+  _perf(dt, v, pv) { const good = (v.drifting ? 1.6 : 0) + (pv > 26 ? 1.6 : pv > 20 ? 0.9 : pv < 10 ? -2.5 : 0) + (v.boosting ? 0.6 : 0) - (v.hitT > 0 ? 6 : 0); this.shift = clamp((this.shift || 0) - good * dt * 1.1, -46, 0); }
   // 🏳️ Desistir: encerra a sessão sem penalidade e leva o carro de volta à rampa (não recomeça sozinho)
   quit() {
     if (!this.on) return false; const G = this.G; this.quits = (this.quits || 0) + 1;
@@ -345,10 +371,11 @@ export class SeaBridge {
   // volta completa: 1ª vez ganha o carro presente (fica na garagem de casa e no save); depois, prêmio em dinheiro
   reward(lt) {
     const G = this.G; const S = G.save; if (!S) return;
-    if (!S.giftCar) {
-      S.giftCar = { type: GIFT_CAR.type, tune: { ...GIFT_CAR.tune }, name: GIFT_CAR.name, at: Date.now(), lap: +lt.toFixed(1) }; G.persist && G.persist();
+    if (!S.giftCar || !S.giftCars) {
+      S.giftCar = { type: GIFT_CAR.type, tune: { ...GIFT_CAR.tune }, name: GIFT_CAR.name, at: Date.now(), lap: +lt.toFixed(1) };
+      S.giftCars = GIFT_CARS.map(c => ({ id: c.id, type: c.type, tune: { ...c.tune }, name: c.name })); S.giftDoorNew = true; G.persist && G.persist();
       this.radio.say('gift', null, 0, true); this.giftShown = (this.giftShown || 0) + 1;
-      if (G.showGift) G.showGift(GIFT_CAR, lt);
+      if (G.showGift) G.showGift(GIFT_CARS, lt);
     } else { G.addMoney && G.addMoney(300); G.ui.toast(`🏁 Volta completa! Prêmio da ponte: <b>$300</b>`, 2400); }
   }
   onLine(t) {
@@ -390,9 +417,10 @@ export class SeaBridge {
       this.lastS = loc.s;
       if (this.lap && !this.halfSaid && this.prog > this.L / 2) { this.halfSaid = true; this.radio.say('half', null, 0); }
       const fx = Math.sin(this.loop.at(loc.s).h), fz = Math.cos(this.loop.at(loc.s).h); const pv = Math.max(0, v.vx * fx + v.vz * fz);
-      this.ai(dt, loc.s, pv, camera); this._chatter(dt, v, loc);
+      this._perf(dt, v, pv); this.ai(dt, loc.s, pv, camera); this._chatter(dt, v, loc);
       this._maybeRespawn(dt, v, loc);
     }
+    if (this._endPending && !G.giftOpen) this.showEnd();
     if (this.fun) this.fun.update(dt, t, camera, loc && loc.d < 40 ? loc : null);
     this.radio.update(dt);
     this.hud();
@@ -408,7 +436,8 @@ export class SeaBridge {
     { const G = this.G; let air = null; for (const h of [G.heli, G.plane, ...(G.helis ? G.helis.list : [])]) { if (!h || !h.root || !h.root.visible || !h.air) continue; const d = Math.hypot(h.x - v.x, h.z - v.z); if (d < 160 && h.y - v.y > 12) { air = h; break; } }
       this.airT = air ? (this.airT || 0) + dt : 0; if (this.airT > 1) R.say('heli', null, 70); }
     for (const r of this.cars) { if (!r.active) continue; const rel = wrapD(r.total - loc.s, L); if (r._rel != null) { if (r._rel > 2 && rel < -2 && Math.abs(rel) < 40) R.say('playerPass', r.drvId, 24); else if (r._rel < -2 && rel > 2 && Math.abs(rel) < 40) R.say('aiPass', r.drvId, 24); } r._rel = rel; }
-    this.banterT -= dt; if (this.banterT <= 0) { this.banterT = 38 + Math.random() * 20; R.banter(); }
+    { const pos = this.position(); if (this._lastPos && pos < this._lastPos) { R.say('posUp', null, 12); this.posUps = (this.posUps || 0) + 1; } this._lastPos = pos; }
+    this.banterT -= dt; if (this.banterT <= 0) { this.banterT = 34 + Math.random() * 18; const k = Math.random(); if (k < 0.5) R.banter(); else if (k < 0.75) R.say('pretty', null, 40); else R.say('carNice', null, 60); }
   }
   _maybeRespawn(dt, v, loc) {
     const G = this.G; const h = this.loop.at(loc.s).h;
@@ -446,8 +475,8 @@ export class SeaBridge {
     el.hidden = false; const G = this.G;
     const pts = Math.max(0, Math.round(G.drift.total - this.session)); const km = ((this.prog > 0 ? this.prog : 0) / 1000).toFixed(1).replace('.', ',');
     const lt = this.lapStart ? fmtT(this.t - this.lapStart) : 'largada →';
-    const pc = Math.floor(this.progress() * 100); const odo = ((this.odo || 0) / 1000).toFixed(1).replace('.', ',');
-    const h = `<b>${PONTE.icon} ${PONTE.title}</b> volta ${Math.min(this.lap || 1, LAPS)}/${LAPS} · <span>${lt}</span> · 🏁 <span class="pc">${pc}%</span> · 🛣️ <span class="odo">${odo} km</span><i class="pbar"><i style="width:${pc}%"></i></i><small>${pts.toLocaleString('pt-BR')} pts · volta ${km}/${(this.L / 1000).toFixed(1).replace('.', ',')} km · melhor ${fmtT(this.data.bestLap)} · ${this.driftN || 0}/5 em drift</small>`;
+    const pc = Math.floor(this.progress() * 100); const odo = ((this.odo || 0) / 1000).toFixed(1).replace('.', ','); const left = (this.lapStart ? (1 - this.progress()) * LAPS * this.L : LAPS * this.L) / 1000; const pos = this.position();
+    const h = `<b>${PONTE.icon} ${PONTE.title}</b> volta ${Math.min(this.lap || 1, LAPS)}/${LAPS} · <span>${lt}</span> · 🏁 <span class="pc">${pc}%</span> · 🛣️ <span class="odo">${odo} km</span> · faltam <span class="left">${left.toFixed(1).replace('.', ',')} km</span> · <span class="pos p${pos}">${pos}º/6</span><i class="pbar"><i style="width:${pc}%"></i></i><small>${pts.toLocaleString('pt-BR')} pts · volta ${km}/${(this.L / 1000).toFixed(1).replace('.', ',')} km · melhor ${fmtT(this.data.bestLap)} · ${this.driftN || 0}/5 em drift</small>`;
     if (force || h !== this._h) { el.innerHTML = h; this._h = h; this.placeQuit(); if (this.radio && !$('radioSub').hidden) this.radio.place(); }
   }
 }
