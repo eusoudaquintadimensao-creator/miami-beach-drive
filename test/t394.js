@@ -50,15 +50,15 @@ fs.mkdirSync(SH, { recursive: true });
     const c = document.getElementById('adCard'); const a = c.querySelector('a'); return { it: [Math.round(it.x), Math.round(it.z)], shown: !c.hidden, href: a ? a.href : null, tgt: a ? a.target : null, txt: c.textContent.slice(0, 60) }; }, kind);
   r = await look('board');
   ck('C perto do outdoor: cartão com link do app (nova aba)', r.shown && /^https:/.test(r.href || '') && r.tgt === '_blank', r);
-  await shot('outdoor', 400);
+  await shot('outdoor', 1200);
   r = await look('screen');
   ck('C perto do telão: cartão com link', r.shown && /^https:/.test(r.href || ''), r);
-  await shot('telao', 400);
+  await shot('telao', 1200);
   r = await ev(() => { __onFoot(-100, -300); MBD.sim(3, 1 / 30); return { hidden: document.getElementById('adCard').hidden }; });
   ck('C longe: cartão some', r.hidden, r);
   // D) visão geral da orla com os telões
   await ev(() => { const G = window.__G; __onFoot(300, 120); G.player.h = Math.PI; G.camYaw = Math.PI * 0.82; G.snapCam && G.snapCam(); MBD.sim(3, 1 / 30); });
-  await shot('orla', 400);
+  await shot('orla', 1200);
   ck('sem erros no console', errs.length === 0, errs.slice(0, 5));
   console.log(fail.length ? 'FAIL ' + fail.join(' | ') : 'PASS ' + out); await browser.close(); process.exit(fail.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
