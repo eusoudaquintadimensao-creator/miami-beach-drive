@@ -120,7 +120,7 @@ export const DriveUI = {
     cr.addEventListener('pointermove', (e) => { if (e.buttons || (e.pointerType === 'touch' && cr.hasPointerCapture(e.pointerId))) setFromY(e); });
     // brake hold
     const br = $('drvBrake');
-    const brOn = (e) => { e.preventDefault(); e.stopPropagation(); this.hardBrake = true; this.reverse = false; this._revHold = false; br.classList.add('on'); this._buzz(8); };
+    const brOn = (e) => { e.preventDefault(); e.stopPropagation(); this.brakeTaps = (this.brakeTaps || 0) + 1; this.hardBrake = true; this.reverse = false; this._revHold = false; br.classList.add('on'); this._buzz(8); };
     const brOff = () => { this.hardBrake = false; br.classList.remove('on'); };
     br.addEventListener('pointerdown', brOn); br.addEventListener('pointerup', brOff); br.addEventListener('pointercancel', brOff); br.addEventListener('pointerleave', brOff);
     // ré: toque alterna (acessível, sem precisar segurar)

@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { clamp, lerp, angDiff, smooth } from './util.js';
-import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable } from './world.js';
+import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable, roadAt } from './world.js';
 import { createEnv } from './env.js';
 import { Fleet } from './frota.js';
 import { SeaRaces } from './marraces.js';
@@ -310,7 +310,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Escape') { if (!$('bigmap').hidden) G.ui.closeMap(); else if (!$('photo').hidden) { $('photo').hidden = true; G.paused = false; } else if (G.phoneOpen) G.ui.closePhone(); else if (!document.pointerLockElement) G.openPause(); } // t400: Esc = pausa (celular continua no P)
   if (G.paused && !['KeyM', 'KeyP'].includes(e.code)) return;
   if (e.code === 'KeyE' || e.code === 'KeyF' && false) action();
-  if (e.code === 'KeyT') G.race.resetCar();
+  if (e.code === 'KeyT') { if (G.race.active) G.race.resetCar(); else G.respawnOnRoad(); }
   if (e.code === 'KeyC' && !e.repeat) input.kick = true;
   if (e.code === 'KeyJ' && G.started && !G.paused) G.jet.toggle();
   if (e.code === 'KeyG' && G.started && !G.paused) G.callHeli();
@@ -382,6 +382,35 @@ hold('bPow', () => G.powers.trigger());
 hold('bReset', () => G.race.resetCar());
 $('bRec').onclick = () => { G.audio.init(); G.rec.toggle(); };
 $('rpClose').onclick = () => { $('recPanel').hidden = true; G.paused = false; };
+// t401: carro batido/parado/preso + toque no Freio = volta para a pista na posição e direção certas (racha: último portão; fora: faixa da rua mais próxima)
+let stopT = 0, lastHitT = -99, brTapSeen = 0, brTapPrevT = -99;
+function onRoadNow(x, z) { const rd = roadAt(x, z); return rd && rd.seg && rd.d <= (rd.seg.w || 7) + 1; }
+function roadRespawnPose(v) {
+  const S = G.street && G.street.race;
+  if (S) { const P = [[S.sx, S.sz], ...S.cps]; const k = Math.min(S.k, P.length - 1); const a = P[k], b = P[Math.min(k + 1, P.length - 1)]; let h = Math.atan2(b[0] - a[0], b[1] - a[1]); if (a === b) h = v.h; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); const d = Math.min(6, L * 0.3); return { x: a[0] + Math.sin(h) * d, z: a[1] + Math.cos(h) * d, h, why: 'race' }; }
+  const rd = roadAt(v.x, v.z); if (!rd || !rd.seg) return null; const sg = rd.seg, zA = sg.axis === 'z';
+  const lo = zA ? Math.min(sg.a.z, sg.b.z) : Math.min(sg.a.x, sg.b.x), hi = zA ? Math.max(sg.a.z, sg.b.z) : Math.max(sg.a.x, sg.b.x);
+  const t = clamp(zA ? v.z : v.x, lo + 3, hi - 3);
+  const fwd = zA ? (Math.cos(v.h) >= 0 ? 1 : -1) : (Math.sin(v.h) >= 0 ? 1 : -1); const h = zA ? (fwd > 0 ? 0 : Math.PI) : (fwd > 0 ? Math.PI / 2 : -Math.PI / 2);
+  const fx = Math.sin(h), fz = Math.cos(h), lane = Math.min(3.2, (sg.w || 7) * 0.3); // faixa da direita de quem segue
+  const cx = zA ? sg.a.x : t, cz = zA ? t : sg.a.z;
+  return { x: cx - fz * lane, z: cz + fx * lane, h, why: 'road' };
+}
+function respawnOnRoad(v) {
+  if (G.race && G.race.active) { G.race.resetCar(); return true; }
+  const P = roadRespawnPose(v); if (!P) return false; const p = G.player;
+  respawnFade(() => { v.place(P.x, P.z, P.h); v.vx = v.vz = v.vf = 0; v.drifting = false; v.swD = false; v.recover = 1; v.yawV = 0; v.hitT = 0; p.x = v.x; p.z = v.z; p.h = v.h; G.camYaw = v.h; G.snapCam(); stopT = 0; lastHitT = -99; G.ui.toast(P.why === 'race' ? '↺ De volta ao racha, no último portão' : '↺ De volta à rua', 1500); });
+  G.lastRespawn = P; return true;
+}
+function stuckCheck(dt) {
+  const v = G.player.vehicle; if (!v || v.spec.boat || v.spec.air || v.type === 'heli' || v.type === 'plane') { stopT = 0; brTapSeen = DriveUI.brakeTaps || 0; return; }
+  if (v.hitT > 0) lastHitT = G.t;
+  stopT = Math.abs(v.speed || 0) < 0.8 ? stopT + dt : 0;
+  const n = DriveUI.brakeTaps || 0; if (n === brTapSeen) return; brTapSeen = n;
+  const dbl = G.t - brTapPrevT < 0.8; brTapPrevT = G.t;
+  if (stopT > 1 && (G.t - lastHitT < 8 || !onRoadNow(v.x, v.z) || dbl || (G.street && G.street.race))) respawnOnRoad(v);
+}
+G.respawnOnRoad = () => G.player.vehicle && respawnOnRoad(G.player.vehicle);
 // t400: ⏸ Pausa (menu Continuar / Voltar ao modo anterior / Configurações / Controles) e ↩ Voltar direto
 function backInfo() {
   const p = G.player, v = p.vehicle;
@@ -803,7 +832,7 @@ function recordStep(ms) { stepMs.push(ms); if (stepMs.length > 600) stepMs.shift
 G.frameStats = () => { if (!stepMs.length) return { n: 0, avg: 0, p95: 0, p99: 0, max: 0 }; const a = stepMs.slice().sort((x, y) => x - y), n = a.length, sum = a.reduce((s, v) => s + v, 0); return { n, avg: +(sum / n).toFixed(2), p95: +a[Math.min(n - 1, Math.floor(n * 0.95))].toFixed(2), p99: +a[Math.min(n - 1, Math.floor(n * 0.99))].toFixed(2), max: +a[n - 1].toFixed(2) }; };
 function step(dt) {
   G.t += dt; const t = G.t;
-  updatePlayer(dt);
+  updatePlayer(dt); stuckCheck(dt);
   const honk = G.traffic.update(dt, t, G.player, G.crowd, Q);
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, G.bail && G.bail.coast, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);

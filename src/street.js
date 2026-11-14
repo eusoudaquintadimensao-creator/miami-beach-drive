@@ -211,10 +211,10 @@ export class Street {
     const tc = document.getElementById('turnCue');
     if (!S) { el.hidden = true; if (ar) ar.hidden = true; if (tc) tc.hidden = true; return; }
     if (tc) { const nt = S.t >= 0 ? this.nextTurn() : null; const show = nt && nt.dist < 140; // t400: só a seta de vidro + distância pequena, no alto; some sozinha e volta perto da curva
-      if (show) { const key = nt.i + (nt.left ? 'L' : 'R'); if (tc._key !== key) { tc._key = key; tc._t0 = G.t; }
+      if (show) { const key = nt.i + (nt.left ? 'L' : 'R'); if (tc._key !== key) { tc._key = key; tc._t0 = G.t; tc._nearKey = null; }
         const h = `<i>${nt.left ? '⬅' : '➡'}</i><small>${Math.max(0, Math.round(nt.dist / 5) * 5)} m</small>`; if (tc._h !== h) { tc.innerHTML = h; tc._h = h; }
         const near = nt.dist < 45; tc.dataset.dir = nt.left ? 'L' : 'R'; tc.title = `Curva à ${nt.left ? 'esquerda' : 'direita'}${nt.sharp ? ' (fechada)' : ''}`;
-        tc.classList.toggle('left', nt.left); tc.classList.toggle('near', near); tc.classList.toggle('sharp', nt.sharp); tc.classList.toggle('dim', !near && G.t - tc._t0 > 2.6); }
+        tc.classList.toggle('left', nt.left); tc.classList.toggle('near', near); tc.classList.toggle('sharp', nt.sharp); if (near && tc._nearKey !== key) { tc._nearKey = key; tc._t0 = G.t; } tc.classList.toggle('dim', G.t - tc._t0 > 1.6); } // t401: no máximo ~1,6 s na tela (aparece de novo uma vez perto da curva)
       if (tc.hidden === !!show) tc.hidden = !show; S.cue = show ? (nt.left ? 'L' : 'R') : ''; }
     const pos = this.place(); S.pos = pos; const tt = Math.max(0, S.t);
     el.hidden = false; el.innerHTML = `<b>🌙 ${ROUTES[S.ri].name}</b><span>5 corredores</span><span>Portão ${Math.min(S.k + 1, S.cps.length)}/${S.cps.length}</span><span class="pos">${pos}º/${S.ais.length + 1}</span><span>${Math.floor(tt / 60)}:${String(Math.floor(tt % 60)).padStart(2, '0')}</span>`;

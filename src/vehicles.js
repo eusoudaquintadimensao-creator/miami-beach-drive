@@ -468,17 +468,21 @@ export class Vehicle {
     if (vf > max) vf = lerp(vf, max, dt * 2);
     this.brakeOn = thr < -0.05 && vf > 0.5 || inp.hb;
     this.steer += (inp.x - this.steer) * Math.min(1, dt * (sp.boat ? 3 : 7));
+    // t401: Freio (botão) sai do drift na hora e devolve a aderência normal; e não entra em drift enquanto segura o Freio
+    if (inp.hardBrake && this.drifting) { if (this.swD) this.dLast = { t: this.dTime, chain: this.dChain }; this.drifting = false; this.swD = false; this.recover = 1; this.recSlow = false; this.dSpd = null; this.yawV = 0; this.drift = 0; this.brakeExitT = 0.5; }
+    if (inp.hardBrake && this.recover !== undefined && this.recover < 1) { this.recover = 1; this.recSlow = false; }
+    this.brakeExitT = Math.max(0, (this.brakeExitT || 0) - dt);
     let yaw;
     // drift estilo arcade dos carros de corrida: freio (ou freio de mão) numa curva rápida solta a traseira;
     // acelerador segura o drift, o volante controla o ângulo (para dentro = mais ângulo, contra-esterço = endireita)
     if (sp.race && !this.drifting) {
       const braking = thr < -0.05 || inp.hb; const s0 = Math.hypot(vx0, vz0);
-      if (braking && Math.abs(this.steer) > 0.28 && s0 > (inp.hb ? 10 : 13) && vf > 0 && surf > 0.6) {
+      if (braking && !inp.hardBrake && !this.brakeExitT && Math.abs(this.steer) > 0.28 && s0 > (inp.hb ? 10 : 13) && vf > 0 && surf > 0.6) {
         this.drifting = true; this.driftDir = Math.sign(this.steer); this.driftT = 0; this.cntT = 0; this.relT = 0; this.vAng = Math.atan2(vx0, vz0); this.dSpd = s0;
       }
     }
     // drift do deslize (↓): qualquer carro; longo, segura a traseira e encadeia para o outro lado (pêndulo)
-    if (inp.kick && !sp.boat && this.type !== 'moto' && !this.drifting) {
+    if (inp.kick && !inp.hardBrake && !this.brakeExitT && !sp.boat && this.type !== 'moto' && !this.drifting) {
       const s0 = Math.hypot(vx0, vz0);
       if (s0 > 7 && vf > 0 && surf > 0.5) {
         const sd = Math.abs(this.steer) > 0.08 ? Math.sign(this.steer) : (this._lastSteerDir || 1);
