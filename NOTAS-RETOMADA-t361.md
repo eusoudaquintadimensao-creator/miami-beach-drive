@@ -47,4 +47,17 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] t387: botões de vidro (blur, borda neon, pressionado mais claro), mais altos em retrato e paisagem; paisagem dirigindo em grade 2×2 à direita; N ao lado do VEL (sem sobrepor o 🎁/giftHud). test/t387.js (prints botoes-*)
 - [x] t390: src/bailout.js — Sair com carro >6 m/s = pulo + rolamento (carro na banguela até parar, pedestres desviam: v.coast); heli/avião no ar = salto + paraquedas automático (velame colorido, ~3,2 m/s, joystick/A-D vira, W/S velocidade, ⤓ desce mais rápido), pouso em chão/telhado; água = nado (margem ou resgate em 20 s); <8 m = pulo curto. Heli abandonado paira 5 s e desce (auto), volta ao heliponto; avião plana e volta ao hidroporto. test/t390.js (prints pular-*)
 - [x] SW solara-v22-2026-11-14-praia / neon-dist-v14-2026-11-14-praia
-- [ ] matriz (t390,t388,t387,t386,t383,t380,t367,t361,t335 × d/i/il/al × 2) → push → site → live
+- [x] matriz → push → site → live (16:50, Solara ddbb882 / Neon 8f231ed, live 4 alvos 0 erros)
+
+## FASE 5 (t391–t402) — um publish só (aprovado)
+- [x] t398 Entrar: só o veículo MAIS PERTO a ≤3,5 m da porta (barco 4,5), nome no botão; carro chamado não passa na frente; test/t398.js
+- [x] t399 botões do carro mais altos e vidro mais claro; grade 3×4 a pé recolhível (▦/✕, localStorage quickMin-v1); farol alto mais largo/suave, menos bloom
+- [x] t391 cintilação (adapt com histerese, near 0.32, sombra estável por texel), frota (src/frota.js: 3 lanchas, iate, 3 jet skis) e corridas no mar (src/marraces.js, 3 circuitos); test/t391.js (prints mar-*)
+- [x] t400 seta de curva só ícone de vidro com distância, números de drift/nitro nos cantos, ⏸ Pausa (Continuar / Voltar / Configurações / Controles), ↩ Voltar, vidro uniforme; test/t400.js
+- [x] t401 seta some em ~1,6 s; Freio sai do drift na hora; carro parado/batido + Freio volta para a pista (racha: último portão; fora: faixa da rua; T no teclado); test/t401.js
+- [x] t393 palmeiras realistas (src/palmbreak.js) quebram e tombam com física, carro perde ~18% da velocidade, voltam em 60 s/fora de vista; Neon mantém LED neon; test/t393.js (prints palmeira-*)
+- [x] t402 placar de drift à direita; câmera segue a velocidade no drift (lag ≤0,5 rad; retrato 0,32), sobe com parede atrás; test/t402.js (prints camera-*)
+- [x] t394 src/outdoor.js: 9 apps em atlas único (assets/ads/ads.jpg + ads-lo.jpg), 7 outdoors + 8 telões no calçadão com transições, cartão com link ao chegar perto; sem Mercado Pago/doação; test/t394.js (prints outdoor-*)
+- [x] t396/t397 src/gauchos.js: 44 falas gaúchas × 3 vozes (132 mp3 Kokoro), devagar elogia carro/cidade, rápido pede cuidado, intervalo 7–14 s; test/t396.js (prints gaucho-*)
+- [x] SW solara-v23-2026-11-14-orla / neon-dist-v15-2026-11-14-orla (CORE com frota/marraces/palmbreak/outdoor/gauchos)
+- [ ] matriz q6 (18 testes × d/i/il/al × 2 jogos; /tmp/q6s.txt /tmp/q6n.txt) → push → site → live
