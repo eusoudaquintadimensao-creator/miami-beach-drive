@@ -60,4 +60,6 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] t394 src/outdoor.js: 9 apps em atlas único (assets/ads/ads.jpg + ads-lo.jpg), 7 outdoors + 8 telões no calçadão com transições, cartão com link ao chegar perto; sem Mercado Pago/doação; test/t394.js (prints outdoor-*)
 - [x] t396/t397 src/gauchos.js: 44 falas gaúchas × 3 vozes (132 mp3 Kokoro), devagar elogia carro/cidade, rápido pede cuidado, intervalo 7–14 s; test/t396.js (prints gaucho-*)
 - [x] SW solara-v23-2026-11-14-orla / neon-dist-v15-2026-11-14-orla (CORE com frota/marraces/palmbreak/outdoor/gauchos)
-- [ ] matriz q6 (18 testes × d/i/il/al × 2 jogos; /tmp/q6s.txt /tmp/q6n.txt) → push → site → live
+- [x] matriz q6 (18 testes × d/i/il/al × 2 jogos; /tmp/q6s.txt /tmp/q6n.txt): tudo PASS menos t361 hidroavião (alcance t398 curto demais do píer) e t392 Solara (erro avc1: adapt mudava resolução gravando)
+- [x] correções: hidroavião embarca pela asa (alcance 5 m); adapt congela durante gravação. q7 (t392+t361 × 4 × 2; /tmp/q7*.txt): t392 8/8 PASS
+- [ ] t361 rerun → push → site (deploy/ passos) → live

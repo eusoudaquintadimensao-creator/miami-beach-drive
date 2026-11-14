@@ -463,11 +463,11 @@ function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.
 const ENTER_R = 3.5, ENTER_R_BOAT = 4.5;
 function doorDist(v, x, z) {
   const cs = v.circles(); if (!cs.length) return 1e9; // no ar
-  const r = v.type === 'plane' ? 1.5 : v.type === 'heli' ? 1.4 : Math.min(v.spec.w || 1.8, 3.2) * 0.5;
+  const r = v.type === 'plane' ? Math.max(1.5, (v.spec.w || 3) * 0.5 - 1) : v.type === 'heli' ? 1.4 : Math.min(v.spec.w || 1.8, 3.2) * 0.5;
   let d = 1e9; for (const c of cs) d = Math.min(d, Math.hypot(c[0] - x, c[1] - z));
   return Math.max(0, d - r);
 }
-function enterRange(v) { return v.spec.boat ? ENTER_R_BOAT : ENTER_R; }
+function enterRange(v) { return v.type === 'plane' ? 5 : v.spec.boat ? ENTER_R_BOAT : ENTER_R; } // hidroavião na água: embarca do píer pela asa
 function nearestVehicle() {
   if (G.bail && G.bail.mode && G.bail.mode !== 'roll') return null; // no ar ou nadando: nada para entrar
   const p = G.player, C = G.carCall; let best = null, bd = 1e9;
@@ -832,6 +832,7 @@ function loop(now) {
 let adLo = 0, adHi = 0, adCool = 0, adDropT = -1e9; // t391: histerese + espera; não fica subindo/descendo a resolução (cada troca recriava os buffers = pisca)
 function adapt() { // resolução dinâmica para manter fluido
   const nowS = performance.now() / 1000; adCool = Math.max(0, adCool - 1);
+  if (G.recording) { adLo = adHi = 0; return; } // gravando: resolução fixa (trocar o tamanho do canvas quebra o vídeo mp4)
   adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
   if (adCool > 0) { } else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
   else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
