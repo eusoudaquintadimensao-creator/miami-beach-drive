@@ -23,6 +23,7 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 - [x] Port para Neon (patch + tema das ilhas neon); testes t367 PASS desktop nos 2 jogos
 - [x] 12:35 commits locais Solara 9794283 / Neon 7d15cf2 (SW solara-v17-2026-11-14-ilhas / neon-dist-v9-2026-11-14-ilhas). Matriz final em andamento: logs /workspace/t367/final-*.txt (t367 PASS 8/8 menos neon d racha largada → corrigido com clearGrid; t361 PASS 8/8). Falta: t335 ×8, re-rodar t367 ×8 (street.js mudou), push, site.
 - Deploy site: deploy/gerar-put.py agora sem migrations (PRIMEIRA=1 só na 1ª vez).
+- [x] 13:05 matriz final PASS: t367 8/8, t361 8/8, t335 8/8 (il re-rodado sozinho: timeout por CPU com 2 jogos em paralelo). Push feito (Solara dd9b9f8, Neon 7d15cf2). Falta: verificar GitHub Pages + site Cloudflare.
 - [ ] H matriz final (t367+t361+t335 × d/i/il/al × 2 jogos) → SW v17/v9 → push → site Cloudflare
 - Teste novo: test/t367.js (ONLY=ilhas,ponte,garagem,rua,neutro,lancha,radio,shots). Runner: /workspace/t367/m367.sh (T=, GAMES=, CFG=), logs /workspace/t367/log-*.txt
 - Restante (próxima fase): E garagem gigante com 50 carros; F vida na cidade/realismo + mapa completo; G app GPS do celular com OpenStreetMap
