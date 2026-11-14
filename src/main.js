@@ -31,6 +31,7 @@ import { Jetpack } from './jetpack.js';
 import { Voices } from './voice.js';
 import { callCar, updateCarCall, finishCarCall, SIGNATURE } from './signature.js';
 import { Serpentina } from './serpentina.js';
+import { SeaBridge } from './seabridge.js';
 import { buildLife } from './life.js';
 import { Birds } from './birds.js';
 import { Gifts } from './gifts.js';
@@ -167,7 +168,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.drive = DriveUI.setup(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -274,6 +275,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyH') horn();
   if (e.code === 'KeyL' && G.started && !G.paused) G.street.flash();
   if (e.code === 'KeyK' && G.started && !G.paused) G.serp.go();
+  if (e.code === 'KeyO' && G.started && !G.paused) G.ponte.go();
   if (e.code === 'KeyR') G.radioSet(G.audio.station + 1);
   if (e.code === 'KeyM') { $('bigmap').hidden ? G.ui.openMap() : G.ui.closeMap(); }
   if (e.code === 'KeyP') { G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); }
@@ -339,7 +341,7 @@ function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.
 // ---------------- entrar e sair
 function nearestVehicle() {
   const p = G.player; let best = null, bd = 1e9;
-  for (const v of G.vehicles) { if (v.driver) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
+  for (const v of G.vehicles) { if (v.driver || v.noEnter) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
   return best;
 }
 function onActTap(n) {
@@ -348,6 +350,7 @@ function onActTap(n) {
   const p = G.player;
   if (G.talk.cur) { G.talk.next(); return; }
   if (p.vehicle) {
+    if (G.ponte && G.ponte.canAccept()) { G.ponte.accept(); return; } // aceitar a sessão da ponte (até 50 m do pórtico)
     const near = G.street && !G.street.race && G.street.nearRival(50);
     if (near) { G.street.flash(); return; }
     if (n === 1) exitVehicle();
@@ -385,6 +388,7 @@ function action() {
   if (!G.started || G.paused) return; G.audio.init();
   const p = G.player;
   if (G.race.active) { G.race.askQuit(); return; }
+  if (p.vehicle && G.ponte && G.ponte.canAccept()) { G.ponte.accept(); return; } // E perto do pórtico = aceitar a sessão da ponte
   if (p.vehicle) return exitVehicle();
   if (G.talk.cur) { G.talk.next(); return; }
   if (G.home.near()) { G.home.open(); return; }
@@ -550,6 +554,7 @@ function updateCamera(dt, snap) {
   if (sh > 0.0008) { const tt = G.t * 62; camera.position.x += Math.sin(tt * 1.71) * sh * 0.38; camera.position.y += Math.sin(tt * 2.27 + 1.1) * sh * 0.28; }
   trauma = Math.max(0, trauma - dt * 2.4);
   camLook.set(fx + (v ? Math.sin(v.h) * 2 : 0), fy, fz + (v ? Math.cos(v.h) * 2 : 0)); camera.lookAt(camLook);
+  if (G.camOverride) { const o = G.camOverride; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); } // vista aérea (fotos/testes)
   const portrait = innerHeight > innerWidth; const baseF = portrait ? 72 : 60; const f = baseF + (v ? Math.min(14, v.speed * 0.28) + (v.boosting ? 9 : 0) : 0);
   if (Math.abs(camera.fov - f) > 0.05) { camera.fov = lerp(camera.fov, f, Math.min(1, dt * 3)); camera.updateProjectionMatrix(); }
 }
@@ -582,9 +587,9 @@ function updatePrompts() {
   const rc = G.race.active && v && v.race; if (document.body.classList.contains('racing') !== !!rc) document.body.classList.toggle('racing', !!rc);
   if (touch) {
     const act = $('bAct');
-    const raceNear = !!(v && G.street && !G.street.race && G.street.nearRival(50));
-    const lbl = rc ? '🏳️<small>Sair</small>' : raceNear ? '🏁<small>Aceitar</small>' : v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : (G.carCall || near || (G.sigCar && !G.sigCar.driver && G.vehicles.indexOf(G.sigCar) >= 0 && Math.hypot(G.sigCar.x - p.x, G.sigCar.z - p.z) < 30)) ? '🚗<small>Entrar</small>' : talkNear ? '💬<small>Conversar</small>' : '🚘<small>Chamar</small>';
-    if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (raceNear ? 'Aceitar o racha (até 50 m)' : 'Descer do veículo') : 'Um toque chama seu veículo (para à sua frente); o próximo toque entra.'; }
+    const raceNear = !!(v && G.street && !G.street.race && G.street.nearRival(50)); const ponteNear = !!(G.ponte && G.ponte.canAccept());
+    const lbl = rc ? '🏳️<small>Sair</small>' : ponteNear ? '🌉<small>Aceitar</small>' : raceNear ? '🏁<small>Aceitar</small>' : v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : (G.carCall || near || (G.sigCar && !G.sigCar.driver && G.vehicles.indexOf(G.sigCar) >= 0 && Math.hypot(G.sigCar.x - p.x, G.sigCar.z - p.z) < 30)) ? '🚗<small>Entrar</small>' : talkNear ? '💬<small>Conversar</small>' : '🚘<small>Chamar</small>';
+    if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (ponteNear ? 'Aceitar a sessão de drift na ponte (até 50 m)' : raceNear ? 'Aceitar o racha (até 50 m)' : 'Descer do veículo') : 'Um toque chama seu veículo (para à sua frente); o próximo toque entra.'; }
     act.style.opacity = 1;
     const heli = v && v.type === 'heli';
     $('bReset').hidden = !rc; $('bPhoto').hidden = !!rc;
@@ -664,7 +669,7 @@ function step(dt) {
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera);
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
   G.missions.update(dt, t);
@@ -766,7 +771,8 @@ $('qCar').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); 
 $('qHome').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.home.go(); };
 $('qFlash').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.street.flash(); };
 $('qSerp').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.serp.go(); };
-for (const id of ['qRace', 'qJet', 'qHeli', 'qCar', 'qHome', 'qFlash', 'qSerp']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
+$('qPonte').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.ponte.go(); };
+for (const id of ['qRace', 'qJet', 'qHeli', 'qCar', 'qHome', 'qFlash', 'qSerp', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
 addEventListener('visibilitychange', () => { if (document.hidden) { persist(); if (G.rec && G.rec.recording) G.rec.stop(); } });
 addEventListener('pagehide', persist);
 
@@ -785,7 +791,7 @@ window.MBD = {
   sim(n, dt = 1 / 30) { const t0 = performance.now(); for (let i = 0; i < n; i++) step(dt); recordStep((performance.now() - t0) / Math.max(1, n)); }, // testes: avança a lógica sem desenhar
   frameStats: () => G.frameStats(),
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
-  life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
+  life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };

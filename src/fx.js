@@ -32,6 +32,21 @@ export class DriftFX {
     for (let i = 0; i < 90; i++) { const a = Math.random() * Math.PI * 2, r0 = 150 + Math.random() * 110, r1 = r0 + 60 + Math.random() * 140; x.strokeStyle = `rgba(${200 + Math.random() * 55},${230 + Math.random() * 25},255,${0.25 + Math.random() * 0.5})`; x.lineWidth = 0.6 + Math.random() * 2.2; x.beginPath(); x.moveTo(256 + Math.cos(a) * r0, 256 + Math.sin(a) * r0); x.lineTo(256 + Math.cos(a) * r1, 256 + Math.sin(a) * r1); x.stroke(); }
     const hud = $('hud'); hud.insertBefore(c, hud.firstChild); this.lines = c; this.lineOp = 0;
   }
+  // fumaça + marcas de pneu para carros da IA (tandem na ponte); cada carro guarda seu último ponto
+  aiTrail(v, night, smokeK = 1) {
+    const [fx, fz] = v.fwd(); const rx = -fz, rz = fx; const half = v.spec.w / 2 - 0.2, back = v.spec.wb / 2; const lw = v._lw || (v._lw = [null, null]);
+    for (let w = 0; w < 2; w++) {
+      const sd = w ? 1 : -1; const x = v.x - fx * back + rx * half * sd, z = v.z - fz * back + rz * half * sd;
+      if (Math.random() < 0.55 * smokeK) this.emit(x, v.y, z, v.vx, v.vz, 0.9, night);
+      const L = lw[w]; if (!L) { lw[w] = [x, z]; continue; }
+      const dx = x - L[0], dz = z - L[1], d = Math.hypot(dx, dz); if (d < 0.9) continue; if (d > 6) { lw[w] = [x, z]; continue; }
+      this._mark(x, z, L, dx, dz, d, v.y); lw[w] = [x, z];
+    }
+  }
+  _mark(x, z, L, dx, dz, d, vy) {
+    const y = Math.max(0, vy != null ? vy : surfaceY(x, z)) + 0.07; this.q.setFromAxisAngle(this.up, Math.atan2(dx, dz)); this.p.set((x + L[0]) / 2, y, (z + L[1]) / 2); this.s.set(1, 1, d + 0.05);
+    this.m4.compose(this.p, this.q, this.s); this.marks.setMatrixAt(this.mHead, this.m4); this.mHead = (this.mHead + 1) % this.M; this.mN = Math.min(this.M, this.mN + 1); this.marks.count = this.mN; this.marks.instanceMatrix.needsUpdate = true; this.aiMarks = (this.aiMarks || 0) + 1;
+  }
   clearMarks() { this.marks.count = 0; this.mHead = 0; this.mN = 0; this.lastW = [null, null]; }
   emit(x, y, z, vx, vz, k, night, vy) {
     const i = this.head; this.head = (this.head + 1) % this.N; this.emitted = (this.emitted || 0) + 1; const j = i * 3;

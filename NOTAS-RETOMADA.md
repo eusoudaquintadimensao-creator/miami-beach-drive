@@ -201,3 +201,35 @@ Para publicar SÓ após aprovação: git push origin main.
 - Botão: 1º toque chama o carro, que para ~5 m À FRENTE (frontSpot, caminho seguro); próximo toque entra; toque de novo sai.
 - CSS: corrigido seletor órfão (body.driving.touch #bDown,) que mostrava bPhoto sobre o freio.
 - Testes: test/mech.js (novo) + drive/serp/linecheck em d/i/il/al: tudo PASS, 0 erros. SW solara-v12-2026-11-13-drift.
+
+
+## t332 (13/11, noite) — Ponte do Mar: ponte de drift sobre o mar + 5 IAs em tandem + rádio pt-BR
+- src/seabridge.js: laço fechado Catmull-Rom (centripetal) de ≈11,3 km a leste da ilha (x 468–1445, z −1024–1124), tabuleiro de 18 m
+  (HALF_W 9) a ~9,5 m ±3 m de altura (loopH), 4 passagens N–S em S (senoide 95 m/440 m), 3 grampos e retorno com S suaves; raio mín. ≈21 m.
+  Traçado gerado por tools/ponte_design.py (comprimento, raio, folga entre trechos e estimativa). Estimativa no ritmo de drift
+  (DRIFT_PACE cruzeiro 20 m/s, lateral 6 m/s²): ≈9,6 min/volta (576 s). Piloto automático em grip (teste) anda ~90 km/h → ≈7,5 min.
+- Rampa (340 m) continua a Ocean Drive (x 300) no extremo sul (GATE 300,632) com pórtico neon, faixa quadriculada na largada (s=0, ≈520,700).
+  Palmeiras do parque sul fora do corredor da rampa (world.js, mesma sequência do R()). Píer da praia excluído do tabuleiro (onPier).
+- Física: world.js HOOKS.grounds/surfs/map (groundY consulta o tabuleiro em x>280); fora do tabuleiro = mar (age como guarda-corpo).
+- Malha: trechos de 60 amostras (~180 m) construídos sob demanda (≤1 por quadro), recorte por distância (baixa 340 m / média 560 / alta 820),
+  LOD distante único (buildFar), guarda-corpos com neon, postes a cada 36 m com poça de luz aditiva, pilares a cada 48 m.
+- Fluxo: botão 🌉 (qPonte) / tecla O → leva à rampa (no carro) ou chama o carro no pórtico (a pé). A até 50 m do pórtico o botão de ação vira
+  "🌉 Aceitar" (celular) / tecla E (desktop, aviso no placar) → sessão de 2 voltas. Entrar no laço dirigindo também inicia.
+- IA: 5 pilotos (Bia Kaze (rc_jdm), Tchê Trovão (rc_muscle), Duda Faísca (rc_gt), Seu Valdo (picape verde), Lipe Besouro (classic amarelo)), fantasmas (não bloqueiam, noEnter), elástico perto do jogador
+  (slots −30…44 m, troca a cada 34–48 s), desvio lateral, tandem com balanço de drift, fumaça + marcas (fx.aiTrail, G.fx.aiMarks).
+- Rádio (src/radio.js + src/radiolines.js, 63 falas, 5 vozes Kokoro pf_dora/pm_alex/pm_santa com velocidade/tom diferentes, gíria gaúcha/BR,
+  sem nome de lugar → iguais nos dois jogos): mp3 em assets/voz/radio/<piloto>/<fnv>.mp3 + index.json (carregados só na 1ª sessão), filtro de
+  rádio (passa-alta 420, pico 1,7 kHz, passa-baixa 3,2 kHz, saturação, chiado), legenda #radioSub abaixo do placar #ponteHud.
+  Eventos: largada, drift do jogador, tandem colado, muro, ultrapassagens, meia volta, faltam 2 / última volta, chegada, recorde, respawn, papo.
+  Gerar de novo: /workspace/kokoro-venv/bin/python tools/gen_radio.py tools/radio_bank.json assets/voz/radio (banco exportado de radioBank()).
+- Sessão: pontos (G.drift), tempo de volta, recorde de volta e de pontos em localStorage 'mbd-ponte-v1' {bestLap,bestScore,runs,laps};
+  respawn automático na pista (contramão parado, batida parada, centro do carro fora do tabuleiro ou parado na borda >3 s; depois de >1,1 s).
+  (Bug achado no teste iPhone paisagem: carro com o centro logo além da borda ficava travado sem respawn — corrigido + teste 'edge respawn'.)
+- Também: mapa redesenhado após todos os sistemas (G.ui.refreshMap) — antes as marcações de corrida/circuito/ponte não apareciam no minimapa.
+- G.camOverride (só testes/fotos): câmera aérea.
+- Testes: test/ponte.js (traçado 8–12 km e estimativa, chamar→entrar→aceitar ≤50 m/não aos 75 m, rampa dirigível até o laço, 5 IAs ativas
+  e em drift com fumaça/marcas, elástico, rádio (todas as 63 falas com mp3, fetch 200, legenda + áudio tocado), layout sem sobreposição,
+  draw calls em baixa, respawn, 2 voltas + recorde salvo, 0 erros) em desk/iPhone/iPhone paisagem/Android paisagem + desk alta.
+  Fotos: screenshots/ponte-<d|i|il|al>-{overview,tandem,radio,hud}.png. SW solara-v13-2026-11-13-ponte.
+- Resultado: test/ponte.js PASS em desk, iPhone 390×844, iPhone paisagem 844×390, Android paisagem 915×412 (baixa) e desk alta; 0 erros.
+  Regressão mech/drive (d/i/il/al), serp e linecheck: PASS nos dois jogos. Draw calls na ponte (baixa) ~100–210, ~0,22–0,27 M triângulos.

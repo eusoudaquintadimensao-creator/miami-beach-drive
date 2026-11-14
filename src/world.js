@@ -4,7 +4,7 @@ import { rng, MeshBuilder, canvasTex, C, clamp, pick } from './util.js';
 
 export const WATER_Y = -0.6;
 export const SHORE_X = 390;
-export const BOUNDS = { x0: -1100, x1: 900, z0: -900, z1: 900 };
+export const BOUNDS = { x0: -1100, x1: 1500, z0: -1100, z1: 1160 }; // leste/sul ampliados p/ a ponte sobre o mar
 const ISL = { x0: 30, z0: -680, z1: 680 };
 const MAIN = { x0: -1100, x1: -260, z0: -720, z1: 720 };
 const RW = 7; // meia largura da via urbana
@@ -82,7 +82,7 @@ export const TRACK_ZONE = { x0: -1088, x1: -698, z0: -716, z1: -443 };
 export const inTrackZone = (x, z, m = 0) => x > TRACK_ZONE.x0 - m && x < TRACK_ZONE.x1 + m && z > TRACK_ZONE.z0 - m && z < TRACK_ZONE.z1 + m;
 export const SERP_ZONE = { x0: -1040, x1: -280, z0: 575, z1: 900 };
 export const inSerpZone = (x, z, m = 0) => x > SERP_ZONE.x0 - m && x < SERP_ZONE.x1 + m && z > SERP_ZONE.z0 - m && z < SERP_ZONE.z1 + m;
-export const HOOKS = { surfs: [], map: [] }; // pistas registram aderência e desenho no mapa
+export const HOOKS = { surfs: [], map: [], grounds: [] }; // pistas registram aderência, desenho no mapa e altura de tabuleiro (pontes)
 HOOKS.surf = (x, z) => { for (const f of HOOKS.surfs) { const r = f(x, z); if (r != null) return r; } return null; };
 const POOLS = []; // poças do pântano (visual)
 {
@@ -101,6 +101,7 @@ function landBase(x, z) {
   return false;
 }
 export function groundY(x, z) {
+  if (x > 280) for (const f of HOOKS.grounds) { const y = f(x, z); if (y != null) return y; } // tabuleiro da ponte sobre o mar
   const p = onPier(x, z); if (p) return p.y !== undefined ? p.y : 0.3;
   if (onBridge(x, z)) return 0.2;
   if (landBase(x, z)) { if (x > 330 && x >= ISL.x0) return -(x - 330) * 0.011; return 0; }
@@ -621,7 +622,7 @@ export function buildWorld(scene, Q) {
     ch.misc.box(x, 29.5, z, 3.6, 3, 3.6, C(0x222222)); ch.neon[3].box(x, 29.5, z, 2.6, 2.2, 2.6, W); ch.misc.box(x, 31.6, z, 4.2, 1.2, 4.2, C(0xd8342c));
     addBox(x - 3, z - 3, x + 3, z + 3, 34);
     ch.misc.hrect(ISL.x0, 615, 322, ISL.z1, 0.05, C(0x7db35a));
-    for (let i = 0; i < 20; i++) palmPos.push([60 + R() * 250, 625 + R() * 50, 0.8 + R() * 0.4]);
+    for (let i = 0; i < 20; i++) { const px = 60 + R() * 250, pz = 625 + R() * 50, sc = 0.8 + R() * 0.4; if (!(px > 284 && pz > 618)) palmPos.push([px, pz, sc]); } // corredor da rampa da ponte livre
     LANDMARKS.push({ id: 'farol', name: 'Farol de Solara', x: 190, z: 630, r: 22, look: [x, 20, z] });
     ch.misc.hrect(ISL.x0, ISL.z0, 322, -615, 0.05, C(0x7db35a));
     for (let i = 0; i < 16; i++) palmPos.push([60 + R() * 250, -675 + R() * 55, 0.8 + R() * 0.4]);

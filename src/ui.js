@@ -21,6 +21,7 @@ export class UI {
     $('phClose').onclick = () => this.closePhone(); $('phBack').onclick = () => this.phoneHome();
     $('phOk').onclick = () => { $('photo').hidden = true; G.paused = false; };
   }
+  refreshMap() { this.map = drawMap(); } // redesenha depois que todos os sistemas registraram seus HOOKS.map
   resize() { const s = this.mini.getBoundingClientRect(); const d = Math.min(2, devicePixelRatio || 1); this.mini.width = Math.round(s.width * d); this.mini.height = Math.round(s.height * d); }
   toast(html, ms = 3800) {
     const box = $('toast'); const d = document.createElement('div'); d.innerHTML = html; box.appendChild(d);

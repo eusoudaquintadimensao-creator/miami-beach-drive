@@ -564,7 +564,7 @@ export class Vehicle {
     }
     // outros veículos
     for (const o of others) {
-      if (o === this || o.spec.boat !== sp.boat) continue;
+      if (o === this || o.spec.boat !== sp.boat || o.ghost || this.ghost) continue; // IA de tandem nunca bloqueia
       const dx0 = o.x - this.x, dz0 = o.z - this.z; if (dx0 * dx0 + dz0 * dz0 > 64) continue;
       for (const a of this.circles()) for (const b of o.circles()) {
         const dx = a[0] - b[0], dz = a[1] - b[1], d = Math.hypot(dx, dz), rr = this.r + o.r;
