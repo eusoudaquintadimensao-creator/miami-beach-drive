@@ -548,13 +548,7 @@ export class Vehicle {
     let impact = 0;
     const cs = this.circles();
     if (!ok(this.x, this.z) || !ok(cs[0][0], cs[0][1]) || !ok(cs[1][0], cs[1][1])) {
-      const spd0 = this.speed; impact = spd0;
-      // volta à posição válida e desliza (não inverte nem para o carro)
-      const dx = this.x - px, dz = this.z - pz, L = Math.hypot(dx, dz) || 1;
-      this.x = px; this.z = pz;
-      const nx = dx / L, nz = dz / L;
-      this._glance(nx, nz, spd0);
-      this.dent(spd0, nx, nz);
+      impact = this._edgeSlide(ok, px, pz, dt);
     }
     // colisões com prédios/objetos (2 círculos)
     for (let k = 0; k < 2; k++) {
@@ -589,12 +583,16 @@ export class Vehicle {
       const acc = (vf - (this._pvf ?? vf)) / Math.max(dt, 1e-3); this._pvf = vf;
       this.wt = lerp(this.wt || 0, clamp(-acc / sp.brake, -1, 1), Math.min(1, dt * 5));
       // suspensão com mola e amortecedor: mergulha na freada, agacha na arrancada, inclina nas curvas e balança nas guias
-      const pitchT = Math.atan2(yr - yf, sp2.wb) * 1 + clamp(acc, -24, 20) * sp2.susp * 0.024;
+      const yfS = Math.abs(yf - yc) > 1.2 ? yc : yf, yrS = Math.abs(yr - yc) > 1.2 ? yc : yr; // borda da ponte/mar: ignora a amostra
+      const pitchT = clamp(Math.atan2(yrS - yfS, sp2.wb) + clamp(acc, -24, 20) * sp2.susp * 0.024, -0.32, 0.32);
       const latA = yaw * vf; const rollT = this.type === 'moto' ? 0 : clamp(latA, -25, 25) * sp2.susp * 0.014;
-      const yN = Math.max(yc, -0.4); if (this._py !== undefined && Math.abs(yN - this._py) > 0.08 && Math.abs(vf) > 3) { this.pv = (this.pv || 0) + (yN - this._py) * Math.sign(vf) * -4; this.bv = (this.bv || 0) + Math.abs(yN - this._py) * 1.5; } this._py = yN;
+      const yN = Math.max(yc, -0.4); if (this._py !== undefined && Math.abs(yN - this._py) > 0.08 && Math.abs(yN - this._py) < 0.6 && Math.abs(vf) > 3) { const dy = clamp(yN - this._py, -0.3, 0.3); this.pv = (this.pv || 0) + dy * Math.sign(vf) * -4; this.bv = (this.bv || 0) + Math.abs(dy) * 1.5; } this._py = yN;
       const Kp = 140, Cp = 13; this.pv = (this.pv || 0) + ((pitchT - this.pitch) * Kp - (this.pv || 0) * Cp) * dt; this.pitch += this.pv * dt;
       if (this.type !== 'moto') { this.rv = (this.rv || 0) + ((rollT - this.roll) * Kp - (this.rv || 0) * Cp) * dt; this.roll += this.rv * dt; }
       if (this.type === 'moto') this.roll = lerp(this.roll, clamp(-yaw * Math.abs(vf) * 0.03, -0.6, 0.6), Math.min(1, dt * 5));
+      // nunca de pé/capotado: limita e, se algo empurrar além (ex.: teleporte), endireita em 1 s
+      if (Math.abs(this.pitch) > 0.6 || Math.abs(this.roll) > (this.type === 'moto' ? 0.8 : 0.6)) { this.tiltT = (this.tiltT || 0) + dt; if (this.tiltT > 1) { this.pitch = this.roll = this.pv = this.rv = 0; this.tiltT = 0; this.uprights = (this.uprights || 0) + 1; } } else this.tiltT = 0;
+      this.pitch = clamp(this.pitch, -1.0, 1.0); if (this.type !== 'moto') this.roll = clamp(this.roll, -0.9, 0.9);
       this.bv = (this.bv || 0) + (-(this.bobS || 0) * 180 - (this.bv || 0) * 12) * dt; this.bobS = (this.bobS || 0) + this.bv * dt;
       if (offroad && Math.abs(vf) > 3) this.bob = this.bobS + Math.sin(t * 22) * 0.012 * Math.min(1, Math.abs(vf) / 15) * (this.type === 'suv' ? 0.5 : 1);
       else this.bob = this.bobS + (this.bob - this.bobS) * 0.9;
@@ -603,6 +601,30 @@ export class Vehicle {
     this.rpm = clamp(Math.abs(vf) / sp.max, 0, 1);
     this.sync(dt);
     return impact;
+  }
+  // pose válida? (centro + 2 círculos dentro da área dirigível)
+  _okPose(ok, x, z) { const ox = this.x, oz = this.z; this.x = x; this.z = z; const c = this.circles(); this.x = ox; this.z = oz; return ok(x, z) && ok(c[0][0], c[0][1]) && ok(c[1][0], c[1][1]); }
+  // borda/guarda-corpo/mar: procura a direção livre mais próxima (desliza junto à borda), tira só o componente contra a parede,
+  // e se o carro já estiver "dentro" da borda empurra para o ponto válido mais perto. Nunca fica parado grudado.
+  _edgeSlide(ok, px, pz, dt) {
+    const spd0 = Math.hypot(this.vx, this.vz); const a0 = Math.atan2(this.vx, this.vz); const step = Math.max(0.05, spd0 * dt);
+    if (!this._okPose(ok, px, pz)) { // preso dentro da borda: empurra para fora
+      let done = false;
+      for (const r of [0.6, 1.2, 2, 3, 4.5, 6]) { for (let k = 0; k < 16 && !done; k++) { const a = k / 16 * Math.PI * 2; const x = px + Math.sin(a) * r, z = pz + Math.cos(a) * r; if (this._okPose(ok, x, z)) { this.x = x; this.z = z; done = true; } } if (done) break; }
+      if (!done) { this.x = px; this.z = pz; }
+      this.vx *= 0.5; this.vz *= 0.5; this.hitT = 0.28; this.edgeHits = (this.edgeHits || 0) + 1; return spd0 * 0.3;
+    }
+    let best = null;
+    for (const ang of [0.2, 0.4, 0.65, 0.9, 1.15, 1.4, 1.57]) { for (const sg of [1, -1]) { const a = a0 + sg * ang; const L = step * Math.max(0.25, Math.cos(ang)); const x = px + Math.sin(a) * L, z = pz + Math.cos(a) * L; if (this._okPose(ok, x, z)) { best = { a, ang, x, z }; break; } } if (best) break; }
+    this.hitT = 0.28; this.edgeHits = (this.edgeHits || 0) + 1;
+    if (best) {
+      this.x = best.x; this.z = best.z; const keep = spd0 * Math.max(0.45, Math.cos(best.ang)) * 0.96; this.vx = Math.sin(best.a) * keep; this.vz = Math.cos(best.a) * keep;
+      if (!this.drifting) this.h += angDiff(this.h, best.a + (Math.cos(angDiff(this.h, best.a)) < 0 ? Math.PI : 0)) * Math.min(1, 0.12 + best.ang * 0.1); // o carro alinha com a borda
+      const hitN = spd0 * Math.sin(best.ang); const wn = angDiff(a0, best.a) > 0 ? -1 : 1; const nx = Math.sin(a0 + wn * Math.PI / 2), nz = Math.cos(a0 + wn * Math.PI / 2);
+      this.dent(hitN, -nx, -nz); return hitN;
+    }
+    // sem saída para a frente: recua levemente (ricochete curto) — nunca trava
+    this.x = px; this.z = pz; this.vx = -this.vx * 0.25; this.vz = -this.vz * 0.25; this.dent(spd0, Math.sin(a0), Math.cos(a0)); return spd0;
   }
   bounce(nx, nz) {
     const vn = this.vx * nx + this.vz * nz; if (vn >= 0) return 0;
@@ -630,21 +652,21 @@ export class Vehicle {
   dent(impact, nx, nz) {
     if (this.npc || impact < 3.2) return;
     if (!this.dents) this.dents = [];
-    if (this.dents.length >= 16) return;
+    if (this.dents.length >= 12) return; // no máximo 6 amassados + 6 riscos
     const [fx, fz] = this.fwd();
     const lx = nx * fz - nz * fx, lz = nx * fx + nz * fz;
-    if (!this._dentM) { const c = new THREE.Color(this.color ?? 0x888888).multiplyScalar(0.5); this._dentM = new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.7, flatShading: true }); }
+    if (!this._dentM) { const c = new THREE.Color(this.color ?? 0x888888).multiplyScalar(0.78); this._dentM = new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.4, flatShading: true }); }
     const DM = this._dentM;
     if (!SCRATCH_M) SCRATCH_M = new THREE.MeshBasicMaterial({ color: 0xd8d8d8, transparent: true, opacity: 0.7 });
-    const r0 = 0.28 + Math.min(0.22, impact * 0.015);
+    const r0 = 0.16 + Math.min(0.1, impact * 0.006);
     const d = new THREE.Mesh(new THREE.IcosahedronGeometry(r0, 0), DM);
     const w = (this.spec.w || 1.8) * 0.5, L = (this.spec.len || 4.2) * 0.44;
     const side = Math.abs(lx) > Math.abs(lz) ? Math.sign(lx) : 0;
     const x = side ? side * w : (Math.random() - 0.5) * w * 1.2;
     const z = side ? (Math.random() - 0.5) * L * 1.4 : Math.sign(lz || 1) * L;
     d.position.set(x, 0.5 + Math.random() * 0.2, z);
-    d.scale.set(side ? 0.35 : 1.4, 0.55, side ? 1.5 : 0.35);
-    d.rotation.set(Math.random(), Math.random(), Math.random());
+    d.scale.set(side ? 0.12 : 1.2, 0.45, side ? 1.2 : 0.12); // achatado contra a lataria (amassado raso, não peça solta)
+    d.rotation.set(0, (Math.random() - 0.5) * 0.4, 0); d.userData.dent = true;
     this.body.add(d); this.dents.push(d);
     // risco claro ao lado do amassado
     const sc = new THREE.Mesh(new THREE.BoxGeometry(side ? 0.02 : 0.9, 0.035, side ? 0.9 : 0.02), SCRATCH_M);
@@ -652,10 +674,7 @@ export class Vehicle {
     sc.rotation.set(0, 0, (Math.random() - 0.5) * 0.4);
     this.body.add(sc); this.dents.push(sc);
     // leve amassado no corpo (escala irregular, só visual)
-    if (this.dents.length === 2 || this.dents.length === 8) {
-      const sx = Math.max(0.94, 1 - this.dents.length * 0.008);
-      this.body.scale.x *= sx;
-    }
+    // (sem deformar/encolher a carroceria: o carro continua inteiro e andando normal)
   }
   setupBeams() {
     if (this.fakeBeam || this.spec.boat || this.type === 'heli') return;

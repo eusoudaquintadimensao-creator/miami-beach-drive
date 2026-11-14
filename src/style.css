@@ -532,3 +532,12 @@ body.touch #radioSub{top:calc(var(--sat) + 232px);max-width:88vw;font-size:13px}
 body.touch.land #ponteHud{top:calc(var(--sat) + 8px);left:50%;max-width:38vw;font-size:11px}
 body.touch.land #radioSub{top:calc(var(--sat) + 58px);max-width:38vw;font-size:12px}
 body.ponteOn #area{visibility:hidden;opacity:0}
+
+/* t335: seta grande de curva nas corridas de rua */
+#turnCue{position:absolute;left:50%;top:calc(var(--sat) + 134px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 16px;border-radius:14px;background:rgba(10,8,22,.78);border:2px solid #ffd23f;color:#fff;pointer-events:none;z-index:9;white-space:nowrap;box-shadow:0 0 18px rgba(255,210,63,.35)}
+#turnCue[hidden]{display:none}#turnCue i{font-style:normal;font-size:38px;line-height:1;color:#ffd23f}#turnCue b{font-size:20px;letter-spacing:1px}#turnCue small{font-size:13px;opacity:.85;margin-left:4px}
+#turnCue.near{border-color:#ff4fb8;box-shadow:0 0 22px rgba(255,79,184,.5);animation:tcp .5s infinite alternate}#turnCue.near i{color:#ff4fb8}
+@keyframes tcp{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.06)}}
+body.touch #turnCue{top:calc(var(--sat) + 236px);padding:6px 12px}body.touch #turnCue i{font-size:30px}body.touch #turnCue b{font-size:16px}
+body.touch.land #turnCue{top:calc(var(--sat) + 130px)}
+body.touch #bAct small{white-space:normal;line-height:1.05;text-align:center}

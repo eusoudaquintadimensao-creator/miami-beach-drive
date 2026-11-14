@@ -67,7 +67,7 @@ export class Street {
     const G = this.G, p = G.player, night = isNight(G.env.hour);
     ROUTES.forEach((R, i) => {
       const w = this.waiting[i]; const d = Math.hypot(R.start[0] - p.x, R.start[1] - p.z);
-      const want = night && d < 380 && !(this.race && this.race.ri === i);
+      const want = d < 380 && !(this.race && this.race.ri === i); // t335: rivais esperam a qualquer hora (de dia também)
       if (want && !w) { const r = this.rivalFor(i); const h = R.start[2]; const fx = Math.sin(h), fz = Math.cos(h); this.waiting[i] = { r, v: this.spawnCar(r, R.start[0] - fz * 3.4, R.start[1] + fx * 3.4, h) }; }
       else if (!want && w) { this.removeCar(w.v); delete this.waiting[i]; }
       else if (w) { w.v.brakeOn = true; w.v.vf = 0; w.v.sync(dt); }
@@ -79,7 +79,7 @@ export class Street {
     const G = this.G, p = G.player; this.flashT = 0.5; if (this.race) { this._flashWhy = 'already'; return false; } const v = p.vehicle;
     G.audio.chime && G.audio.chime('ok');
     const n = this.nearRival(50);
-    if (!n) { this._flashWhy = 'none:' + G.env.hour; if (!isNight(G.env.hour)) G.ui.toast('🌙 A <b>Liga da Madrugada</b> só corre à noite (19h–5h). Procure 🏎️ no mapa.', 2600); else { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
+    if (!n) { this._flashWhy = 'none:' + G.env.hour; { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
     const r = n.r; if (this.save.rep < r.need) { this._flashWhy = 'rep'; this.say(r, pick(STREET.locked)); G.ui.toast(`🔒 ${r.name} pede reputação ${r.need} (você tem ${this.save.rep})`, 2600); return false; }
     if (!v || v.spec.boat || v.type === 'heli') { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
     if (G.race.active || G.missions.active) { this._flashWhy = 'busy'; G.ui.toast('Termine a missão/corrida atual antes do racha', 2200); return false; }
@@ -89,12 +89,36 @@ export class Street {
   start(ri, w) {
     const G = this.G, R = ROUTES[ri], pv = G.player.vehicle; delete this.waiting[ri];
     const path = G.rivals.buildPath({ start: R.start, pts: R.pts }); const h = R.start[2], fx = Math.sin(h), fz = Math.cos(h);
-    const v = w.v; v.s = 0; v.lat = -3.4; v.vf = 0; v.done = false;
-    const sx = R.start[0] + fz * 3.4, sz = R.start[1] - fx * 3.4; // jogador do outro lado
-    this.race = { ri, r: w.r, v, path, k: 0, t: -3.5, sx, sz, h, cps: R.pts, beepK: 4, oldMusic: null };
-    this.say(w.r, pick(STREET.challenge)); G.ui.toast(`🏁 <b>${R.name}</b> contra ${w.r.name} · siga os portões neon`, 3000);
-    this.hold(pv); this.setGates(); this.buildCourse(R); G.setRoute(R.pts[0]); this.hud(true); this.stuckT = 0; this._fading = false;
+    const v = w.v; v.s = 0; v.lat = -3.4; v.vf = 0; v.done = false; v.skill = 1; v.latT = -3.4;
+    const sx = R.start[0] + fz * 3.4, sz = R.start[1] - fx * 3.4; // jogador do outro lado, na 1ª fila
+    // mais 3 corredores da liga no grid (2ª e 3ª filas), cada um com ritmo próprio
+    const others = LEAGUE.filter(o => o.id !== w.r.id); const ais = [v]; const slots = [[-10, -3.4], [-10, 3.4], [-20, 0]];
+    for (let k = 0; k < 3; k++) {
+      const r = others.splice(Math.floor(Math.random() * others.length), 1)[0]; const [ds, lat] = slots[k];
+      const x = R.start[0] + fx * ds - fz * lat, z = R.start[1] + fz * ds + fx * lat; const c = this.spawnCar(r, x, z, h);
+      c.s = ds; c.lat = lat; c.latT = lat; c.vf = 0; c.done = false; c.skill = 0.9 + Math.random() * 0.08 + k * 0.012; c.streetR = r; ais.push(c);
+    }
+    v.streetR = w.r;
+    this.race = { ri, r: w.r, v, ais, path, k: 0, t: -3.5, sx, sz, h, cps: R.pts, beepK: 4, oldMusic: null, done: [] };
+    this.say(w.r, pick(STREET.challenge)); G.ui.toast(`🏁 <b>${R.name}</b> · 5 corredores · siga o GPS e as setas`, 3000);
+    this.hold(pv); this.setGates(); this.buildCourse(R); G.setRoute(null); this.routeLine(); this.hud(true); this.stuckT = 0; this._fading = false;
   }
+  // GPS: o trajeto inteiro que falta no minimapa (linha roxa) — atualizado a cada quadro
+  routeLine() { const S = this.race; if (!S) return; const p = this.G.player; this.G.route = [[p.x, p.z], ...S.cps.slice(S.k)]; }
+  // próxima curva: sentido e distância (para a seta grande "CURVA À ESQUERDA/DIREITA")
+  nextTurn() {
+    const S = this.race, p = this.G.player; if (!S) return null; const P = [[S.sx, S.sz], ...S.cps];
+    for (let i = S.k + 1; i < P.length - 1; i++) {
+      const a = P[i - 1], b = P[i], c = P[i + 1]; const hIn = Math.atan2(b[0] - a[0], b[1] - a[1]), hOut = Math.atan2(c[0] - b[0], c[1] - b[1]); const d = angDiff(hIn, hOut);
+      if (Math.abs(d) < 0.35) continue;
+      let dist = Math.hypot(b[0] - p.x, b[1] - p.z); for (let j = S.k + 1; j < i; j++) dist += 0; // (curva no próximo portão ou depois)
+      if (i > S.k + 1) { dist = Math.hypot(P[S.k + 1][0] - p.x, P[S.k + 1][1] - p.z); for (let j = S.k + 1; j < i; j++) dist += Math.hypot(P[j + 1][0] - P[j][0], P[j + 1][1] - P[j][1]); }
+      return { left: d > 0, dist, sharp: Math.abs(d) > 1.2 }; // +x fica à esquerda de quem anda para +z
+    }
+    return null;
+  }
+  posOf(c) { const S = this.race; return c.done ? 1e6 - (c.doneT || 0) : c.s; }
+  place() { const S = this.race; if (!S) return 1; const me = S.playerDone ? 1e6 - S.playerDoneT : this.playerProg(); let k = 1; for (const c of S.ais) if (this.posOf(c) > me) k++; return k; }
   hold(pv) { const S = this.race; pv.x = S.sx; pv.z = S.sz; pv.h = S.h; pv.vx = pv.vz = pv.vf = 0; pv.y = groundY(pv.x, pv.z); const p = this.G.player; p.x = pv.x; p.z = pv.z; pv.sync(0); }
   setGates() {
     const S = this.race, cps = S.cps, put = (g, i) => { const c = cps[i]; if (!c) { g.visible = false; return; } const prev = i ? cps[i - 1] : [S.sx, S.sz]; g.position.set(c[0], groundY(c[0], c[1]), c[1]); g.rotation.y = Math.atan2(c[0] - prev[0], c[1] - prev[1]); g.visible = true; g.userData.m.color.set(i === cps.length - 1 ? 0xffd23f : g === this.gate ? 0x29f0ff : 0xff2bd6); };
@@ -111,10 +135,10 @@ export class Street {
     const pv = G.player.vehicle; const v = S.v;
     if (!pv) { this.end(false, 'Você saiu do carro — racha cancelado'); return; }
     S.t += dt;
-    if (S.t < 0) { this.hold(pv); const k = Math.ceil(-S.t); if (k < S.beepK && k <= 3) { S.beepK = k; G.ui.big(String(k)); G.audio.chime && G.audio.chime('ok'); } v.sync(dt); this.hud(); return; }
+    if (S.t < 0) { this.hold(pv); const k = Math.ceil(-S.t); if (k < S.beepK && k <= 3) { S.beepK = k; G.ui.big(String(k)); G.audio.chime && G.audio.chime('ok'); } for (const c of S.ais) c.sync(dt); this.routeLine(); this.hud(); return; }
     if (S.beepK > 0) { S.beepK = 0; G.ui.big('VAI!'); G.audio.chime && G.audio.chime('win'); }
     // checkpoints do jogador
-    const c = S.cps[S.k]; const p = G.player; if (c && Math.hypot(c[0] - p.x, c[1] - p.z) < 18) { S.k++; G.audio.chime && G.audio.chime('ok'); if (S.k >= S.cps.length) { this.end(!v.done); return; } this.setGates(); G.setRoute(S.cps[S.k]); }
+    const c = S.cps[S.k]; const p = G.player; if (c && Math.hypot(c[0] - p.x, c[1] - p.z) < 18) { S.k++; G.audio.chime && G.audio.chime('ok'); if (S.k >= S.cps.length) { S.playerDone = true; S.playerDoneT = S.t; const pl = 1 + S.ais.filter(c => c.done).length; this.end(pl === 1, null, pl); return; } this.setGates(); }
     {
       const a = S.k ? S.cps[S.k - 1] : [S.sx, S.sz]; const b = c || a;
       const off = b ? segDist(p.x, p.z, a, b) : 0;
@@ -122,36 +146,48 @@ export class Street {
       if (off > 16 || stuck) this.stuckT = (this.stuckT || 0) + dt; else this.stuckT = Math.max(0, (this.stuckT || 0) - dt * 2);
       if (this.stuckT > 1 && !this._fading) this.respawnOnRoute();
     }
-    // rival: cinemático pelo traçado suavizado, com elástico e desvio do trânsito
-    if (!v.done) {
-      const R = G.rivals, path = S.path, cur = R.at(path, v.s); let target = S.r.top;
-      for (let j = cur.i; j < path.pts.length && path.cum[j] - v.s < 90; j++) { const vm = path.vmaxAt[j]; if (vm < 99) { const d = Math.max(0, path.cum[j] - v.s - 4); target = Math.min(target, Math.sqrt(vm * vm + 2 * 13 * d)); } }
-      const gap = v.s - this.playerProg(); target *= gap > 70 ? 0.84 : gap > 30 ? 0.94 : gap < -90 ? 1.14 : gap < -30 ? 1.06 : 1;
-      const fx = Math.sin(cur.h), fz = Math.cos(cur.h), rx = -fz, rz = fx; let blocked = false;
-      for (const o of G.traffic.cars) { if (!o.active) continue; const dx = o.x - v.x, dz = o.z - v.z; const a = dx * fx + dz * fz, l = dx * rx + dz * rz; if (a > 0 && a < 18 && Math.abs(l - v.lat) < 2.4) { blocked = true; break; } }
-      { const dx = pv.x - v.x, dz = pv.z - v.z; const a = dx * fx + dz * fz, l = dx * rx + dz * rz; if (a > 0 && a < 12 && Math.abs(l - v.lat) < 2.2) blocked = true; }
-      if (blocked) { v.latT = v.lat > 0 ? -3.4 : 3.4; target = Math.min(target, 20); } v.lat += ((v.latT ?? -3.4) - v.lat) * Math.min(1, dt * 2); v.lat = clamp(v.lat, -5, 5);
-      const acc = target > v.vf ? 9 : 16; v.vf += clamp(target - v.vf, -acc * dt, acc * dt); v.s += v.vf * dt;
-      if (v.s >= path.len - 1) { v.done = true; S.rivalT = S.t; }
-    } else v.vf = Math.max(0, v.vf - 10 * dt);
-    { const c2 = G.rivals.at(S.path, v.s); const fx = Math.sin(c2.h), fz = Math.cos(c2.h); let dh = c2.h - v.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; v.h += dh * Math.min(1, dt * 7); v.steer = clamp(dh * 2.5, -1, 1); v.x = c2.x - fz * v.lat; v.z = c2.z + fx * v.lat; v.y = groundY(v.x, v.z); v.spin += v.vf * dt / v.spec.wr; v.vx = fx * v.vf; v.vz = fz * v.vf; v.boosting = v.vf > 30 && (Math.floor(v.s / 50) % 3 === 0); v.brakeOn = v.vf < 1; v.sync(dt); }
-    if (v.done && !S.lateT) { S.lateT = S.t; G.ui.toast(`${S.r.name} cruzou a chegada! Termine o trajeto 🏁`, 2200); }
+    // 4 rivais: cinemáticos pelo traçado suavizado, com elástico (ficam perto do jogador), desvio do trânsito e entre si
+    const R = G.rivals, path = S.path; const pp = this.playerProg();
+    for (const c of S.ais) {
+      if (!c.done) {
+        const cur = R.at(path, Math.max(0, c.s)); let target = c.streetR.top * c.skill;
+        for (let j = cur.i; j < path.pts.length && path.cum[j] - c.s < 90; j++) { const vm = path.vmaxAt[j]; if (vm < 99) { const d = Math.max(0, path.cum[j] - c.s - 4); target = Math.min(target, Math.sqrt(vm * vm + 2 * 13 * d)); } }
+        const gap = c.s - pp; target *= gap > 160 ? 0.62 : gap > 90 ? 0.8 : gap > 45 ? 0.9 : gap > 20 ? 0.97 : gap < -180 ? 1.32 : gap < -110 ? 1.18 : gap < -45 ? 1.09 : gap < -15 ? 1.03 : 1;
+        const ghost = gap < -60 && Math.hypot(c.x - pv.x, c.z - pv.z) > 110; // longe e fora de vista: atravessa o trânsito para alcançar
+        const fx = Math.sin(cur.h), fz = Math.cos(cur.h), rx = -fz, rz = fx; let blocked = false;
+        const near = (ox, oz, lat, ahead) => { const dx = ox - c.x, dz = oz - c.z; const a = dx * fx + dz * fz, l = dx * rx + dz * rz; return a > 0 && a < ahead && Math.abs(l - c.lat) < 2.4; };
+        let bSpd = 99; if (!ghost) for (const o of G.traffic.cars) { if (o.active && near(o.x, o.z, 0, 18)) { blocked = true; bSpd = Math.min(bSpd, o.speed || 0); break; } }
+        if (near(pv.x, pv.z, 0, 12)) blocked = true;
+        for (const o of S.ais) if (o !== c && near(o.x, o.z, 0, 10)) blocked = true;
+        if (blocked) { c.latT = c.lat > 0 ? -3.4 : 3.4; target = Math.min(target, Math.max(16, bSpd < 99 ? bSpd + 4 : c.vf * 0.92)); } c.lat += ((c.latT ?? -3.4) - c.lat) * Math.min(1, dt * 2); c.lat = clamp(c.lat, -5, 5);
+        const acc = target > c.vf ? 9 : 16; c.vf += clamp(target - c.vf, -acc * dt, acc * dt); c.s += c.vf * dt;
+        if (c.s >= path.len - 1) { c.done = true; c.doneT = S.t; S.done.push(c.streetR.name); if (c === v) S.rivalT = S.t; }
+      } else c.vf = Math.max(0, c.vf - 10 * dt);
+      const c2 = R.at(S.path, Math.max(0, c.s)); const fx = Math.sin(c2.h), fz = Math.cos(c2.h); const back = Math.min(0, c.s);
+      let dh = c2.h - c.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; c.h += dh * Math.min(1, dt * 7); c.steer = clamp(dh * 2.5, -1, 1);
+      c.x = c2.x + fx * back - fz * c.lat; c.z = c2.z + fz * back + fx * c.lat; c.y = groundY(c.x, c.z); c.spin += c.vf * dt / c.spec.wr; c.vx = fx * c.vf; c.vz = fz * c.vf; c.sync(dt);
+    }
+    this.routeLine();
+    if (S.ais.every(c => c.done) && !S.lateT) { S.lateT = S.t; G.ui.toast('Todos os rivais cruzaram a chegada! Termine o trajeto 🏁', 2200); }
     if (S.lateT && S.t - S.lateT > 45) { this.end(false); return; }
-    if (this.arrows) for (const a of this.arrows.children) { a.position.y = 0.18 + Math.sin(t * 6 + (a.userData.ph || 0)) * 0.08; a.userData.m && (a.userData.m.opacity = 0.75 + Math.sin(t * 5 + (a.userData.ph || 0)) * 0.2); }
+    if (this.arrows) for (const a of this.arrows.children) { if (a.userData.gps) continue; a.position.y = 0.18 + Math.sin(t * 6 + (a.userData.ph || 0)) * 0.08; a.userData.m && (a.userData.m.opacity = 0.75 + Math.sin(t * 5 + (a.userData.ph || 0)) * 0.2); }
     if (this.blocks) for (const b of this.blocks.children) { if (b.userData.lamp) { const k = 0.45 + 0.55 * ((Math.sin(t * 10) > 0) ? 1 : 0); b.userData.lamp.color.setHex(Math.sin(t * 10) > 0 ? 0x29f0ff : 0xff9a1a); b.userData.lamp.intensity = 1.2 + k; } }
     this.hud();
   }
   hud(force) {
     const G = this.G, S = this.race, el = document.getElementById('stHud'), ar = document.getElementById('stArrow'); if (!el) return;
-    if (!S) { el.hidden = true; if (ar) ar.hidden = true; return; }
-    const pos = S.v.done || S.v.s > this.playerProg() ? 2 : 1; const tt = Math.max(0, S.t);
-    el.hidden = false; el.innerHTML = `<b>🌙 ${ROUTES[S.ri].name}</b><span>vs ${S.r.name}</span><span>Portão ${Math.min(S.k + 1, S.cps.length)}/${S.cps.length}</span><span class="pos">${pos}º</span><span>${Math.floor(tt / 60)}:${String(Math.floor(tt % 60)).padStart(2, '0')}</span>`;
+    const tc = document.getElementById('turnCue');
+    if (!S) { el.hidden = true; if (ar) ar.hidden = true; if (tc) tc.hidden = true; return; }
+    if (tc) { const nt = S.t >= 0 ? this.nextTurn() : null; const show = nt && nt.dist < 140; if (show) { const h = `<i>${nt.left ? '⬅' : '➡'}</i><b>CURVA À ${nt.left ? 'ESQUERDA' : 'DIREITA'}</b><small>${Math.max(0, Math.round(nt.dist / 5) * 5)} m${nt.sharp ? ' · fechada' : ''}</small>`; if (tc._h !== h) { tc.innerHTML = h; tc._h = h; } tc.classList.toggle('left', nt.left); tc.classList.toggle('near', nt.dist < 45); } if (tc.hidden === !!show) tc.hidden = !show; S.cue = show ? (nt.left ? 'L' : 'R') : ''; }
+    const pos = this.place(); S.pos = pos; const tt = Math.max(0, S.t);
+    el.hidden = false; el.innerHTML = `<b>🌙 ${ROUTES[S.ri].name}</b><span>5 corredores</span><span>Portão ${Math.min(S.k + 1, S.cps.length)}/${S.cps.length}</span><span class="pos">${pos}º/${S.ais.length + 1}</span><span>${Math.floor(tt / 60)}:${String(Math.floor(tt % 60)).padStart(2, '0')}</span>`;
     const c = S.cps[S.k]; if (ar && c) { const p = G.player, dx = c[0] - p.x, dz = c[1] - p.z; const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw); const f = dx * fx + dz * fz, r = dx * -fz + dz * fx; ar.hidden = false; ar.style.transform = `translateX(-50%) rotate(${Math.atan2(r, f)}rad)`; ar.dataset.d = Math.round(Math.hypot(dx, dz)); ar.querySelector('i').textContent = Math.round(Math.hypot(dx, dz)) + ' m'; }
   }
-  end(win, msg) {
-    const G = this.G, S = this.race; if (!S) return; this.clearCourse(); this.race = null; this.gate.visible = this.gate2.visible = false; G.setRoute(null); this.hud();
+  end(win, msg, place) {
+    const G = this.G, S = this.race; if (!S) return; this.clearCourse(); this.race = null; this.gate.visible = this.gate2.visible = false; G.setRoute(null); G.route = null; this.hud();
+    if (!place) place = win ? 1 : S.ais.length + 1;
     const r = S.r, s = this.save; s.races++;
-    this.removeCar(S.v);
+    for (const c of S.ais) this.removeCar(c);
     if (msg) { G.ui.toast(msg, 2600); this.persist(); return { win: false, cancel: true }; }
     let rep = 3, cash = 50, rewards = [];
     if (win) {
@@ -159,15 +195,15 @@ export class Street {
       const first = !s.beaten.includes(r.id); if (first) { s.beaten.push(r.id); if (!s.liveries.includes(r.id)) { s.liveries.push(r.id); rewards.push(`🎨 Pintura <b>${r.liv.text}</b>`); } if (r.nitro && s.nitroLvl < r.nitro) { s.nitroLvl = r.nitro; NITRO.lvl = r.nitro; rewards.push(`🔥 Nitro nível <b>${r.nitro}</b> (enche mais rápido e dura mais)`); } }
       const T = Math.round(S.t * 10) / 10; const key = ROUTES[S.ri].name; if (!s.best[key] || T < s.best[key]) { s.best[key] = T; rewards.push(`⏱️ Recorde: ${T}s`); }
       this.say(r, pick(STREET.win)); G.ui.big('VITÓRIA!');
-    } else { this.say(r, pick(STREET.lose)); }
+    } else { this.say(r, pick(STREET.lose)); if (!msg && place <= 3) { rep = place === 2 ? 9 : 6; cash = place === 2 ? 180 : 110; rewards.push(`${place === 2 ? '🥈' : '🥉'} ${place}º lugar`); } }
     s.rep += rep; this.persist(); G.addMoney(cash); G.addFollowers && G.addFollowers(win ? 120 : 15);
-    this.lastResult = { win, rep, cash, rewards, rival: r.id, t: S.t, liv: win ? r.id : null };
+    this.lastResult = { win, place, rep, cash, rewards, rival: r.id, t: S.t, liv: win ? r.id : null };
     this.showResult(); return this.lastResult;
   }
   showResult() {
     const el = document.getElementById('stRes'); if (!el) return; const R = this.lastResult, k = this.rank();
     el.querySelector('h3').textContent = R.win ? '🏆 Vitória na Liga da Madrugada!' : '🌙 Foi por pouco!';
-    el.querySelector('.stBody').innerHTML = `<p>+${R.rep} reputação · +$${R.cash}</p>${R.rewards.map(x => `<p>${x}</p>`).join('')}<ol>${k.rows.map(r => `<li class="${r.me ? 'me' : ''}">${r.name}${r.beat ? ' ✓' : ''}<span>${r.rep}</span></li>`).join('')}</ol>`;
+    el.querySelector('.stBody').innerHTML = `<p><b>${R.place || (R.win ? 1 : '-')}º lugar</b> de 5</p><p>+${R.rep} reputação · +$${R.cash}</p>${R.rewards.map(x => `<p>${x}</p>`).join('')}<ol>${k.rows.map(r => `<li class="${r.me ? 'me' : ''}">${r.name}${r.beat ? ' ✓' : ''}<span>${r.rep}</span></li>`).join('')}</ol>`;
     const ap = document.getElementById('stApply'); const pv = this.G.player.vehicle; if (ap) ap.hidden = !(R.liv && pv && !pv.spec.boat && pv.type !== 'heli');
     el.hidden = false;
   }
@@ -195,6 +231,9 @@ export class Street {
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 3.2), colM); b.position.set(1.0, 0, 0); b.rotation.y = -0.6;
       g.add(a, b); return g;
     };
+    // linha do GPS no asfalto (fita neon no meio da pista, de portão em portão)
+    { const gm = new THREE.MeshBasicMaterial({ color: 0xb45cff, toneMapped: false, transparent: true, opacity: 0.55, depthWrite: false, fog: false });
+      for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); const m = new THREE.Mesh(new THREE.PlaneGeometry(0.7, L + 1).rotateX(-Math.PI / 2), gm); const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2; m.position.set(mx, groundY(mx, mz) + 0.07, mz); m.rotation.y = heading(a, b); m.userData.gps = true; this.arrows.add(m); } }
     // setas no meio das retas e um grupo logo antes de cada curva
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1];

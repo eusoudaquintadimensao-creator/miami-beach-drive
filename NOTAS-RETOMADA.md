@@ -235,3 +235,19 @@ Para publicar SÓ após aprovação: git push origin main.
   Regressão mech/drive (d/i/il/al), serp e linecheck: PASS nos dois jogos. Draw calls na ponte (baixa) ~100–210, ~0,22–0,27 M triângulos.
 - Publicado 13/11 23:33 -03 (commit f386c50) e verificado ao vivo 23:37–23:40 -03: cache solara-v13-2026-11-13-ponte ativo, live-drive + live-ponte PASS desk e iPhone, 0 erros.
   Fotos ao vivo: screenshots/live-ponte-{d,i}-{overview,tandem,radio,hud}.png. (Este registro é commit local; vai junto no próximo push.)
+
+## t335 (14/11 00:20 -03) — EM ANDAMENTO, NÃO PUBLICAR (sem aprovação ainda; só commit local)
+Pedido: 1) carro gruda na borda da ponte → deslizar/empurrar para fora; 2) batida "quebra" o carro → só amassados sutis;
+3) botão "Iniciar corrida" da Liga da Madrugada sumiu → voltar (raio 50 m, mesmo passando dirigindo);
+4) corridas de rua estilo clube da madrugada: 5 corredores (jogador + 4 IA, elástico), contagem, posições, checkpoints, GPS no minimapa
+   e no chão, setas grandes "CURVA À ESQUERDA/DIREITA", ruas laterais fechadas (cones/carros/polícia) só durante a corrida;
+5) ponte: moedas/dinheiro/prêmios, missões (zona de drift, radar de velocidade, tandem, quase-batida) ligadas à economia;
+   cenário: cruzeiros, lanchas com esteira, balões gigantes, aviões (instanciado, barato);
+6) helicóptero: modelo leve realista genérico com rotores girando, pilotagem com inércia, auto-nivelar, coletivo, guinada, toque.
+Testes: d/i/il/al, 0 erros, regressão drive/mech/serp/ponte/linecheck + teste novo por item. SW pronto mas sem push.
+
+### t335 progresso (14/11 -03)
+- FEITO itens 1–4 + HUD: `_edgeSlide` (desliza/empurra na borda), pitch/roll protegidos (amostras >1,2 m ignoradas, auto-endireitar >0,6 rad por 1 s), amassados sutis (máx 12, rodas intocadas, sem encolher), rivais de rua 24 h + botão "🏁 Iniciar corrida" (toque/E até 50 m, passando), corrida com 5 (4 IA elástico + atravessa trânsito longe da vista), GPS (minimapa + faixa roxa no chão), `#turnCue` CURVA À ESQUERDA/DIREITA (top 134 px desktop / 236 touch / 130 touch-land), bloqueios só durante a corrida, 2º/3º lugar pagam. Watchdog do HUD a cada 0,5 s (`G.hudFixes`).
+- Gravação: o gravador captura só o canvas → o vídeo NUNCA mostra o HUD DOM (explicar ao usuário).
+- Teste: `node test/t335.js 1280 720 low d` (ONLY=edge,crash,btn,race,raceshot). PASS desktop nos dois jogos.
+- FALTA: item 5 (ponte: moedas/prêmios, missões, cenário), item 6 (helicóptero), matriz i/il/al, regressões, bump SW (sem push).
