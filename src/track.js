@@ -134,17 +134,19 @@ export class Track {
     this.arches = [];
     const archG = new THREE.TorusGeometry(D.wall + 0.3, 0.32, 8, 40, Math.PI);
     for (let k = 1; k < D.cps; k++) { const i = this.cpIdx[k]; const m = new THREE.Mesh(archG, new THREE.MeshBasicMaterial({ color: k % 2 ? 0x29f0ff : 0xff2bd6, toneMapped: false, transparent: true, opacity: 0.9 })); m.position.set(this.px[i], 0, this.pz[i]); m.rotation.y = this.h[i]; m.userData.base = k % 2 ? 0x29f0ff : 0xff2bd6; G.add(m); this.arches.push(m); }
-    // arquibancada com torcida (do lado de fora da reta)
+    // arquibancada com torcida — FORA da reta (eixo longo ao longo da pista, recuada da parede)
     {
       const st = new THREE.Group(); const sm = new THREE.MeshStandardMaterial({ color: 0xb8b2a8, roughness: 0.9 }); const ix = 70; // ~140 m depois da largada
-      const p = this.at(ix * this.ds, -(D.wall + 4.5)); st.position.set(p.x, 0, p.z); st.rotation.y = p.h; G.add(st);
-      for (let r = 0; r < 4; r++) { const b = new THREE.Mesh(new THREE.BoxGeometry(56, 0.8 + r * 0.8, 1.6), sm); b.position.set(0, (0.8 + r * 0.8) / 2, r * 1.6 - 1); st.add(b); }
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(58, 0.3, 8), steel); roof.position.set(0, 6.6, 1.4); st.add(roof);
-      for (const sx of [-28, 0, 28]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6.6, 0.4), steel); c.position.set(sx, 3.3, 5); st.add(c); }
-      const edge = new THREE.Mesh(new THREE.BoxGeometry(58, 0.12, 0.12), neonM); edge.position.set(0, 6.45, -2.6); st.add(edge);
-      const n = Q.level === 'low' ? 120 : 260; const fans = new THREE.InstancedMesh(new THREE.BoxGeometry(0.45, 0.8, 0.35).translate(0, 0.4, 0), new THREE.MeshStandardMaterial({ roughness: 0.8 }), n);
+      // origem a (wall+6) do centro: a primeira fileira fica ~4 m do lado de fora da parede (wall=11.5)
+      const p = this.at(ix * this.ds, -(D.wall + 6)); st.position.set(p.x, 0, p.z); st.rotation.y = p.h; G.add(st);
+      // BoxGeometry(profundidade em X / para fora, altura, comprimento em Z / ao longo da pista)
+      for (let r = 0; r < 4; r++) { const hgt = 0.8 + r * 0.8; const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, hgt, 56), sm); b.position.set(r * 1.6, hgt / 2, 0); st.add(b); }
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 58), steel); roof.position.set(2.6, 6.6, 0); st.add(roof);
+      for (const sz of [-28, 0, 28]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6.6, 0.4), steel); c.position.set(6.2, 3.3, sz); st.add(c); }
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 58), neonM); edge.position.set(-0.85, 6.45, 0); st.add(edge);
+      const n = Q.level === 'low' ? 120 : 260; const fans = new THREE.InstancedMesh(new THREE.BoxGeometry(0.35, 0.8, 0.45).translate(0, 0.4, 0), new THREE.MeshStandardMaterial({ roughness: 0.8 }), n);
       const cols = [0xff4fb8, 0x29f0ff, 0xffd23f, 0xffffff, 0xff8a3c, 0x7d6cf0, 0x46c08c, 0xe85d5d];
-      for (let i = 0; i < n; i++) { const r = Math.floor(R() * 4); m4.makeTranslation(-27 + R() * 54, 0.8 + r * 0.8, r * 1.6 - 1); fans.setMatrixAt(i, m4); fans.setColorAt(i, C(cols[Math.floor(R() * cols.length)])); }
+      for (let i = 0; i < n; i++) { const r = Math.floor(R() * 4); m4.makeTranslation(r * 1.6, 0.8 + r * 0.8, -27 + R() * 54); fans.setMatrixAt(i, m4); fans.setColorAt(i, C(cols[Math.floor(R() * cols.length)])); }
       st.add(fans); this.fans = fans; this.stand = st;
     }
     // torres de luz (brilho à noite)

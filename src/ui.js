@@ -114,7 +114,7 @@ export class UI {
   phoneHome() {
     const G = this.G; const h = Math.floor(G.env.hour), m = Math.floor((G.env.hour % 1) * 60); $('phClock').textContent = `${h}:${String(m).padStart(2, '0')}`;
     $('phBack').hidden = true;
-    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['corrida', '🏁', 'Corrida', '#ff2bd6'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['ajuda', '❓', 'Controles', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
+    const apps = [['avatar', G.hero && G.hero.id === 'ele' ? '🧑🏽' : '👩🏾', 'Avatar', '#ff8a3c'], ['gravar', '🔴', G.recording ? 'Parar gravação' : 'Gravar vídeo', '#ff2d45'], ['oficina', '🔧', 'Oficina Neon', '#b45cff'], ['corrida', '🏁', 'Corrida', '#ff2bd6'], ['missoes', '🎯', 'Missões', '#ff4fb8'], ['mapa', '🗺️', 'Mapa', '#2ab3b8'], ['radio', '📻', 'Rádio', '#7d6cf0'], ['clima', '🌤️', 'Clima e hora', '#ff8a3c'], ['vibez', '💬', 'Vibez', '#e0245e'], ['ajustes', '⚙️', 'Ajustes', '#555'], ['dirigir', '🎛️', 'Controles', '#7d4dff'], ['ajuda', '❓', 'Ajuda', '#3a8fd8'], ['stats', '🏆', 'Progresso', '#46c08c']];
     const saved = G.savedAt ? `✅ Salvo às ${G.savedAt}` : '💾 Salvar progresso';
     $('phBody').innerHTML = `<div class="saveRow"><button class="saveBtn${G.savedAt ? ' ok' : ''}" id="phSaveG">${saved}</button><button class="saveBtn inst" id="phInst">📲 Instalar</button></div><div class="apps">${apps.map(a => `<button class="app" data-p="${a[0]}"><i style="background:${a[3]}">${a[1]}</i>${a[2]}</button>`).join('')}</div>`;
     $('phBody').querySelectorAll('.app').forEach(b => b.onclick = () => {
@@ -123,6 +123,7 @@ export class UI {
       else if (p === 'corrida') { this.closePhone(); G.race.openMenu(); }
       else if (p === 'gravar') { this.closePhone(); G.audio.init(); G.rec.toggle(); }
       else if (p === 'oficina') { const s = G.missions.starts.find(x => x.type === 'garagem'); this.waypoint = [s.x, s.z]; if (!G.missions.active) G.setRoute([s.x, s.z]); this.closePhone(); this.toast('🔧 GPS para a <b>Oficina Neon</b> — chegue de carro e aperte ' + (G.touch ? '▶' : 'Enter')); }
+      else if (p === 'dirigir') { this.closePhone(); G.drive && G.drive.openSettings(); }
       else this.phonePage(p);
     });
     $('phSaveG').onclick = () => { const ok = G.saveNow(); const b = $('phSaveG'); b.classList.add('ok'); b.textContent = ok ? `✅ Progresso salvo às ${G.savedAt}` : '⚠️ Não deu para salvar (modo privado?)'; G.audio.chime(ok ? 'coin' : 'fail'); this.toast(ok ? '💾 Progresso salvo neste aparelho!' : 'O navegador bloqueou o salvamento', 2200); };
@@ -157,7 +158,7 @@ export class UI {
         <button data-a="reset">Recomeçar do zero<span>⟲</span></button></div>`;
     } else if (p === 'ajuda') {
       h = `<h3>❓ Controles</h3><div class="post"><b>Computador</b><br>WASD/setas: andar e dirigir<br>Mouse: câmera (clique para travar, Esc solta)<br>Shift: correr · Espaço: pular / freio de mão<br>E: entrar/sair do veículo · conversar com quem está perto · Enter: iniciar missão<br>Helicóptero: W/S frente e ré · A/D girar · Espaço sobe · Shift desce<br>X: poder do herói (voar/levitar: Espaço sobe, Ctrl/Q desce)<br>F: foto · H: buzina · R: trocar rádio<br>M: mapa · P: celular · C: câmera</div>
-        <div class="post"><b>Celular</b><br>Joystick à esquerda (no carro: cima acelera, baixo freia)<br>Arraste no lado direito para olhar<br>Botões: 🚗 entrar/sair · 💬 conversar · ⤒ pular/freio · 📷 foto · ▶ iniciar<br>Helicóptero: joystick anda e gira · ⤒ sobe · ⤓ desce</div>
+        <div class="post"><b>Celular</b><br>A pé: joystick à esquerda para andar, arraste à direita para olhar<br>No carro: modo escolhido em Controles (Tocar, Inclinar ou Volante) · deslize para cima = nitro, para baixo = drift · VEL, Freio e Ré nos polegares<br>🚘 um toque chama o veículo, dois toques entra · o mesmo botão aceita rachas até 50 m<br>Helicóptero: joystick anda e gira · ⤒ sobe · ⤓ desce</div>
         <div class="post"><b>Sem violência</b><br>Aqui ninguém se machuca: pedestres desviam, batidas só dão um susto. Ganhe dinheiro e seguidores com entregas, táxi, corridas, fotos e conchas neon.</div>`;
     } else if (p === 'stats') {
       const S = G.save; h = `<h3>🏆 Progresso</h3><div class="list"><div class="row">Dinheiro<b>$${S.money.toLocaleString('pt-BR')}</b></div><div class="row">Seguidores<b>${S.followers.toLocaleString('pt-BR')}</b></div><div class="row">Missões concluídas<b>${S.done}</b></div><div class="row">Conchas neon<b>${S.shells.length}/${G.missions.shells.length}</b></div><div class="row">Pontos fotografados<b>${S.photos.length}/${LANDMARKS.length}</b></div>${RACES.map(r => `<div class="row">${r.name}<b>${S.best[r.id] ? S.best[r.id] + 's' : '—'}</b></div>`).join('')}</div>`;

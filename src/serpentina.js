@@ -6,6 +6,7 @@ import { addCircle, addBox, HOOKS, inSerpZone, surfaceY } from './world.js';
 import { Vehicle, raceTune, SPECS } from './vehicles.js';
 import { VENUES, SPOTS, isOpen } from './life.js';
 import { HOME, inHomeZone } from './home.js';
+import { respawnFade } from './driveui.js';
 const $ = (id) => document.getElementById(id);
 
 export const SERP_KEY = 'mbd-serpentina-v1';
@@ -20,7 +21,7 @@ export const SERP = {
   ],
   entrance: { x: -660, z: 600 }, // liga na Av. do Centro (z = 600)
   gap: { x0: -672, x1: -648, z1: 632 },
-  bar: { x: -505, z: 795 }, // terraço olhando a curva leste, longe da casa
+  bar: { x: -530, z: 810 }, // terraço olhando a curva leste, FORA da pista (antes ficava em cima do traçado)
 };
 const inGap = (x, z) => x > SERP.gap.x0 && x < SERP.gap.x1 && z < SERP.gap.z1;
 const DRIVERS = [
@@ -115,21 +116,20 @@ export class Serpentina {
       const j = (i + 1) % N; const ax = this.px[i], az = this.pz[i], bx = this.px[j], bz = this.pz[j];
       const mx = (ax + bx) / 2, mz = (az + bz) / 2; if (inGap(mx, mz) || inHomeZone(mx, mz, 8)) continue;
       const sd = Math.hypot(bx - ax, bz - az) + 0.08;
-      segs.push([mx, mz, Math.atan2(bx - ax, bz - az), sd]);
-      for (const side of [-1, 1]) { const wx = mx + this.rx[i] * side * D.wall, wz = mz + this.rz[i] * side * D.wall; if (!inGap(wx, wz) && !inHomeZone(wx, wz, 6)) addCircle(wx, wz, 0.55); }
+      segs.push([mx, mz, Math.atan2(bx - ax, bz - az), sd, i]);
+      for (const side of [-1, 1]) { const wx = mx + this.rx[i] * side * D.wall, wz = mz + this.rz[i] * side * D.wall; if (!inGap(wx, wz) && !inHomeZone(wx, wz, 6) && !this._nearOther(wx, wz, i, D.wall - 0.6)) addCircle(wx, wz, 0.55); }
     }
     const wallM = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.6, metalness: 0.2 });
     const neonM = new THREE.MeshBasicMaterial({ color: 0xff6a2a, toneMapped: false });
     const wallI = new THREE.InstancedMesh(new THREE.BoxGeometry(0.55, 0.9, 1).translate(0, 0.45, 0), wallM, segs.length * 2);
     const neonI = new THREE.InstancedMesh(new THREE.BoxGeometry(0.6, 0.07, 1).translate(0, 0.94, 0), neonM, segs.length * 2);
     wallI.castShadow = !low; const m4 = new THREE.Matrix4(); let w = 0;
-    for (const [mx, mz, h, sd] of segs) {
-      const i = Math.round((((h % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2))); // unused, just keep h
+    for (const [mx, mz, h, sd, si] of segs) {
       for (const side of [-1, 1]) {
         // find nearest sample for normal
         const loc = this.locate(mx, mz); const rx = loc ? this.rx[loc.i] : -Math.cos(h), rz = loc ? this.rz[loc.i] : Math.sin(h);
         const wx = mx + rx * side * D.wall, wz = mz + rz * side * D.wall;
-        if (inGap(wx, wz) || inHomeZone(wx, wz, 6)) continue;
+        if (inGap(wx, wz) || inHomeZone(wx, wz, 6) || this._nearOther(wx, wz, si, D.wall - 0.6)) continue;
         m4.makeRotationY(h); m4.setPosition(wx, 0, wz); m4.multiply(new THREE.Matrix4().makeScale(1, 1, sd));
         wallI.setMatrixAt(w, m4); neonI.setMatrixAt(w, m4); w++;
       }
@@ -159,6 +159,15 @@ export class Serpentina {
       G.add(new THREE.Mesh(ribbonGeo(this, -D.wall - 9, -D.wall - 0.4, 0.01), dirt.material));
     }
     this.len = this.L;
+  }
+  // muro de um trecho não pode cair em cima de outro trecho que passa perto (linha de corrida livre)
+  _nearOther(x, z, i, r) {
+    const N = this.N, win = Math.ceil(30 / (this.L / N));
+    for (let k = 0; k < N; k += 1) {
+      let d = Math.abs(k - i); d = Math.min(d, N - d); if (d <= win) continue;
+      if (Math.hypot(this.px[k] - x, this.pz[k] - z) < r) return true;
+    }
+    return false;
   }
   buildBar() {
     const B = SERP.bar, G = this.G, Q = G.Q, y = 0;
@@ -241,9 +250,30 @@ export class Serpentina {
     // sessão de pontuação: começa ao entrar na pista de carro, fecha ao sair
     const v = G.player.vehicle; const loc = v && !v.spec.boat && v.type !== 'heli' ? this.locate(v.x, v.z, this.hint) : null;
     const on = !!(loc && Math.abs(loc.lat) < D.wall + 4);
-    if (on) { this.hint = loc.i; this.leftT = 0; if (!this.on) { this.on = true; this.session = G.drift.total; G.ui.toast('🐍 Sessão de drift na Serpentina! Pontos valem o recorde da pista.', 2600); } }
+    if (on) { this.hint = loc.i; this.leftT = 0; if (!this.on) { this.on = true; this.session = G.drift.total; this.stuckT = 0; G.ui.toast('🐍 Sessão de drift na Serpentina! Pontos valem o recorde da pista.', 2600); } }
     else if (this.on) { this.leftT += dt; if (this.leftT > 6) this.endSession(); }
+    if (this.on && v) this._maybeRespawn(dt, v, loc, on, D);
     this.hud();
+  }
+  _maybeRespawn(dt, v, loc, on, D) {
+    const G = this.G;
+    const off = !on || (loc && Math.abs(loc.lat) > D.halfW + 2);
+    const stuck = v.speed < 2.2 && (v.hitT > 0 || off || v.speed < 0.5);
+    if (off || stuck) this.stuckT = (this.stuckT || 0) + dt; else this.stuckT = Math.max(0, (this.stuckT || 0) - dt * 2);
+    if (this.stuckT > 1 && !this._fading) {
+      this._fading = true; this.stuckT = 0;
+      respawnFade(() => {
+        if (!G.player.vehicle) { this._fading = false; return; }
+        const L = this.locate(v.x, v.z, this.hint) || loc;
+        const p = this.at(L ? L.s : 8, 0);
+        v.place(p.x, p.z, p.h); v.drifting = false; v.yawV = 0;
+        v.vf = 8; v.vx = Math.sin(p.h) * 8; v.vz = Math.cos(p.h) * 8;
+        G.player.x = p.x; G.player.z = p.z; G.player.h = p.h; G.camYaw = p.h;
+        if (G.snapCam) G.snapCam(); v.sync(0);
+        this.leftT = 0; this._fading = false;
+        G.ui.toast('↺ De volta à pista', 1200);
+      });
+    }
   }
   endSession() {
     if (!this.on) return; const G = this.G; G.drift.bank(); const pts = Math.max(0, G.drift.total - this.session);

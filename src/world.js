@@ -143,6 +143,16 @@ export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
 }
 const circles = new Map();
 export function addCircle(x, z, r) { const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL); let a = circles.get(k); if (!a) circles.set(k, a = []); a.push({ x, z, r }); }
+export function removeBox(b) {
+  if (!b) return;
+  const i = BOXES.indexOf(b); if (i >= 0) BOXES.splice(i, 1);
+  for (let i = Math.floor(b.x0 / CELL); i <= Math.floor(b.x1 / CELL); i++)
+    for (let j = Math.floor(b.z0 / CELL); j <= Math.floor(b.z1 / CELL); j++) {
+      const a = grid.get(i + ',' + j); if (!a) continue;
+      const t = a.indexOf(b); if (t >= 0) a.splice(t, 1);
+    }
+}
+
 // resolve círculo contra caixas; retorna normal do impacto (ou null)
 export function collide(pos, r, boat = false, y = 0) {
   let hit = null;

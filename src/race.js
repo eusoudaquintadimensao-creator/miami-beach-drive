@@ -3,6 +3,7 @@
 import { Vehicle, SPECS, RACE_CARS, LIVERIES, raceTune } from './vehicles.js';
 import { TRACK } from './track.js';
 import { clamp, angDiff } from './util.js';
+import { respawnFade } from './driveui.js';
 const $ = (id) => document.getElementById(id);
 export const RACE_KEY = 'mbd-corrida-v1';
 const RIVALS = [{ name: '@luna.turbo', skill: 0.95 }, { name: '@kaique.neon', skill: 0.91 }, { name: '@bia.drift', skill: 0.87 }];
@@ -88,7 +89,7 @@ export class Race {
       });
     }
     this.laps = mode === 'race' ? this.data.laps : 99;
-    this.total = g.s - this.T.L; this.lastS = g.s; this.hint = -1; this.lap = 0; this.lapStart = 0; this.lapTimes = []; this.t = 0; this.cpNext = 1; this.wrongT = 0; this.offT = 0; this.stuckT = 0; this.finT = null;
+    this.total = g.s - this.T.L; this.lastS = g.s; this.hint = -1; this.lap = 0; this.lapStart = 0; this.lapTimes = []; this.t = 0; this.cpNext = 1; this.wrongT = 0; this.offT = 0; this.stuckT = 0; this._fading = false; this.finT = null;
     this.G.drift.reset(); this.G.fx.clearMarks(); this.T.resetCones(); this.T.highlight(1);
     $('raceHud').hidden = false;
     if (mode === 'race') { this.state = 'count'; this.countT = 0; this.cd = -1; this.T.setLights(0, false); G.ui.big('PREPARE-SE'); }
@@ -119,7 +120,10 @@ export class Race {
       this.offT = Math.abs(r.lat) > TRACK.wall + 2 ? this.offT + dt : 0;
     } else this.offT += dt;
     this.stuckT = v.speed < 1.5 && this.state !== 'done' ? this.stuckT + dt : 0;
-    if (this.offT > 2.5 || this.stuckT > 6) { this.resetCar(true); }
+    if ((this.offT > 1 || this.stuckT > 1) && !this._fading) {
+      this._fading = true;
+      respawnFade(() => { this.resetCar(true); this._fading = false; });
+    }
     // checkpoints e voltas
     const L = this.T.L, cps = TRACK.cps;
     if (this.state === 'treino') {

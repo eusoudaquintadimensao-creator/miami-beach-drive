@@ -347,6 +347,8 @@ function buildRaceCar(v, S, sp, T) {
   }
 }
 
+let DENT_M = null, SCRATCH_M = null;
+let BEAM_TEX = null;
 export class Vehicle {
   constructor(type, scene, Q, color, tune) {
     const S = shared(Q); this.type = type; this.spec = SPECS[type]; const sp = this.spec;
@@ -450,10 +452,11 @@ export class Vehicle {
     if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / ((sp.race ? 3.6 : 3) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
     // nitro de cinco camadas: segurando, sobe de estágio a cada 0,6 s (1 a 5), cada um mais forte
     if (this.boosting) { this.nStageT = (this.nStageT || 0) + dt; this.nStage = Math.min(5, 1 + Math.floor(this.nStageT / 0.6)); } else { this.nStageT = 0; this.nStage = 0; }
-    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const max = sp.max * surf * (1 + boost * 0.32); const acc = sp.acc * (1 + boost * 1.4);
+    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const limit = inp.limit != null ? clamp(inp.limit, 0.15, 1) : 1; const max = sp.max * surf * (1 + boost * 0.32) * limit; const acc = sp.acc * (1 + boost * 1.4);
     if (thr > 0.05) { if (vf < -0.5) vf = Math.min(0, vf + sp.brake * dt); else vf += acc * thr * Math.max(0, 1 - (vf / max) ** 2) * dt + boost * 4 * dt; }
     else if (thr < -0.05) { if (vf > 0.5) vf = Math.max(0, vf - sp.brake * -thr * dt); else vf = Math.max(-max * 0.3, vf - sp.acc * 0.6 * -thr * dt); }
     else { const c = (sp.boat ? 2.5 : 2.2) * dt; vf = Math.abs(vf) < c ? 0 : vf - Math.sign(vf) * c; }
+    if (inp.hardBrake) { const b = (sp.brake || 18) * 2.5 * dt; vf = Math.abs(vf) <= b ? 0 : vf - Math.sign(vf) * b; }
     if (inp.hb) vf -= Math.sign(vf) * Math.min(Math.abs(vf), (sp.boat ? 4 : 9) * dt);
     if (vf > max) vf = lerp(vf, max, dt * 2);
     this.brakeOn = thr < -0.05 && vf > 0.5 || inp.hb;
@@ -526,7 +529,13 @@ export class Vehicle {
     let impact = 0;
     const cs = this.circles();
     if (!ok(this.x, this.z) || !ok(cs[0][0], cs[0][1]) || !ok(cs[1][0], cs[1][1])) {
-      impact = this.speed; this.x = px; this.z = pz; this.vx *= -0.25; this.vz *= -0.25; this.vf *= -0.25;
+      const spd0 = this.speed; impact = spd0;
+      // volta à posição válida e desliza (não inverte nem para o carro)
+      const dx = this.x - px, dz = this.z - pz, L = Math.hypot(dx, dz) || 1;
+      this.x = px; this.z = pz;
+      const nx = dx / L, nz = dz / L;
+      this._glance(nx, nz, spd0);
+      this.dent(spd0, nx, nz);
     }
     // colisões com prédios/objetos (2 círculos)
     for (let k = 0; k < 2; k++) {
@@ -578,8 +587,102 @@ export class Vehicle {
   }
   bounce(nx, nz) {
     const vn = this.vx * nx + this.vz * nz; if (vn >= 0) return 0;
-    this.vx -= 1.35 * vn * nx; this.vz -= 1.35 * vn * nz; this.vx *= 0.75; this.vz *= 0.75;
-    const [fx, fz] = this.fwd(); this.vf = this.vx * fx + this.vz * fz; this.hitT = 0.3; return -vn;
+    const spd0 = Math.hypot(this.vx, this.vz);
+    this._glance(nx, nz, spd0);
+    this.dent(-vn, nx, nz);
+    this.hitT = 0.28; return -vn;
+  }
+  // bate e continua: tira só o componente contra o obstáculo, mantém ~80–90% da velocidade no desvio
+  _glance(nx, nz, spd0) {
+    const vn = this.vx * nx + this.vz * nz;
+    if (vn < 0) { this.vx -= vn * nx; this.vz -= vn * nz; }
+    let spd = Math.hypot(this.vx, this.vz);
+    const keep = Math.max(spd0 * 0.82, 4);
+    const [fx, fz] = this.fwd();
+    if (spd < 0.6) { // de frente: desvia um pouco e segue
+      const tx = fx - nx * 0.55, tz = fz - nz * 0.55, tl = Math.hypot(tx, tz) || 1;
+      this.vx = tx / tl * keep; this.vz = tz / tl * keep;
+    } else {
+      this.vx *= keep / spd; this.vz *= keep / spd;
+    }
+    this.vf = this.vx * fx + this.vz * fz;
+    this.hitT = 0.28;
+  }
+  dent(impact, nx, nz) {
+    if (this.npc || impact < 3.2) return;
+    if (!this.dents) this.dents = [];
+    if (this.dents.length >= 16) return;
+    const [fx, fz] = this.fwd();
+    const lx = nx * fz - nz * fx, lz = nx * fx + nz * fz;
+    if (!this._dentM) { const c = new THREE.Color(this.color ?? 0x888888).multiplyScalar(0.5); this._dentM = new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.7, flatShading: true }); }
+    const DM = this._dentM;
+    if (!SCRATCH_M) SCRATCH_M = new THREE.MeshBasicMaterial({ color: 0xd8d8d8, transparent: true, opacity: 0.7 });
+    const r0 = 0.28 + Math.min(0.22, impact * 0.015);
+    const d = new THREE.Mesh(new THREE.IcosahedronGeometry(r0, 0), DM);
+    const w = (this.spec.w || 1.8) * 0.5, L = (this.spec.len || 4.2) * 0.44;
+    const side = Math.abs(lx) > Math.abs(lz) ? Math.sign(lx) : 0;
+    const x = side ? side * w : (Math.random() - 0.5) * w * 1.2;
+    const z = side ? (Math.random() - 0.5) * L * 1.4 : Math.sign(lz || 1) * L;
+    d.position.set(x, 0.5 + Math.random() * 0.2, z);
+    d.scale.set(side ? 0.35 : 1.4, 0.55, side ? 1.5 : 0.35);
+    d.rotation.set(Math.random(), Math.random(), Math.random());
+    this.body.add(d); this.dents.push(d);
+    // risco claro ao lado do amassado
+    const sc = new THREE.Mesh(new THREE.BoxGeometry(side ? 0.02 : 0.9, 0.035, side ? 0.9 : 0.02), SCRATCH_M);
+    sc.position.set(x + (side ? side * 0.02 : 0), 0.62 + Math.random() * 0.1, z + (side ? 0 : Math.sign(lz || 1) * 0.02));
+    sc.rotation.set(0, 0, (Math.random() - 0.5) * 0.4);
+    this.body.add(sc); this.dents.push(sc);
+    // leve amassado no corpo (escala irregular, só visual)
+    if (this.dents.length === 2 || this.dents.length === 8) {
+      const sx = Math.max(0.94, 1 - this.dents.length * 0.008);
+      this.body.scale.x *= sx;
+    }
+  }
+  setupBeams() {
+    if (this.fakeBeam || this.spec.boat || this.type === 'heli') return;
+    // feixe falso barato: cone aberto com ponta no farol, gradiente que some à frente, sem neblina
+    if (!BEAM_TEX) {
+      const c = document.createElement('canvas'); c.width = 4; c.height = 64; const g = c.getContext('2d');
+      const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 4, 64); BEAM_TEX = new THREE.CanvasTexture(c);
+    }
+    const L = 16;
+    const geom = new THREE.ConeGeometry(2.2, L, 10, 1, true).translate(0, -L / 2, 0); // ponta em y=0, base em y=-L
+    const mat = new THREE.MeshBasicMaterial({ color: 0xfff1d0, map: BEAM_TEX, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false, fog: false });
+    const cone = new THREE.Mesh(geom, mat);
+    cone.rotation.x = -Math.PI / 2; // -Y vira +Z: a base aberta vai para a frente do carro
+    cone.position.set(0, 0.62, (this.spec.len || 4) * 0.5);
+    cone.visible = false; cone.renderOrder = 2; this.root.add(cone);
+    this.fakeBeam = cone; this._beamM = mat;
+  }
+  ensureSpot() {
+    if (this.spot) return this.spot;
+    if (this.spec.boat || this.type === 'heli') return null;
+    const s = new THREE.SpotLight(0xfff4dc, 0, 70, Math.PI / 9, 0.42, 0.55);
+    s.position.set(0, 0.85, (this.spec.len || 4) * 0.48);
+    const t = new THREE.Object3D(); t.position.set(0, 0.15, 48);
+    this.root.add(s, t); s.target = t;
+    this.spot = s; this.spotTgt = t; return s;
+  }
+  updateBeams(night, isPlayer, high) {
+    if (this.spec.boat || this.type === 'heli') return;
+    this.setupBeams();
+    const on = night > 0.32;
+    if (this.fakeBeam) {
+      const op = !on ? 0 : isPlayer ? (high ? 0.16 : 0.09) : 0.06;
+      this._beamM.opacity = op;
+      this.fakeBeam.visible = op > 0.03;
+      this.fakeBeam.scale.set(high && isPlayer ? 1.25 : 1, high && isPlayer ? 1.9 : 1, high && isPlayer ? 1.25 : 1);
+    }
+    if (isPlayer && on) {
+      const s = this.ensureSpot();
+      if (s) {
+        s.intensity = (high ? 160 : 45) * Math.min(1, night * 1.3);
+        s.angle = high ? Math.PI / 6.5 : Math.PI / 10;
+        s.distance = high ? 120 : 52;
+        s.visible = true;
+      }
+    } else if (this.spot) { this.spot.intensity = 0; this.spot.visible = false; }
   }
   sync(dt) {
     this.root.position.set(this.x, this.y, this.z); this.root.rotation.set(0, this.h, 0);

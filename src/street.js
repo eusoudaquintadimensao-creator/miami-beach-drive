@@ -2,8 +2,9 @@
 // pisque o farol (L ou 💡) perto de um deles para desafiar. Portões neon + seta no HUD + GPS até o próximo ponto.
 // Vitórias dão reputação, dinheiro, pinturas novas e níveis de nitro. Salvo em localStorage 'mbd-ruas-v1'. Sem violência.
 import * as THREE from 'three';
-import { clamp } from './util.js';
-import { groundY, HOOKS } from './world.js';
+import { clamp, angDiff } from './util.js';
+import { groundY, HOOKS, NODES, SEGS, addBox, removeBox } from './world.js';
+import { respawnFade } from './driveui.js';
 import { Vehicle, randomTune, raceTune, NITRO } from './vehicles.js';
 import { STREET } from './phrases.js';
 
@@ -72,17 +73,17 @@ export class Street {
       else if (w) { w.v.brakeOn = true; w.v.vf = 0; w.v.sync(dt); }
     });
   }
-  nearRival(maxD = 22) { const p = this.G.player; let best = null, bd = maxD; for (const i in this.waiting) { const w = this.waiting[i]; const d = Math.hypot(w.v.x - p.x, w.v.z - p.z); if (d < bd) { bd = d; best = { ...w, ri: +i, d }; } } return best; }
+  nearRival(maxD = 50) { const p = this.G.player; let best = null, bd = maxD; for (const i in this.waiting) { const w = this.waiting[i]; const d = Math.hypot(w.v.x - p.x, w.v.z - p.z); if (d < bd) { bd = d; best = { ...w, ri: +i, d }; } } return best; }
   // piscar o farol: desafia o rival mais próximo
   flash() {
-    const G = this.G, p = G.player; this.flashT = 0.5; if (this.race) return false; const v = p.vehicle;
+    const G = this.G, p = G.player; this.flashT = 0.5; if (this.race) { this._flashWhy = 'already'; return false; } const v = p.vehicle;
     G.audio.chime && G.audio.chime('ok');
-    const n = this.nearRival(v ? 30 : 12);
-    if (!n) { if (!isNight(G.env.hour)) G.ui.toast('🌙 A <b>Liga da Madrugada</b> só corre à noite (19h–5h). Procure 🏎️ no mapa.', 2600); else { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
-    const r = n.r; if (this.save.rep < r.need) { this.say(r, pick(STREET.locked)); G.ui.toast(`🔒 ${r.name} pede reputação ${r.need} (você tem ${this.save.rep})`, 2600); return false; }
-    if (!v || v.spec.boat || v.type === 'heli') { this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
-    if (G.race.active || G.missions.active) { G.ui.toast('Termine a missão/corrida atual antes do racha', 2200); return false; }
-    this.start(n.ri, n); return true;
+    const n = this.nearRival(50);
+    if (!n) { this._flashWhy = 'none:' + G.env.hour; if (!isNight(G.env.hour)) G.ui.toast('🌙 A <b>Liga da Madrugada</b> só corre à noite (19h–5h). Procure 🏎️ no mapa.', 2600); else { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
+    const r = n.r; if (this.save.rep < r.need) { this._flashWhy = 'rep'; this.say(r, pick(STREET.locked)); G.ui.toast(`🔒 ${r.name} pede reputação ${r.need} (você tem ${this.save.rep})`, 2600); return false; }
+    if (!v || v.spec.boat || v.type === 'heli') { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
+    if (G.race.active || G.missions.active) { this._flashWhy = 'busy'; G.ui.toast('Termine a missão/corrida atual antes do racha', 2200); return false; }
+    this._flashWhy = 'ok'; this.start(n.ri, n); return true;
   }
   say(r, text) { const G = this.G; G.ui.bubbleText(r.name, text); if (G.voice) G.voice.say(text, { _voice: { v: r.fem ? 'f' : 'm', rate: 1.05 } }, { vol: 0.9 }); }
   start(ri, w) {
@@ -92,7 +93,7 @@ export class Street {
     const sx = R.start[0] + fz * 3.4, sz = R.start[1] - fx * 3.4; // jogador do outro lado
     this.race = { ri, r: w.r, v, path, k: 0, t: -3.5, sx, sz, h, cps: R.pts, beepK: 4, oldMusic: null };
     this.say(w.r, pick(STREET.challenge)); G.ui.toast(`🏁 <b>${R.name}</b> contra ${w.r.name} · siga os portões neon`, 3000);
-    this.hold(pv); this.setGates(); G.setRoute(R.pts[0]); this.hud(true);
+    this.hold(pv); this.setGates(); this.buildCourse(R); G.setRoute(R.pts[0]); this.hud(true); this.stuckT = 0; this._fading = false;
   }
   hold(pv) { const S = this.race; pv.x = S.sx; pv.z = S.sz; pv.h = S.h; pv.vx = pv.vz = pv.vf = 0; pv.y = groundY(pv.x, pv.z); const p = this.G.player; p.x = pv.x; p.z = pv.z; pv.sync(0); }
   setGates() {
@@ -104,7 +105,7 @@ export class Street {
     const G = this.G; this.updateMeets(dt);
     if (this.flashT > 0) this.flashT -= dt;
     // dica quando está perto de um rival
-    this.promptT -= dt; if (this.race) { const el = document.getElementById('stTip'); if (el && !el.hidden) el.hidden = true; } else if (this.promptT <= 0) { this.promptT = 0.4; const n = this.nearRival(30); const el = document.getElementById('stTip'); if (el) { if (n) { el.innerHTML = `${n.r.boss ? '👑' : '🏎️'} <b>${n.r.name}</b> · ${ROUTES[n.ri].name}<br>${G.touch ? 'toque 💡' : 'aperte <b>L</b>'} para piscar o farol${this.save.rep < n.r.need ? ` · 🔒 rep ${n.r.need}` : ''}`; el.hidden = false; } else el.hidden = true; } }
+    this.promptT -= dt; if (this.race) { const el = document.getElementById('stTip'); if (el && !el.hidden) el.hidden = true; } else if (this.promptT <= 0) { this.promptT = 0.4; const n = this.nearRival(50); const el = document.getElementById('stTip'); if (el) { if (n) { el.innerHTML = `${n.r.boss ? '👑' : '🏎️'} <b>${n.r.name}</b> · ${ROUTES[n.ri].name}<br>${G.touch ? 'toque 🏁 no botão de entrar (ou 💡)' : 'aperte <b>L</b> ou o botão de entrar'} para aceitar (até 50 m)${this.save.rep < n.r.need ? ` · 🔒 rep ${n.r.need}` : ''}`; el.hidden = false; } else el.hidden = true; } }
     for (const g of [this.gate, this.gate2]) if (g.visible) { g.userData.ar.position.y = 10.5 + Math.sin(t * 4) * 0.5; g.userData.ar.rotation.y = t * 2; }
     const S = this.race; if (!S) return;
     const pv = G.player.vehicle; const v = S.v;
@@ -114,7 +115,13 @@ export class Street {
     if (S.beepK > 0) { S.beepK = 0; G.ui.big('VAI!'); G.audio.chime && G.audio.chime('win'); }
     // checkpoints do jogador
     const c = S.cps[S.k]; const p = G.player; if (c && Math.hypot(c[0] - p.x, c[1] - p.z) < 18) { S.k++; G.audio.chime && G.audio.chime('ok'); if (S.k >= S.cps.length) { this.end(!v.done); return; } this.setGates(); G.setRoute(S.cps[S.k]); }
-    if (c && segDist(p.x, p.z, S.k ? S.cps[S.k - 1] : [S.sx, S.sz], c) > 130) { this.end(false, 'Você se perdeu do trajeto — racha cancelado'); return; }
+    {
+      const a = S.k ? S.cps[S.k - 1] : [S.sx, S.sz]; const b = c || a;
+      const off = b ? segDist(p.x, p.z, a, b) : 0;
+      const stuck = pv.speed < 2.2 && (pv.hitT > 0 || off > 10 || pv.speed < 0.6);
+      if (off > 16 || stuck) this.stuckT = (this.stuckT || 0) + dt; else this.stuckT = Math.max(0, (this.stuckT || 0) - dt * 2);
+      if (this.stuckT > 1 && !this._fading) this.respawnOnRoute();
+    }
     // rival: cinemático pelo traçado suavizado, com elástico e desvio do trânsito
     if (!v.done) {
       const R = G.rivals, path = S.path, cur = R.at(path, v.s); let target = S.r.top;
@@ -130,6 +137,8 @@ export class Street {
     { const c2 = G.rivals.at(S.path, v.s); const fx = Math.sin(c2.h), fz = Math.cos(c2.h); let dh = c2.h - v.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; v.h += dh * Math.min(1, dt * 7); v.steer = clamp(dh * 2.5, -1, 1); v.x = c2.x - fz * v.lat; v.z = c2.z + fx * v.lat; v.y = groundY(v.x, v.z); v.spin += v.vf * dt / v.spec.wr; v.vx = fx * v.vf; v.vz = fz * v.vf; v.boosting = v.vf > 30 && (Math.floor(v.s / 50) % 3 === 0); v.brakeOn = v.vf < 1; v.sync(dt); }
     if (v.done && !S.lateT) { S.lateT = S.t; G.ui.toast(`${S.r.name} cruzou a chegada! Termine o trajeto 🏁`, 2200); }
     if (S.lateT && S.t - S.lateT > 45) { this.end(false); return; }
+    if (this.arrows) for (const a of this.arrows.children) { a.position.y = 0.18 + Math.sin(t * 6 + (a.userData.ph || 0)) * 0.08; a.userData.m && (a.userData.m.opacity = 0.75 + Math.sin(t * 5 + (a.userData.ph || 0)) * 0.2); }
+    if (this.blocks) for (const b of this.blocks.children) { if (b.userData.lamp) { const k = 0.45 + 0.55 * ((Math.sin(t * 10) > 0) ? 1 : 0); b.userData.lamp.color.setHex(Math.sin(t * 10) > 0 ? 0x29f0ff : 0xff9a1a); b.userData.lamp.intensity = 1.2 + k; } }
     this.hud();
   }
   hud(force) {
@@ -140,7 +149,7 @@ export class Street {
     const c = S.cps[S.k]; if (ar && c) { const p = G.player, dx = c[0] - p.x, dz = c[1] - p.z; const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw); const f = dx * fx + dz * fz, r = dx * -fz + dz * fx; ar.hidden = false; ar.style.transform = `translateX(-50%) rotate(${Math.atan2(r, f)}rad)`; ar.dataset.d = Math.round(Math.hypot(dx, dz)); ar.querySelector('i').textContent = Math.round(Math.hypot(dx, dz)) + ' m'; }
   }
   end(win, msg) {
-    const G = this.G, S = this.race; if (!S) return; this.race = null; this.gate.visible = this.gate2.visible = false; G.setRoute(null); this.hud();
+    const G = this.G, S = this.race; if (!S) return; this.clearCourse(); this.race = null; this.gate.visible = this.gate2.visible = false; G.setRoute(null); this.hud();
     const r = S.r, s = this.save; s.races++;
     this.removeCar(S.v);
     if (msg) { G.ui.toast(msg, 2600); this.persist(); return { win: false, cancel: true }; }
@@ -166,5 +175,147 @@ export class Street {
   applyLivery(id) {
     const G = this.G, r = LEAGUE.find(o => o.id === (id || (this.lastResult && this.lastResult.liv))); const pv = G.player.vehicle; if (!r || !pv || pv.spec.boat || pv.type === 'heli' || !this.save.liveries.includes(r.id)) return false;
     const nv = G.replaceVehicle(pv, Object.assign({}, pv.tune || {}, r.liv)); G.ui.toast(`🎨 Pintura <b>${r.liv.text}</b> aplicada!`, 2000); this.closeResult(); return !!nv;
+  }
+
+  // setas 3D em cada curva + bloqueios (cones, barreiras, viaturas da guarda com giroflex — sem violência)
+  // nas ruas que não são o trajeto. Tudo some quando o racha acaba.
+  buildCourse(R) {
+    this.clearCourse();
+    const G = this.G;
+    this.arrows = new THREE.Group(); this.blocks = new THREE.Group();
+    this.blockBoxes = [];
+    G.scene.add(this.arrows, this.blocks);
+    const pts = [[R.start[0], R.start[1]], ...R.pts];
+    const heading = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]);
+    const chevM = new THREE.MeshBasicMaterial({ color: 0x29f0ff, toneMapped: false, transparent: true, opacity: 0.92, depthWrite: false, fog: false });
+    const chevM2 = new THREE.MeshBasicMaterial({ color: 0xff4fb8, toneMapped: false, transparent: true, opacity: 0.92, depthWrite: false, fog: false });
+    const mkChev = (colM) => {
+      const g = new THREE.Group(); g.userData.m = colM; g.userData.ph = Math.random() * 6;
+      const a = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 3.2), colM); a.position.set(-1.0, 0, 0); a.rotation.y = 0.6;
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 3.2), colM); b.position.set(1.0, 0, 0); b.rotation.y = -0.6;
+      g.add(a, b); return g;
+    };
+    // setas no meio das retas e um grupo logo antes de cada curva
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const h = heading(a, b), L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const next = pts[i + 2];
+      const turn = next && Math.abs(angDiff(h, heading(b, next))) > 0.35;
+      const step = 22;
+      for (let d = 10; d < L - 8; d += step) {
+        const isLast = turn && d > L - 8 - step;
+        const g = mkChev(isLast || (turn && d > L * 0.55) ? chevM2 : chevM);
+        const x = a[0] + Math.sin(h) * d, z = a[1] + Math.cos(h) * d;
+        g.position.set(x, groundY(x, z) + 0.16, z);
+        g.rotation.y = turn && d > L * 0.5 ? heading(b, next) : h;
+        this.arrows.add(g);
+      }
+      if (turn) {
+        // três chevrons bem na curva, apontando a saída
+        const outH = heading(b, next);
+        for (let k = 0; k < 3; k++) {
+          const d = 5 + k * 4.5;
+          const x = b[0] + Math.sin(outH) * (k * 3.2) - Math.sin(h) * (6 - k * 1.5);
+          const z = b[1] + Math.cos(outH) * (k * 3.2) - Math.cos(h) * (6 - k * 1.5);
+          const g = mkChev(chevM2);
+          g.position.set(x, groundY(x, z) + 0.18, z); g.rotation.y = outH;
+          this.arrows.add(g);
+        }
+        this._blockSides(b[0], b[1], h, outH);
+      }
+    }
+  }
+  _nearestNode(x, z) {
+    let best = null, bd = 1e9;
+    for (const n of NODES) { const d = (n.x - x) ** 2 + (n.z - z) ** 2; if (d < bd) { bd = d; best = n; } }
+    return best;
+  }
+  _blockSides(x, z, inH, outH) {
+    const n = this._nearestNode(x, z);
+    if (!n || Math.hypot(n.x - x, n.z - z) > 22) {
+      // mesmo sem nó, bloqueia a direção "continuaria reto" se houver curva
+      const straight = inH;
+      if (Math.abs(angDiff(straight, outH)) > 0.4) this._placeBlock(x + Math.sin(straight) * 12, z + Math.cos(straight) * 12, straight);
+      return;
+    }
+    for (const s of n.segs) {
+      const o = s.a === n ? s.b : s.a;
+      const h = Math.atan2(o.x - n.x, o.z - n.z);
+      if (Math.abs(angDiff(h, outH)) < 0.45) continue;           // saída
+      if (Math.abs(angDiff(h, inH + Math.PI)) < 0.45) continue;  // entrada (de onde veio)
+      const d = 11;
+      this._placeBlock(n.x + Math.sin(h) * d, n.z + Math.cos(h) * d, h, s);
+    }
+  }
+  _placeBlock(x, z, h, seg) {
+    const G = this.G, g = new THREE.Group();
+    g.position.set(x, groundY(x, z), z);
+    g.rotation.y = h;
+    const coneM = new THREE.MeshStandardMaterial({ color: 0xff6a1a, roughness: 0.55 });
+    const stripe = new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.5 });
+    const barM = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.6, metalness: 0.4 });
+    const yel = new THREE.MeshStandardMaterial({ color: 0xffd23f, roughness: 0.45 });
+    // cones
+    for (let i = -2; i <= 2; i++) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.85, 7), coneM);
+      c.position.set(i * 1.05, 0.42, 0.15); g.add(c);
+      const r = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 5, 8), stripe);
+      r.rotation.x = Math.PI / 2; r.position.set(i * 1.05, 0.38, 0.15); g.add(r);
+    }
+    // barreira
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.85, 0.38), yel);
+    bar.position.set(0, 0.55, -0.55); g.add(bar);
+    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.22, 0.42), barM);
+    bar2.position.set(0, 0.95, -0.55); g.add(bar2);
+    // viatura da guarda da pista (original, sem marca): sedan escuro + giroflex ciano/âmbar
+    const car = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.55, 4.2), barM);
+    body.position.y = 0.55; car.add(body);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.48, 1.7), new THREE.MeshStandardMaterial({ color: 0x1a2430, roughness: 0.25, metalness: 0.3 }));
+    cab.position.set(0, 1.05, -0.15); car.add(cab);
+    const lamp = new THREE.PointLight(0x29f0ff, 1.4, 10, 2); lamp.position.set(0, 1.45, -0.15); car.add(lamp);
+    const barL = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.16, 0.36), new THREE.MeshBasicMaterial({ color: 0x29f0ff, toneMapped: false }));
+    barL.position.set(0, 1.42, -0.15); car.add(barL);
+    car.position.set(0, 0, 1.5); g.add(car);
+    g.userData.lamp = lamp; g.userData.barL = barL;
+    this.blocks.add(g);
+    // colisão alinhada ao eixo da rua (a malha da cidade é ortogonal)
+    const axis = seg ? seg.axis : (Math.abs(Math.sin(h)) > 0.7 ? 'z' : 'x');
+    // o bloco corta a rua (perpendicular à direção h)
+    const along = 1.15, across = 5.4;
+    let x0, z0, x1, z1;
+    if (axis === 'z') { // rua no eixo z: a barreira vai em x
+      x0 = x - across / 2; x1 = x + across / 2; z0 = z - along; z1 = z + along;
+    } else {
+      x0 = x - along; x1 = x + along; z0 = z - across / 2; z1 = z + across / 2;
+    }
+    const box = addBox(x0, z0, x1, z1, 1.7);
+    this.blockBoxes.push(box);
+  }
+  clearCourse() {
+    if (this.arrows) { this.G.scene.remove(this.arrows); this.arrows.traverse(o => { if (o.geometry) o.geometry.dispose?.(); }); this.arrows = null; }
+    if (this.blocks) { this.G.scene.remove(this.blocks); this.blocks.traverse(o => { if (o.geometry) o.geometry.dispose?.(); if (o.isLight) o.dispose?.(); }); this.blocks = null; }
+    if (this.blockBoxes) { for (const b of this.blockBoxes) removeBox(b); this.blockBoxes = []; }
+  }
+  respawnOnRoute() {
+    const S = this.race, G = this.G, pv = G.player.vehicle; if (!S || !pv || this._fading) return;
+    this._fading = true; this.stuckT = 0;
+    respawnFade(() => {
+      if (this.race !== S || !G.player.vehicle) { this._fading = false; return; }
+      const pts = [[S.sx, S.sz], ...S.cps];
+      const a = pts[S.k] || pts[pts.length - 1];
+      const b = pts[S.k + 1] || a;
+      const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
+      const p = G.player;
+      let t = clamp(((p.x - a[0]) * dx + (p.z - a[1]) * dz) / (L * L), 0, 0.85);
+      const x = a[0] + dx * t, z = a[1] + dz * t;
+      const h = Math.atan2(dx, dz);
+      pv.place(x, z, h); pv.drifting = false; pv.yawV = 0; pv.vx = Math.sin(h) * 7; pv.vz = Math.cos(h) * 7; pv.vf = 7;
+      p.x = x; p.z = z; p.h = h; G.camYaw = h;
+      if (G.snapCam) G.snapCam();
+      pv.sync(0);
+      G.ui.toast('↺ De volta ao trajeto', 1200);
+      this._fading = false; this.stuckT = 0;
+    });
   }
 }
