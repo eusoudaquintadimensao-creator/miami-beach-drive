@@ -218,7 +218,7 @@ export class Orla {
   }
   // ---------- músicos de rua
   buildMusic() {
-    this.musos = [[321.5, -300], [321.5, 250]].map(([x, z], i) => this.fig({ kind: 'muso', x, z, h: -Math.PI / 2 + 0.3, shirt: i ? 0xffd23f : 0x2ab3b8, legs: 0x3a2f55, cd: 0, tips: 0 }));
+    this.musos = [[321.5, -440], [321.5, 250]].map(([x, z], i) => this.fig({ kind: 'muso', x, z, h: -Math.PI / 2 + 0.3, shirt: i ? 0xffd23f : 0x2ab3b8, legs: 0x3a2f55, cd: 0, tips: 0 }));
     const R = this.root; this.guitars = [];
     for (const f of this.musos) { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.09, 14).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: THEME.neon ? 0x29f0ff : 0xb5651d, roughness: 0.5, emissive: THEME.neon ? 0x29f0ff : 0, emissiveIntensity: THEME.neon ? 0.5 : 0 })); g.add(body);
       const neck = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.03), new THREE.MeshStandardMaterial({ color: 0x3b2314 })); neck.position.x = 0.4; g.add(neck); R.add(g); this.guitars.push(g);
