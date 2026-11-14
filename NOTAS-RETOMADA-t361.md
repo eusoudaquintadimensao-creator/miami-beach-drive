@@ -82,3 +82,11 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - t410 (junto da FASE 7): 2ª loja no prédio vizinho da orla — trajes de super-herói; cada herói original com trajes distintos e poderes diferentes
   (armadura nano-metálica brilhante, ligas de metal raro, variantes voo/escudo/velocidade), compra com dinheiro de corrida, vestir, espelho, salvar.
   SÓ designs e nomes originais (nada de Marvel/Iron Man/vibranium).
+
+### FASE 7 em andamento (início 20:40)
+Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + trajes de herói com poderes; look salvo por personagem em save.ward {owned:[], eq:{<avatar>:{top,bottom,shoes,hat,glasses,bag}|{suit}}})
+  · avatar.js makeModel(id, colors, h, look) aplica look; nova personagem 'marisol' (base ela, pele morena quente, cachos escuros, elegante; nome inventado) + card assets/avatars/marisol.webp
+  · src/boutique.js: quadra deco i=1 j=4 (x180..300 z0..150) vira 'lojas': Boutique Brisa (x252..296 z8..70, porta leste z39) e Arsenal Aurora (trajes, x252..296 z80..142, porta z111);
+    interior claro com araras/manequins/espelho; cartão comprar/vestir; modo espelho (câmera de frente, poses, reações); app 👗 Lojas no celular + atalho no GPS; mapa
+  · pedestres com paleta Miami + saias/chapéus; NPCs de conversa com roupa padrão
+  · testes t408.js / t410.js (prints loja-*, espelho-*, trajes-*)
