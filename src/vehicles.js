@@ -86,7 +86,8 @@ export const TUNE_OPTS = {
   rims: [0xc8ccd0, 0x1a1a1a, 0xffd23f, 0xff2d55, 0x29f0ff, 0xff4fb8],
   styles: ['Faixas', 'Raio', 'Ondas'],
 };
-export const NITRO = { lvl: 0 }; // nível de nitro ganho na Liga da Madrugada (só o carro do jogador)
+export const NITRO = { lvl: 0 }; export const MOTOR = { lvl: 0 }; // motor preparado (oficina): velocidade final e aceleração do carro do jogador
+export const NITRO_STAGES = 8, DRIFT_WIN = 2.6, DRIFT_MAX = 3.4; // nitro de 8 estágios; janela do drift longo (s) // nível de nitro ganho na Liga da Madrugada (só o carro do jogador)
 export const TUNE_NAMES = ['SOLARA RUSH', 'NEON KINGS', 'BRISA TURBO', 'ONDA 88', 'LUAR GT', 'FAROL RACING', 'PULSO NOTURNO', 'TUCANO TURBO', 'MARÉ ALTA', 'VENTO SUL'];
 export const TUNABLE = ['sport', 'sedan', 'classic', 'suv', 'taxi', 'pickup'];
 export const RACE_CARS = ['rc_gt', 'rc_muscle', 'rc_jdm', 'rc_hyper'];
@@ -348,7 +349,7 @@ function buildRaceCar(v, S, sp, T) {
 }
 
 let DENT_M = null, SCRATCH_M = null;
-let BEAM_TEX = null;
+let TAIL_TEX = null; let BEAM_TEX = null;
 export class Vehicle {
   constructor(type, scene, Q, color, tune) {
     const S = shared(Q); this.type = type; this.spec = SPECS[type]; const sp = this.spec;
@@ -449,10 +450,10 @@ export class Vehicle {
     }
     // nitro (só carros tunados)
     this.boosting = !!(this.tune && inp.nitro && this.nitro > 0.02 && thr > 0.05 && vf > 1);
-    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / ((sp.race ? 3.6 : 3) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
-    // nitro de cinco camadas: segurando, sobe de estágio a cada 0,6 s (1 a 5), cada um mais forte
-    if (this.boosting) { this.nStageT = (this.nStageT || 0) + dt; this.nStage = Math.min(5, 1 + Math.floor(this.nStageT / 0.6)); } else { this.nStageT = 0; this.nStage = 0; }
-    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const limit = inp.limit != null ? clamp(inp.limit, 0.15, 1) : 1; const max = sp.max * surf * (1 + boost * 0.32) * limit; const acc = sp.acc * (1 + boost * 1.4);
+    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / ((sp.race ? 4.4 : 3.8) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
+    // nitro de oito camadas: segurando, sobe de estágio a cada 0,45 s (1 a 8), cada um mais forte
+    if (this.boosting) { this.nStageT = (this.nStageT || 0) + dt; this.nStage = Math.min(NITRO_STAGES, 1 + Math.floor(this.nStageT / 0.45)); } else { this.nStageT = 0; this.nStage = 0; }
+    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const limit = inp.limit != null ? clamp(inp.limit, 0.15, 1) : 1; const mk = this.npc ? 0 : MOTOR.lvl; const max = sp.max * (1 + mk * 0.09) * surf * (1 + boost * 0.32) * limit; const acc = sp.acc * (1 + mk * 0.08) * (1 + boost * 1.4);
     if (thr > 0.05) { if (vf < -0.5) vf = Math.min(0, vf + sp.brake * dt); else vf += acc * thr * Math.max(0, 1 - (vf / max) ** 2) * dt + boost * 4 * dt; }
     else if (thr < -0.05) { if (vf > 0.5) vf = Math.max(0, vf - sp.brake * -thr * dt); else vf = Math.max(-max * 0.3, vf - sp.acc * 0.6 * -thr * dt); }
     else { const c = (sp.boat ? 2.5 : 2.2) * dt; vf = Math.abs(vf) < c ? 0 : vf - Math.sign(vf) * c; }
@@ -470,16 +471,26 @@ export class Vehicle {
         this.drifting = true; this.driftDir = Math.sign(this.steer); this.driftT = 0; this.cntT = 0; this.relT = 0; this.vAng = Math.atan2(vx0, vz0); this.dSpd = s0;
       }
     }
-    if (sp.race && this.drifting) {
+    // drift do deslize (↓): qualquer carro; longo, segura a traseira e encadeia para o outro lado (pêndulo)
+    if (inp.kick && !sp.boat && this.type !== 'moto' && !this.drifting) {
+      const s0 = Math.hypot(vx0, vz0);
+      if (s0 > 7 && vf > 0 && surf > 0.5) {
+        const sd = Math.abs(this.steer) > 0.08 ? Math.sign(this.steer) : (this._lastSteerDir || 1);
+        this.drifting = true; this.swD = true; this.driftDir = sd; this.driftT = 0; this.cntT = 0; this.relT = 0;
+        this.vAng = Math.atan2(vx0, vz0); this.dSpd = s0 * 1.04; this.dExt = DRIFT_WIN; this.dChain = 0; this.dTime = 0;
+      }
+    }
+    if (Math.abs(this.steer) > 0.2) this._lastSteerDir = Math.sign(this.steer);
+    if ((sp.race || this.swD) && this.drifting) {
       const dir = this.driftDir, u = clamp(this.steer * dir, -1, 1), dk = sp.drift || 0.8; this.driftT += dt;
       let s0 = this.dSpd ?? Math.hypot(vx0, vz0);
       const maxD = max * 0.95;
-      if (thr > 0.05) s0 += (acc * 0.55 * thr * Math.max(0, 1 - (s0 / maxD) ** 2) + boost * 5) * dt; else s0 -= (2.6 + (thr < -0.05 ? 8 * -thr : 0)) * dt;
+      if (thr > 0.05) s0 += (acc * 0.55 * thr * Math.max(0, 1 - (s0 / maxD) ** 2) + boost * 5) * dt; else s0 -= ((this.swD ? 1.1 : 2.6) + (thr < -0.05 ? 8 * -thr : 0)) * dt;
       if (inp.hb) s0 -= 3.5 * dt;
-      const beta = Math.abs(angDiff(this.vAng, this.h)); s0 -= beta * (7.5 - 2 * dk) * dt * clamp(s0 / 20, 0.4, 1.6); s0 = Math.max(0, s0);
+      const beta = Math.abs(angDiff(this.vAng, this.h)); s0 -= beta * (7.5 - 2 * dk) * dt * clamp(s0 / 20, 0.4, 1.6) * (this.swD ? 0.42 : 1); s0 = Math.max(0, s0);
       const omega = clamp(0.44 + 0.46 * u, 0.06, 0.92) * (sp.steer / 0.56) * clamp(s0 / 12, 0, 1) * (1 + 0.35 * clamp((s0 - 20) / 20, 0, 1)) * (inp.hb ? 1.12 : 1);
       this.vAng -= dir * omega * dt;
-      const bt = (0.4 + 0.2 * u + (thr > 0.05 ? 0.08 : 0) + (inp.hb ? 0.1 : 0)) * (0.72 + 0.35 * dk);
+      const bt = (0.4 + 0.2 * u + (thr > 0.05 ? 0.08 : 0) + (inp.hb ? 0.1 : 0)) * (0.72 + 0.35 * dk) * (this.swD ? 1.15 : 1);
       const hT = this.vAng - dir * bt; const h0 = this.h;
       this.h += angDiff(this.h, hT) * Math.min(1, dt * (this.driftT < 0.35 ? 6.5 : 4.5));
       yaw = (h0 - this.h) / Math.max(dt, 1e-4); this.yawV = yaw;
@@ -487,7 +498,15 @@ export class Vehicle {
       const [hfx, hfz] = this.fwd(); vf = this.vx * hfx + this.vz * hfz; vl = this.vx * -hfz + this.vz * hfx; this.vf = vf; this.drift = Math.abs(vl);
       // saída do drift: contra-esterço segurado, soltou tudo, velocidade baixa
       this.cntT = u < -0.45 ? this.cntT + dt : 0; this.relT = Math.abs(this.steer) < 0.15 && thr <= 0.05 && !inp.hb ? this.relT + dt : 0;
-      if (s0 < 8.5 || this.cntT > 0.42 || this.relT > 0.45 || beta < 0.06 && this.driftT > 0.5) { this.drifting = false; this.recover = 0; }
+      if (this.swD) {
+        this.dTime += dt;
+        // janela de extensão: acelerador + volante para dentro seguram o drift; sem isso, ela esvazia
+        const hold = thr > 0.05 && u > -0.2;
+        this.dExt = Math.min(DRIFT_MAX, this.dExt - dt + (hold ? dt * 0.62 : 0));
+        // virou para o outro lado: pêndulo e o drift continua para o outro lado, ganhando tempo
+        if (this.cntT > 0.14 && s0 > 9) { this.driftDir = -dir; this.cntT = 0; this.driftT = 0.12; this.dChain++; this.dExt = Math.min(DRIFT_MAX, Math.max(this.dExt, 1.6) + 0.5); }
+        if (s0 < 6 || this.dExt <= 0 || this.relT > 1.1) { this.drifting = false; this.swD = false; this.recover = 0; this.recSlow = true; this.dLast = { t: this.dTime, chain: this.dChain }; }
+      } else if (s0 < 8.5 || this.cntT > 0.42 || this.relT > 0.45 || beta < 0.06 && this.driftT > 0.5) { this.drifting = false; this.recover = 0; }
       this.brakeOn = thr < -0.05 || inp.hb;
     } else {
     // transferência de peso: freando o peso vai pra frente (traseira leve), acelerando vai pra trás
@@ -513,7 +532,7 @@ export class Vehicle {
     const wx = fx * vf + rx * vl, wz = fz * vf + rz * vl;
     this.h -= this.yawV * dt; yaw = this.yawV;
     if (!sp.boat) { const [hfx, hfz] = this.fwd(); vf = wx * hfx + wz * hfz; vl = wx * -hfz + wz * hfx; }
-    if (sp.race && this.recover !== undefined && this.recover < 1) { this.recover = Math.min(1, this.recover + dt / 0.6); gripK *= 0.22 + 0.78 * this.recover * this.recover; }
+    if ((sp.race || this.recSlow) && this.recover !== undefined && this.recover < 1) { this.recover = Math.min(1, this.recover + dt / (this.recSlow ? 1.25 : 0.6)); gripK *= 0.22 + 0.78 * this.recover * this.recover; if (this.recover >= 1) this.recSlow = false; }
     const grip = (sp.boat ? sp.grip : sp.grip * gripK * 2.5) * (sp.boat ? 1 : surf > 0.6 ? 1 : 0.7);
     const vl0 = vl; vl *= Math.exp(-grip * dt);
     if (!sp.boat) vf -= Math.sign(vf) * Math.min(Math.abs(vf), Math.abs(vl0 - vl) * 0.12); // escorregar de lado custa um pouco de velocidade
@@ -556,7 +575,7 @@ export class Vehicle {
         }
       }
     }
-    if (impact > 4 && this.drifting) { this.drifting = false; this.recover = 0.3; }
+    if (impact > 4 && this.drifting) { this.drifting = false; this.recover = 0.3; if (this.swD) { this.swD = false; this.recSlow = true; this.dLast = { t: this.dTime, chain: this.dChain }; } }
     if (this.drifting && impact > 0) this.dSpd = Math.hypot(this.vx, this.vz), this.vAng = Math.atan2(this.vx, this.vz);
     this.hitT = Math.max(0, this.hitT - dt);
     // altura, inclinação, balanço
@@ -655,6 +674,21 @@ export class Vehicle {
     cone.visible = false; cone.renderOrder = 2; this.root.add(cone);
     this.fakeBeam = cone; this._beamM = mat;
   }
+  setupTailGlow() {
+    if (this.tailGlow !== undefined) return;
+    this.tailGlow = null; const tm = this.tailMesh; if (!tm || !tm.parent || !tm.geometry) return;
+    if (!TAIL_TEX) {
+      const c = document.createElement('canvas'); c.width = 64; c.height = 32; const g = c.getContext('2d');
+      const gr = g.createRadialGradient(32, 16, 0, 32, 16, 30); gr.addColorStop(0, 'rgba(255,60,50,1)'); gr.addColorStop(0.35, 'rgba(255,20,20,.55)'); gr.addColorStop(1, 'rgba(255,0,0,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 32); TAIL_TEX = new THREE.CanvasTexture(c);
+    }
+    tm.geometry.computeBoundingBox(); const b = tm.geometry.boundingBox;
+    const w = Math.max(0.5, b.max.x - b.min.x) + 1.3, h = Math.max(0.42, (b.max.y - b.min.y) * 4 + 0.5);
+    const m = new THREE.MeshBasicMaterial({ color: 0xff2a1a, map: TAIL_TEX, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(w, h).rotateY(Math.PI), m);
+    q.position.set((b.max.x + b.min.x) / 2, (b.max.y + b.min.y) / 2, b.min.z - 0.07); q.renderOrder = 2; q.visible = false;
+    tm.parent.add(q); this.tailGlow = q; this._tgM = m;
+  }
   ensureSpot() {
     if (this.spot) return this.spot;
     if (this.spec.boat || this.type === 'heli') return null;
@@ -669,17 +703,26 @@ export class Vehicle {
     this.setupBeams();
     const on = night > 0.32;
     if (this.fakeBeam) {
-      const op = !on ? 0 : isPlayer ? (high ? 0.16 : 0.09) : 0.06;
+      const op = !on ? 0 : isPlayer ? (high ? 0.17 : 0.11) : 0.06;
       this._beamM.opacity = op;
       this.fakeBeam.visible = op > 0.03;
-      this.fakeBeam.scale.set(high && isPlayer ? 1.25 : 1, high && isPlayer ? 1.9 : 1, high && isPlayer ? 1.25 : 1);
+      const sL = isPlayer ? (high ? 3.0 : 1.7) : 1, sW = isPlayer ? (high ? 1.35 : 1.1) : 1;
+      this.fakeBeam.scale.set(sW, sL, sW);
+    }
+    this.setupTailGlow();
+    if (this.tailGlow) {
+      const op = on ? (this.brakeOn ? 0.95 : 0.55) : (this.brakeOn ? 0.3 : 0);
+      this._tgM.opacity = op; this.tailGlow.visible = op > 0.02;
+      const k = this.brakeOn ? 1.25 : 1; this.tailGlow.scale.set(k, k, 1);
     }
     if (isPlayer && on) {
       const s = this.ensureSpot();
       if (s) {
-        s.intensity = (high ? 160 : 45) * Math.min(1, night * 1.3);
-        s.angle = high ? Math.PI / 6.5 : Math.PI / 10;
-        s.distance = high ? 120 : 52;
+        // farol potente: baixo já ilumina a rua; alto alcança longe
+        s.intensity = (high ? 520 : 150) * Math.min(1, night * 1.3);
+        s.angle = high ? Math.PI / 7 : Math.PI / 8.5;
+        s.distance = high ? 240 : 115;
+        if (this.spotTgt) this.spotTgt.position.z = high ? 110 : 60;
         s.visible = true;
       }
     } else if (this.spot) { this.spot.intensity = 0; this.spot.visible = false; }

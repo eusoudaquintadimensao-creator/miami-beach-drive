@@ -1,6 +1,6 @@
 // Veículo assinatura de cada personagem jogável + "Chamar veículo" (chega pela rua, perto de você)
 import { Vehicle, SPECS } from './vehicles.js';
-import { SEGS, drivable, isWaterDeep, collide, inTrackZone, surfaceY } from './world.js';
+import { SEGS, drivable, isWaterDeep, collide, inTrackZone, surfaceY, roadAt } from './world.js';
 import { clamp, lerp } from './util.js';
 import * as THREE from 'three';
 
@@ -39,16 +39,41 @@ export function roadSpot(G, x, z) {
   return null;
 }
 
+// ponto ~5 m À FRENTE do personagem, livre (chão firme, sem prédio/água/carro); o carro chega de lado, cruzando à frente
+export function frontSpot(G, p) {
+  const others = G.vehicles.concat(G.traffic ? G.traffic.cars.filter(c => c.active) : []);
+  const free = (px, pz) => { if (!drivable(px, pz) || isWaterDeep(px, pz) || inTrackZone(px, pz, 4)) return false; tmp.set(px, 0, pz); if (collide(tmp, 1.5, false, 0.5)) return false; for (const o of others) if (o !== G.sigCar && Math.hypot(o.x - px, o.z - pz) < 4.6) return false; return true; };
+  for (const d of [5, 5.5, 4.6, 6, 6.8]) for (const da of [0, 0.25, -0.25, 0.5, -0.5, 0.8, -0.8]) {
+    const a = p.h + da; const px = p.x + Math.sin(a) * d, pz = p.z + Math.cos(a) * d;
+    if (!free(px, pz)) continue;
+    let h = a + Math.PI / 2; const rd = roadAt(px, pz);
+    if (rd && rd.seg && rd.d < (rd.seg.w || 7) + 1) { const zA = rd.seg.axis === 'z'; h = zA ? (Math.cos(h) >= 0 ? 0 : Math.PI) : (Math.sin(h) >= 0 ? Math.PI / 2 : -Math.PI / 2); }
+    // escolhe o sentido de chegada cujo caminho não passa pelo personagem (vem cruzando ou vem de frente e para)
+    for (const hh of [h, h + Math.PI]) {
+      const hx = Math.sin(hh), hz = Math.cos(hh);
+      if (!free(px + hx * 1.5, pz + hz * 1.5) || !free(px - hx * 1.5, pz - hz * 1.5)) continue;
+      if (Math.hypot(px + hx * 1.5 - p.x, pz + hz * 1.5 - p.z) < 3.4 || Math.hypot(px - hx * 1.5 - p.x, pz - hz * 1.5 - p.z) < 3.4) continue;
+      let back = 22; while (back > 6 && !drivable(px - hx * back, pz - hz * back)) back -= 4;
+      const sx = px - hx * back, sz = pz - hz * back;
+      // distância do personagem ao trajeto (segmento início→parada)
+      const ux = px - sx, uz = pz - sz, L2 = ux * ux + uz * uz || 1, tt = clamp(((p.x - sx) * ux + (p.z - sz) * uz) / L2, 0, 1);
+      if (Math.hypot(sx + ux * tt - p.x, sz + uz * tt - p.z) < 3) continue;
+      return { x: px, z: pz, h: hh, sx, sz, front: d };
+    }
+  }
+  return null;
+}
+export function finishCarCall(G) { const C = G.carCall; if (!C) return; C.t = C.dur; C.quiet = true; updateCarCall(G, 1 / 60); }
 export function callCar(G, id) {
   const p = G.player; if (G.race && G.race.active) { G.ui.toast('🏁 Termine a corrida antes de chamar o veículo', 2200); return false; }
   const S = sigOf(id);
   if (p.vehicle && p.vehicle === G.sigCar) { G.ui.toast(`🚘 Você já está no ${S.name}`, 1600); return false; }
   if (p.vehicle && p.vehicle.spec.boat) { G.ui.toast('🚘 Volte para a terra firme para chamar o veículo', 2200); return false; }
   if (p.vehicle) G.leaveCar(); if (G.jet && G.jet.on && p.y - surfaceY(p.x, p.z) > 2) { G.ui.toast('🚘 Pouse antes de chamar o veículo', 1800); return false; }
-  const spot = roadSpot(G, p.x, p.z); if (!spot) { G.ui.toast('🚘 Nenhuma rua livre por perto. Vá para uma rua ou estacionamento', 2800); return false; }
+  const spot = frontSpot(G, p) || roadSpot(G, p.x, p.z); if (!spot) { G.ui.toast('🚘 Nenhuma rua livre por perto. Vá para uma rua ou estacionamento', 2800); return false; }
   let v = G.sigCar; if (v && (v.sig !== id || G.vehicles.indexOf(v) < 0 || v.driver)) { const i = G.vehicles.indexOf(v); if (i >= 0 && !v.driver) { G.vehicles.splice(i, 1); v.dispose(G.scene); } v = null; }
   if (!v) { v = makeSignature(G, id); G.vehicles.push(v); G.sigCar = v; }
-  v.nitro = 1; v.parked = true; v.place(spot.sx, spot.sz, spot.h); G.carCall = { ...spot, t: 0, dur: 2.6, v };
+  v.nitro = 1; v.parked = true; v.place(spot.sx, spot.sz, spot.h); G.carCall = { ...spot, t: 0, dur: spot.front ? 2.2 : 2.6, v };
   G.ui.toast(`🚘 ${S.name} a caminho!`, 2200); G.audio.chime && G.audio.chime('start'); return true;
 }
 export function updateCarCall(G, dt) {
@@ -56,5 +81,5 @@ export function updateCarCall(G, dt) {
   C.t += dt; const k = clamp(C.t / C.dur, 0, 1), e = 1 - (1 - k) ** 2; const px = v.x, pz = v.z;
   v.x = lerp(C.sx, C.x, e); v.z = lerp(C.sz, C.z, e); v.h = C.h; v.y = surfaceY(v.x, v.z); const sp = Math.hypot(v.x - px, v.z - pz) / Math.max(dt, 1e-3);
   v.spin = (v.spin || 0) + sp * dt / v.spec.wr; v.brakeOn = k > 0.6; v.sync(dt);
-  if (k >= 1) { G.carCall = null; v.brakeOn = false; v.sync(0); G.ui.toast(`🚘 ${v.sigName} chegou! ${G.touch ? 'Toque em Entrar' : 'Aperte E para entrar'}`, 2600); }
+  if (k >= 1) { G.carCall = null; v.brakeOn = false; v.sync(0); if (!C.quiet) G.ui.toast(`🚘 ${v.sigName} chegou! ${G.touch ? 'Toque em 🚗 Entrar' : 'Aperte E para entrar'}`, 2600); }
 }

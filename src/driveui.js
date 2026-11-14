@@ -397,7 +397,7 @@ export const DriveUI = {
     if (this.G && this.G.ui) this.G.ui.toast('🔥 Nitro', 700);
   },
   fireDrift() {
-    this._hbT = 0.7; this._buzz(12);
+    this._kick = true; this._hbT = 0.2; this._buzz(12);
     if (this.G && this.G.ui) this.G.ui.toast('🌀 Drift', 700);
   },
   _buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch { } },
@@ -445,7 +445,8 @@ export const DriveUI = {
       hardBrake: this.hardBrake,
       limit: this.reverse || this.hardBrake ? 1 : this.cruise,
       reverse: this.reverse,
-      highBeam: this.highBeam
+      highBeam: this.highBeam,
+      kick: (() => { const k = !!this._kick; this._kick = false; return k; })()
     };
   },
 

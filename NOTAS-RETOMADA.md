@@ -191,3 +191,13 @@ Para publicar SÓ após aprovação: git push origin main.
   3. Avisos (#toast) e notificações (#note) ao dirigir ficam na faixa de cima (retrato abaixo dos ícones; paisagem no topo), centro livre.
 - SW solara-v11-2026-11-13-retrato. test/drive.js ganhou checagens t329 (título/Pronto, dica aparece/some/não cobre botões, avisos fora do centro e sem cobrir HUD).
   PASS desk 1280×720, iPhone 390×844, iPhone paisagem 844×390, Android paisagem 915×412 — 0 erros.
+
+## t331 (22:30, 13/11) — drift longo/pêndulo, nitro 8 níveis + motor, faróis/lanternas, LED nas palmeiras, lojas, botão chamar→entrar (PUBLICADO, aprovado)
+- Drift por deslize p/ baixo (input.kick): janela DRIFT_WIN 2,6 s (máx 3,4) que se estende segurando acelerador + direção para dentro;
+  contra-esterço >0,14 s encadeia para o outro lado (pêndulo, dChain); grip traseiro volta em 1,25 s (recSlow). HUD #driftW (tempo + ×pêndulo).
+- Nitro NITRO_STAGES=8 (HUD 8 segmentos, agora visível dirigindo no celular — removido o hide em main.js), MOTOR.lvl 0–3 na garagem (+9%/nível vel. máx.).
+- Faróis do jogador: baixo 150/115 m, alto 520/240 m; lanternas com brilho vermelho aditivo (setupTailGlow) em jogador e IA; orçamento de luzes agora do mais perto p/ o mais longe.
+- Cidade: anéis/fitas de LED nas palmeiras (InstancedMesh), térreos com vitrines/portas/toldos/letreiros originais (acendem à noite).
+- Botão: 1º toque chama o carro, que para ~5 m À FRENTE (frontSpot, caminho seguro); próximo toque entra; toque de novo sai.
+- CSS: corrigido seletor órfão (body.driving.touch #bDown,) que mostrava bPhoto sobre o freio.
+- Testes: test/mech.js (novo) + drive/serp/linecheck em d/i/il/al: tudo PASS, 0 erros. SW solara-v12-2026-11-13-drift.

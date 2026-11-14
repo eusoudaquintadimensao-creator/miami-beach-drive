@@ -443,8 +443,7 @@ body.driving.touch #bStart,
 body.driving.touch #bPow,
 body.driving.touch #bNitro,
 body.driving.touch #bJump,
-body.driving.touch #bDown,
-body.driving.touch #nitroW{display:none!important}
+body.driving.touch #bDown{display:none!important}
 body.driving.touch #btns{bottom:calc(var(--sab) + 214px);right:calc(var(--sar) + 14px);grid-template-columns:56px;gap:8px;width:auto}
 body.driving.touch #btns button{width:56px;height:56px;font-size:18px}
 body.driving.touch #btns button.big{width:64px;height:64px}
@@ -505,3 +504,19 @@ body.touch.driving:not(.land):has(#note:not([hidden])) #toast{top:calc(var(--sat
 body.touch.land.driving #toast{top:calc(var(--sat) + 56px);width:min(40vw,360px)}
 body.touch.land.driving #note{top:calc(var(--sat) + 56px);left:calc(var(--sal) + 168px);width:240px;font-size:12px;padding:8px 10px}
 body.touch.land.driving:has(#note:not([hidden])) #toast{left:calc(var(--sal) + 420px);transform:none;width:min(30vw,280px)}
+
+/* t331: nitro de 8 estágios (compacto) e medidor do drift longo */
+#nitroW .nSegs{gap:2px}
+#nitroW .nSegs i:nth-child(n+4) b{background:linear-gradient(90deg,#7d4dff,#ff4fb8)}
+#nitroW .nSegs i:nth-child(n+6) b{background:linear-gradient(90deg,#ff4fb8,#ffd23f)}
+#nitroW .nSegs i:nth-child(n+8) b{background:linear-gradient(90deg,#ffd23f,#fff)}
+#driftW{position:absolute;left:50%;bottom:calc(var(--sab) + 118px);transform:translateX(-50%);width:170px;pointer-events:none;text-align:center}
+#driftW[hidden]{display:none}
+#driftBar{height:7px;border-radius:5px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.35);overflow:hidden}
+#driftB{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(1);background:linear-gradient(90deg,#29f0ff,#ff4fb8)}
+#driftW.low #driftB{background:linear-gradient(90deg,#ff6a2a,#ffd23f)}
+#driftW span{display:block;margin-top:3px;font-size:10px;font-weight:900;letter-spacing:1.5px;text-shadow:0 1px 3px #000;white-space:nowrap}
+body.driving.touch #nitroW{left:50%;right:auto;transform:translateX(-50%);bottom:calc(var(--sab) + 14px);width:150px;height:28px}
+body.driving.touch #driftW{bottom:calc(var(--sab) + 54px);width:150px}
+body.touch.land.driving #nitroW{left:60%;bottom:calc(var(--sab) + 12px);width:140px}
+body.touch.land.driving #driftW{left:60%;bottom:calc(var(--sab) + 50px);width:140px}

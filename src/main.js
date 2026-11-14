@@ -8,7 +8,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { clamp, lerp, angDiff, smooth } from './util.js';
 import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable } from './world.js';
 import { createEnv } from './env.js';
-import { Vehicle, SPECS, setVehicleLights } from './vehicles.js';
+import { Vehicle, SPECS, setVehicleLights, MOTOR, NITRO_STAGES, DRIFT_MAX } from './vehicles.js';
 import { Crowd, Hero } from './people.js';
 import { Avatar, AVATARS, AVATAR_IDS, preloadAvatars } from './avatar.js';
 import { DEVICE } from './device.js';
@@ -29,7 +29,7 @@ import { DriftFX, DriftScore } from './fx.js';
 import { Home, HOME } from './home.js';
 import { Jetpack } from './jetpack.js';
 import { Voices } from './voice.js';
-import { callCar, updateCarCall, SIGNATURE } from './signature.js';
+import { callCar, updateCarCall, finishCarCall, SIGNATURE } from './signature.js';
 import { Serpentina } from './serpentina.js';
 import { buildLife } from './life.js';
 import { Birds } from './birds.js';
@@ -222,6 +222,7 @@ G.callHeli = () => {
   G.ui.toast('🚁 Helicóptero a caminho! Fique longe do ponto de pouso', 2600); G.audio.chime && G.audio.chime('start'); return true;
 };
 G.callCar = () => callCar(G, save.avatar || 'ela');
+MOTOR.lvl = save.motor || 0;
 G.sigName = (id) => (SIGNATURE[id] || SIGNATURE.ela).name;
 G.placeOnFoot = (x, z, h) => { const p = G.player; p.x = x; p.z = z; p.h = h || 0; p.y = surfaceY(x, z); p.vx = p.vz = p.vy = 0; G.hero.g.position.set(p.x, p.y, p.z); G.camYaw = p.h; };
 function addRider(v) {
@@ -263,6 +264,7 @@ addEventListener('keydown', (e) => {
   if (G.paused && !['KeyM', 'KeyP'].includes(e.code)) return;
   if (e.code === 'KeyE' || e.code === 'KeyF' && false) action();
   if (e.code === 'KeyT') G.race.resetCar();
+  if (e.code === 'KeyC' && !e.repeat) input.kick = true;
   if (e.code === 'KeyJ' && G.started && !G.paused) G.jet.toggle();
   if (e.code === 'KeyG' && G.started && !G.paused) G.callHeli();
   if (e.code === 'KeyB' && G.started && !G.paused) G.callCar();
@@ -303,7 +305,7 @@ canvas.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') r
 canvas.addEventListener('pointermove', (e) => { const l = looks.get(e.pointerId); if (!l || G.paused) return; const dx = e.clientX - l[0], dy = e.clientY - l[1]; l[0] = e.clientX; l[1] = e.clientY; G.camYaw -= dx * 0.006 * save.sens; G.camPitch = clamp(G.camPitch + dy * 0.004 * save.sens, -0.35, 1.1); lookT = 1.6; });
 const lookEnd = (e) => looks.delete(e.pointerId); canvas.addEventListener('pointerup', lookEnd); canvas.addEventListener('pointercancel', lookEnd);
 const hold = (id, on, off) => { const b = $(id); b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); G.audio && G.audio.init(); b.classList.add('on'); on && on(); }); const up = () => { b.classList.remove('on'); off && off(); }; b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up); };
-// Entrar: 1 toque chama o veículo (em qualquer lugar); 2 toques entra no mais próximo. No carro, toque aceita racha (50 m) ou desce.
+// Entrar: 1º toque chama o veículo (para ~5 m à frente); o próximo toque entra. No carro, toque aceita racha (50 m) ou desce.
 {
   const b = $('bAct'); let actN = 0, actT = 0;
   b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); G.audio && G.audio.init(); b.classList.add('on'); });
@@ -315,8 +317,8 @@ const hold = (id, on, off) => { const b = $(id); b.addEventListener('pointerdown
     const instant = !!(G.player.vehicle || G.talk.cur || G.race.active);
     actN++;
     if (actN === 1) {
-      actT = setTimeout(() => { actN = 0; onActTap(1); }, instant ? 0 : 280);
-    } else { clearTimeout(actT); actN = 0; onActTap(2); }
+      actN = 0; void instant; void actT; onActTap(1); // 1º toque chama, o próximo entra (sem toque duplo)
+    }
   });
 }
 hold('bJump', () => { input.jump = true; input.hb = true; }, () => { input.hb = false; });
@@ -351,14 +353,17 @@ function onActTap(n) {
     if (n === 1) exitVehicle();
     return;
   }
-  if (n === 1) {
-    G.callCar();
-    const near = G.street && G.street.nearRival(50);
-    G.ui.toast(near ? '🚘 Veículo a caminho · toque duas vezes para entrar, depois 🏁 para aceitar o racha (até 50 m)' : '🚘 Chamando seu veículo · toque duas vezes para entrar', 2600);
-    return;
-  }
+  // a pé: se há carro para entrar (o chamado, chegando ou parado perto, ou outro ao lado) entra; senão chama
+  const C = G.carCall;
+  if (C && C.v && !C.v.driver) { finishCarCall(G); enterVehicle(C.v); return; }
+  const sc = G.sigCar; if (sc && !sc.driver && G.vehicles.indexOf(sc) >= 0 && Math.hypot(sc.x - p.x, sc.z - p.z) < 30) { enterVehicle(sc); return; }
+  if (nearestVehicle()) { enterNearest(); return; }
   if (G.home.near()) { G.home.open(); return; }
-  enterNearest();
+  const npc = G.talk.cool > 0 ? null : G.talk.nearest(); if (npc) { G.talk.open(npc); return; }
+  if (G.callCar()) {
+    const near = G.street && G.street.nearRival(50);
+    G.ui.toast(near ? '🚘 Veículo a caminho · toque de novo para entrar, depois 🏁 para aceitar o racha (até 50 m)' : '🚘 Seu veículo vem parar à sua frente · toque de novo para entrar', 2600);
+  }
 }
 function enterNearest() {
   const p = G.player;
@@ -366,6 +371,10 @@ function enterNearest() {
   const v = nearestVehicle(); const npc = G.talk.cool > 0 ? null : G.talk.nearest();
   if (npc && (!v || Math.hypot(npc.x - p.x, npc.z - p.z) < Math.hypot(v.x - p.x, v.z - p.z) - 1)) { G.talk.open(npc); return; }
   if (!v) { G.ui.toast('Nenhum veículo por perto para entrar. Toque uma vez para chamar o seu 🚘', 2200); return; }
+  enterVehicle(v);
+}
+function enterVehicle(v) {
+  const p = G.player; if (p.vehicle || !v || v.driver) return;
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
   G.ui.toast(v.type === 'heli' ? '🚁 <b>Helicóptero</b> · ' + (touch ? 'joystick anda e gira · ⤒ sobe · ⤓ desce' : 'W/S frente e ré · A/D gira · Espaço sobe · Shift desce') : `${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : (touch ? ' · deslize para cima: nitro · para baixo: drift' : '')}`, v.type === 'heli' ? 5000 : 2400);
@@ -434,10 +443,10 @@ function updatePlayer(dt) {
     let steer = mx, thr = my;
     if (fromStick && !mobileDrive) { steer = Math.sign(mx) * Math.min(1, Math.abs(mx) * 1.25) ** 1.4; thr = Math.abs(my) < 0.18 ? 0 : my; }
     let hb = keys.has('Space') || input.hb; let nitro = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('KeyN') || input.nitro;
-    let hardBrake = false, limit = 1;
+    let hardBrake = false, limit = 1, kick = !!input.kick; input.kick = false;
     if (mobileDrive) {
       const d = DriveUI.input();
-      steer = d.x; thr = d.y; hb = hb || d.hb; nitro = nitro || d.nitro; hardBrake = d.hardBrake; limit = d.limit;
+      steer = d.x; thr = d.y; hb = hb || d.hb; nitro = nitro || d.nitro; hardBrake = d.hardBrake; limit = d.limit; kick = kick || d.kick;
     }
     if (G.race.frozen && v.race) { // largada: carro parado, motor acelerando
       v.vx = v.vz = v.vf = 0; v.steer += (steer - v.steer) * Math.min(1, dt * 7); v.rpm = lerp(v.rpm || 0, Math.max(0.12, thr) * 0.85, Math.min(1, dt * 6)); v.boosting = false; v.sync(dt);
@@ -454,7 +463,7 @@ function updatePlayer(dt) {
     // passo fixo 1/60, no máximo 3 por quadro; depois de um hitch o resto é descartado (physics-tuning)
     const F = 1 / 60; v._acc = (v._acc || 0) + dt; let impact = 0, n = 0;
     const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars, G.race.cars, G.street.cars);
-    while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, hardBrake, limit }, others, G.t)); v._acc -= F; n++; }
+    while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, hardBrake, limit, kick: kick && n === 0 }, others, G.t)); v._acc -= F; n++; }
     if (n >= 3) v._acc = 0;
     if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
     if (impact > 2.5) { G.audio.thud(impact); G.shake(Math.min(0.7, impact * 0.05)); }
@@ -562,21 +571,26 @@ function updatePrompts() {
   ui.prompt(html);
   const nw = $('nitroW'); const hasN = !!(v && v.tune); if (nw.hidden === hasN) nw.hidden = !hasN;
   if (hasN) { // nitro de cinco camadas
-    if (!G._nsegs) G._nsegs = [...nw.querySelectorAll('.nSegs i')]; const n5 = v.nitro * 5, st = v.boosting ? v.nStage || 1 : 0;
+    if (!G._nsegs) G._nsegs = [...nw.querySelectorAll('.nSegs i')]; const n5 = v.nitro * NITRO_STAGES, st = v.boosting ? v.nStage || 1 : 0;
     G._nsegs.forEach((el, i) => { const f = clamp(n5 - i, 0, 1); const b = el.firstChild; const t = `scaleX(${f.toFixed(2)})`; if (b._t !== t) { b.style.transform = t; b._t = t; } const hot = st > i; if (el._h !== hot) { el.classList.toggle('hot', hot); el._h = hot; } });
     const lb = st ? `NITRO ×${st}` : touch ? 'NITRO 🔥' : 'NITRO · Shift'; if (G._nl !== lb) { $('nitroL').textContent = lb; G._nl = lb; } nw.classList.toggle('on', v.boosting); }
+  { // drift longo: janela de extensão (barra) + tempo + pêndulos encadeados
+    const dw = $('driftW'); const dOn = !!(v && v.swD && v.drifting); if (dw.hidden === dOn) dw.hidden = !dOn;
+    if (dOn) { const f = clamp(v.dExt / DRIFT_MAX, 0, 1); const b = $('driftB'); const t = `scaleX(${f.toFixed(2)})`; if (b._t !== t) { b.style.transform = t; b._t = t; }
+      const lb = `DRIFT ${v.dTime.toFixed(1)}s` + (v.dChain ? ` · PÊNDULO ×${v.dChain}` : ''); if (G._dl !== lb) { $('driftL').textContent = lb; G._dl = lb; } dw.classList.toggle('low', f < 0.28); }
+  }
   const rc = G.race.active && v && v.race; if (document.body.classList.contains('racing') !== !!rc) document.body.classList.toggle('racing', !!rc);
   if (touch) {
     const act = $('bAct');
     const raceNear = !!(v && G.street && !G.street.race && G.street.nearRival(50));
-    const lbl = rc ? '🏳️<small>Sair</small>' : raceNear ? '🏁<small>Aceitar</small>' : v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : talkNear ? '💬<small>Conversar</small>' : '🚘<small>Chamar</small>';
-    if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (raceNear ? 'Aceitar o racha (até 50 m)' : 'Descer do veículo') : 'Um toque: chama seu veículo. Dois toques: entra no mais próximo.'; }
+    const lbl = rc ? '🏳️<small>Sair</small>' : raceNear ? '🏁<small>Aceitar</small>' : v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : (G.carCall || near || (G.sigCar && !G.sigCar.driver && G.vehicles.indexOf(G.sigCar) >= 0 && Math.hypot(G.sigCar.x - p.x, G.sigCar.z - p.z) < 30)) ? '🚗<small>Entrar</small>' : talkNear ? '💬<small>Conversar</small>' : '🚘<small>Chamar</small>';
+    if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (raceNear ? 'Aceitar o racha (até 50 m)' : 'Descer do veículo') : 'Um toque chama seu veículo (para à sua frente); o próximo toque entra.'; }
     act.style.opacity = 1;
     const heli = v && v.type === 'heli';
     $('bReset').hidden = !rc; $('bPhoto').hidden = !!rc;
     $('bStart').hidden = !s; $('bHorn').hidden = !v || heli || !!rc; $('bNitro').hidden = !(v && v.tune); if (!v || !v.tune) input.nitro = false; const flyP = !v && (G.powers.fly || G.powers.lev || G.jet.on && !G.player.grounded); $('bDown').hidden = !heli && !flyP; if (!heli && !flyP) input.down = false; $('bPow').hidden = !!v || !(G.hero.def && G.hero.def.hero);
     const jl = heli || flyP ? '⤒<small>Subir</small>' : v && v.spec.race ? '🌀<small>Drift</small>' : v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>'; const bj = $('bJump'); if (bj._l !== jl) { bj.innerHTML = jl; bj._l = jl; }
-    if (v && v.type !== 'heli') { $('bPhoto').hidden = true; $('bHorn').hidden = true; $('bStart').hidden = true; const q = $('quick'); if (q) q.hidden = true; const nw = $('nitroW'); if (nw) nw.hidden = true; }
+    if (v && v.type !== 'heli') { $('bPhoto').hidden = true; $('bHorn').hidden = true; $('bStart').hidden = true; const q = $('quick'); if (q) q.hidden = true; }
     else { const q = $('quick'); if (q) q.hidden = false; }
   }
 }
@@ -596,13 +610,16 @@ function updateAllLights() {
   if (G.race && G.race.cars) list.push(...G.race.cars);
   if (G.rivals && G.rivals.cars) list.push(...G.rivals.cars);
   let budget = Q.level === 'low' ? 8 : 16;
+  // mais perto primeiro: o orçamento de luzes vai para o que está na tela
+  for (const v of list) if (v) v._ld = Math.hypot(v.x - cam.x, v.z - cam.z);
+  list.sort((a, b) => (a ? a._ld : 1e9) - (b ? b._ld : 1e9));
   for (const v of list) {
     if (!v || !v.updateBeams) continue;
     const isP = v === pv;
     if (!isP) {
-      if (night < 0.32 || budget <= 0) { if (v.fakeBeam) v.fakeBeam.visible = false; if (v.spot) v.spot.visible = false; continue; }
+      if (night < 0.32 || budget <= 0) { if (v.fakeBeam) v.fakeBeam.visible = false; if (v.spot) v.spot.visible = false; if (v.tailGlow) v.tailGlow.visible = !!(v.brakeOn && v.tailGlow.visible); continue; }
       const d = Math.hypot(v.x - cam.x, v.z - cam.z);
-      if (d > 95) { if (v.fakeBeam) v.fakeBeam.visible = false; continue; }
+      if (d > 95) { if (v.fakeBeam) v.fakeBeam.visible = false; if (v.tailGlow) v.tailGlow.visible = false; continue; }
       budget--;
     }
     v.updateBeams(night, isP, isP && high);
@@ -769,7 +786,7 @@ window.MBD = {
   frameStats: () => G.frameStats(),
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
   life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
-  leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest,
+  leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
 

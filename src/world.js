@@ -315,13 +315,44 @@ export function buildWorld(scene, Q) {
   M.neon = NEON_COLS.map(c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false }));
   M.sign = new THREE.MeshBasicMaterial({ map: T.sign, toneMapped: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
   M.lampHead = new THREE.MeshBasicMaterial({ color: 0xfff1d0, toneMapped: false });
+  // ---- térreo: vitrines, portas de entrada e letreiros de lojas (um atlas em canvas; acende à noite)
+  const drawShops = (g, emis) => {
+    const cell = (i, f) => { g.save(); g.translate(i * 256, 0); f(); g.restore(); };
+    const frame = (c) => { g.fillStyle = emis ? '#000' : c; g.fillRect(0, 0, 256, 256); };
+    const glass = (x, y, w, h, warm) => {
+      const gr = g.createLinearGradient(0, y, 0, y + h);
+      if (emis) { gr.addColorStop(0, warm ? '#ffe2b0' : '#d8ecff'); gr.addColorStop(1, warm ? '#ffb46a' : '#8fc4ff'); }
+      else { gr.addColorStop(0, '#4d6072'); gr.addColorStop(0.5, '#27323e'); gr.addColorStop(1, '#1b2129'); }
+      g.fillStyle = gr; g.fillRect(x, y, w, h);
+      if (!emis) { g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(x + w * 0.15, y); g.lineTo(x + w * 0.35, y); g.lineTo(x + w * 0.1, y + h); g.lineTo(x - w * 0.1 + 1, y + h); g.fill(); }
+    };
+    const dark = (x, y, w, h, a) => { g.fillStyle = `rgba(20,14,10,${a})`; g.fillRect(x, y, w, h); };
+    // 0: vitrine com prateleiras (luz quente)
+    cell(0, () => { frame('#2b2b31'); glass(12, 18, 232, 206, true); for (let k = 0; k < 3; k++) { dark(22, 70 + k * 52, 212, 6, emis ? 0.55 : 0.4); for (let j = 0; j < 7; j++) dark(28 + j * 30, 46 + k * 52, 18, 24, emis ? 0.35 : 0.25); } g.fillStyle = emis ? '#000' : '#3a3a42'; g.fillRect(0, 226, 256, 30); });
+    // 1: porta de vidro dupla com puxadores
+    cell(1, () => { frame('#2b2b31'); glass(10, 14, 236, 40, true); glass(22, 62, 100, 194, true); glass(134, 62, 100, 194, true); g.fillStyle = emis ? '#000' : '#c9ccd2'; g.fillRect(110, 120, 6, 70); g.fillRect(140, 120, 6, 70); g.fillStyle = emis ? '#000' : '#2b2b31'; g.fillRect(124, 56, 8, 200); });
+    // 2: vitrine de roupas (manequins, luz fria)
+    cell(2, () => { frame('#26262c'); glass(12, 18, 232, 206, false); for (let j = 0; j < 3; j++) { const x = 50 + j * 72; dark(x - 3, 70, 26, 26, emis ? 0.6 : 0.45); dark(x - 12, 98, 44, 80, emis ? 0.5 : 0.35); dark(x + 2, 178, 6, 46, emis ? 0.5 : 0.35); } g.fillStyle = emis ? '#000' : '#3a3a42'; g.fillRect(0, 226, 256, 30); });
+    // 3: entrada do prédio (portaria): moldura de pedra, porta alta e bandeira iluminada
+    cell(3, () => { frame('#bdb4a5'); g.fillStyle = emis ? '#000' : '#8c8478'; g.fillRect(28, 8, 200, 248); glass(40, 18, 176, 36, true); g.fillStyle = emis ? '#000' : '#3a2c22'; g.fillRect(40, 62, 176, 194); glass(52, 72, 70, 176, true); glass(134, 72, 70, 176, true); g.fillStyle = emis ? '#000' : '#d8c08a'; g.fillRect(114, 140, 5, 50); g.fillRect(137, 140, 5, 50); });
+  };
+  T.shop = canvasTex(1024, 256, (g) => drawShops(g, false), { aniso: Q.aniso, clamp: true });
+  T.shopE = canvasTex(1024, 256, (g) => drawShops(g, true), { aniso: Q.aniso, clamp: true });
+  T.shopNames = ['PADARIA SOL', 'FARMÁCIA MARÉ', 'SURF ONDA', 'MERCADO PALMA', 'GELATO BRISA', 'ÓTICA CORAL', 'BOUTIQUE LUA', 'CAFÉ CUBANITO'];
+  T.shopSign = canvasTex(512, 512, (g, w) => {
+    const bg = ['#ffefd6', '#e9fbff', '#1f6f8b', '#2f7a3e', '#ffd6e7', '#ff7a59', '#2a2440', '#6b3a1e'], fg = ['#b5532a', '#1d8a6a', '#ffffff', '#fff6c8', '#d6336c', '#ffffff', '#ffc8f0', '#ffe2a8'];
+    T.shopNames.forEach((n, i) => { g.fillStyle = bg[i]; g.fillRect(0, i * 64, w, 64); g.fillStyle = fg[i]; g.font = '800 34px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, w / 2, i * 64 + 33); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(0, i * 64, w, 3); });
+  }, { aniso: Q.aniso, clamp: true });
+  M.shop = new THREE.MeshStandardMaterial({ map: T.shop, emissiveMap: T.shopE, emissive: 0xffffff, emissiveIntensity: 0.05, vertexColors: true, roughness: 0.22, metalness: 0.15 });
+  M.shopSign = new THREE.MeshBasicMaterial({ map: T.shopSign, toneMapped: false, vertexColors: true });
+  M.palmLed = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
   T.road.repeat.set(1, 1);
 
   const chunks = new Map();
   const CH = 250;
   const chunk = (x, z) => {
     const k = Math.floor(x / CH) + ',' + Math.floor(z / CH); let c = chunks.get(k);
-    if (!c) { c = { cx: (Math.floor(x / CH) + 0.5) * CH, cz: (Math.floor(z / CH) + 0.5) * CH, deco: new MeshBuilder(), tower: new MeshBuilder(), misc: new MeshBuilder(), metal: new MeshBuilder(), pool: new MeshBuilder(), sign: new MeshBuilder(), lampHead: new MeshBuilder(), neon: NEON_COLS.map(() => new MeshBuilder()) }; chunks.set(k, c); }
+    if (!c) { c = { cx: (Math.floor(x / CH) + 0.5) * CH, cz: (Math.floor(z / CH) + 0.5) * CH, deco: new MeshBuilder(), tower: new MeshBuilder(), misc: new MeshBuilder(), metal: new MeshBuilder(), pool: new MeshBuilder(), sign: new MeshBuilder(), shop: new MeshBuilder(), shopSign: new MeshBuilder(), lampHead: new MeshBuilder(), neon: NEON_COLS.map(() => new MeshBuilder()) }; chunks.set(k, c); }
     return c;
   };
   const roads = new MeshBuilder(), walks = new MeshBuilder();
@@ -442,6 +473,20 @@ export function buildWorld(scene, Q) {
   const pastel = [0xf7c6d9, 0xa8e6e1, 0xfff1b8, 0xc9b8f2, 0xffd0a8, 0xbfe8c0, 0xf9e0f0, 0xffffff, 0xd6f0ff, 0xffe0c4];
   const decoAccent = [0x2ab3b8, 0xff6fa6, 0xffb347, 0x7d6cf0, 0x46c08c, 0x3a8fd8];
   const neonBox = (ch, ci, x, y, z, sx, sy, sz) => ch.neon[ci].box(x, y, z, sx, sy, sz, W);
+  // fachada térrea: baias de 4 m (vitrines) com a porta no meio; opcional toldo + letreiro de loja
+  const AWN = [0xff6fa6, 0x2ab3b8, 0xffb347, 0x7d6cf0, 0x46c08c, 0xff5a5a];
+  function storefront(ch, x, z, ry, span, o = {}) {
+    const cs = Math.cos(ry), sn = Math.sin(ry), fx = Math.sin(ry), fz = Math.cos(ry);
+    const P = (a, y, out = 0) => [x + a * cs + fx * out, y, z - a * sn + fz * out];
+    const n = Math.max(2, Math.round(span / 4)), bw = span / n, mid = Math.floor(n / 2), alt = R() < 0.5 ? 0 : 2;
+    for (let i = 0; i < n; i++) {
+      const c = i === mid ? (o.lobby ? 3 : 1) : (i % 2 ? 2 - alt : alt); const a0 = -span / 2 + i * bw, a1 = a0 + bw, u0 = c / 4 + 0.002, u1 = (c + 1) / 4 - 0.002;
+      ch.shop.quad(P(a0, 0.12, 0.04), P(a1, 0.12, 0.04), P(a1, 3.0, 0.04), P(a0, 3.0, 0.04), [fx, 0, fz], [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], W);
+    }
+    if (o.awning) { const [ax, az] = P(0, 0, 0.85); ch.misc.box(ax, 3.28, az, span * 0.96, 0.22, 1.7, C(pick(R, AWN)), { ry }); if (o.neonEdge != null) { const [nx, nz] = P(0, 0, 1.72); ch.neon[o.neonEdge].box(nx, 3.2, nz, span * 0.96, 0.08, 0.08, W, { ry }); } }
+    if (o.sign) { const si = Math.floor(R() * 8), sw = Math.min(span * 0.7, 8), sh = sw / 8; const v0 = 1 - (si + 1) / 8, v1 = 1 - si / 8; const y0 = 3.5;
+      ch.shopSign.quad(P(-sw / 2, y0, 0.06), P(sw / 2, y0, 0.06), P(sw / 2, y0 + sh, 0.06), P(-sw / 2, y0 + sh, 0.06), [fx, 0, fz], [[0, v0], [1, v0], [1, v1], [0, v1]], W); }
+  }
   function decoBuilding(cx, cz, w, d, h, ry, front) {
     const ch = chunk(cx, cz); const col = C(pick(R, pastel)), acc = C(pick(R, decoAccent)); const ni = Math.floor(R() * NEON_COLS.length);
     ch.deco.box(cx, h / 2, cz, w, h, d, col, { u: 16, v: 14, ry, v0: 0.02, ao: 0.62 });
@@ -460,6 +505,8 @@ export function buildWorld(scene, Q) {
     } else {
       const [nx, nz] = px(0, d / 2 + 0.7); ch.neon[ni].box(nx, h + 1.25, nz, w + 0.4, 0.18, 0.18, W, { ry });
     }
+    // térreo com vitrines e porta de entrada (o toldo e o letreiro já existem acima)
+    { const [sx, sz] = px(0, d / 2); storefront(ch, sx, sz, ry, w * 0.9, { lobby: R() < 0.3 }); }
     // marquise térrea + toldo
     { const [x, z] = px(0, d / 2 + 1.6); ch.misc.box(x, 3.2, z, w * 0.9, 0.25, 3.2, acc, { ry }); const [nx, nz] = px(0, d / 2 + 3.2); ch.neon[(ni + 2) % NEON_COLS.length].box(nx, 3.05, nz, w * 0.9, 0.12, 0.12, W, { ry }); }
     // letreiro
@@ -476,6 +523,13 @@ export function buildWorld(scene, Q) {
   function tower(cx, cz, w, d, h) {
     const ch = chunk(cx, cz); const tint = C(pick(R, [0xffffff, 0xdff2ff, 0xe8fff4, 0xfff1e0, 0xe6e0ff]));
     const pod = 8 + Math.floor(R() * 3) * 4;
+    // pódio com lojas nos quatro lados: vitrines, portas, toldos e letreiros; portaria no meio da frente
+    for (const [fxk, fzk, ry, len] of [[0, 1, 0, w + 6], [0, -1, Math.PI, w + 6], [1, 0, Math.PI / 2, d + 6], [-1, 0, -Math.PI / 2, d + 6]]) {
+      const ox = cx + fxk * (w + 6) / 2, oz = cz + fzk * (d + 6) / 2; const n = Math.max(1, Math.round((len - 2) / 12)), segL = (len - 2) / n;
+      const cs = Math.cos(ry), sn = Math.sin(ry);
+      for (let i = 0; i < n; i++) { const a = -(len - 2) / 2 + (i + 0.5) * segL; const lobby = fzk === 1 && i === Math.floor(n / 2);
+        storefront(ch, ox + a * cs, oz - a * sn, ry, segL - 0.6, { lobby, awning: !lobby, sign: !lobby, neonEdge: null }); }
+    }
     ch.misc.box(cx, pod / 2, cz, w + 6, pod, d + 6, C(pick(R, [0xd9d4cc, 0xcfc8bd, 0xe6e1d8])), { ao: 0.55 });
     ch.tower.box(cx, pod + (h - pod) / 2, cz, w, h - pod, d, tint, { u: 32, v: 32, roof: 0.004 });
     const style = R();
@@ -619,7 +673,7 @@ export function buildWorld(scene, Q) {
     add(c.deco, M.deco); add(c.tower, M.tower);
     // detalhes (térreo, letreiros, neon, metais) somem de longe em aparelhos fracos — fachadas e torres ficam (horizonte)
     const det = [add(c.misc, M.misc), add(c.metal, M.metal), add(c.pool, M.pool, false), ...c.neon.map((b, i) => add(b, M.neon[i], false))];
-    const s = add(c.sign, M.sign, false); if (s) s.renderOrder = 2; det.push(s);
+    const s = add(c.sign, M.sign, false); if (s) s.renderOrder = 2; det.push(s, add(c.shop, M.shop, false), add(c.shopSign, M.shopSign, false));
     for (const m of det) if (m) lodList.push({ m, x: c.cx, z: c.cz });
   }
   // ---- roda-gigante
@@ -643,7 +697,7 @@ export function buildWorld(scene, Q) {
   }
 
   // ---- palmeiras (instanciadas, com vento)
-  const palmTime = { value: 0 };
+  const palmTime = { value: 0 }; const S0 = {};
   {
     const trunk = new MeshBuilder(), crown = new MeshBuilder();
     const H = 9, segs = 5;
@@ -682,6 +736,16 @@ export function buildWorld(scene, Q) {
       tmesh.setMatrixAt(i, mtx); cmesh.setMatrixAt(i, mtx); addCircle(x, z, 0.4);
     });
     tmesh.castShadow = cmesh.castShadow = true; tmesh.receiveShadow = cmesh.receiveShadow = true;
+    // LED nas palmeiras (como na orla de Miami Beach): anéis/filetes instanciados, uma malha só, acendem à noite
+    {
+      const led = new MeshBuilder(); const bendX = t => t * t * 1.6;
+      for (const t of [0.12, 0.26, 0.4, 0.54, 0.68]) { const r = 0.33 - t * 0.12 + 0.03; led.addGeo(new THREE.TorusGeometry(r, 0.05, 4, 12).rotateX(Math.PI / 2), new THREE.Matrix4().makeTranslation(bendX(t), H * t, 0), W); }
+      
+      const sel = []; palmPos.forEach((pp, i) => { if (pp[0] > -680) sel.push(i); });
+      const lm = new THREE.InstancedMesh(led.geometry(), M.palmLed, sel.length); const cols = [0xff3fa8, 0x29f0ff]; const cc = new THREE.Color();
+      sel.forEach((i, k) => { tmesh.getMatrixAt(i, mtx); lm.setMatrixAt(k, mtx); lm.setColorAt(k, cc.setHex(cols[k % cols.length])); });
+      lm.instanceMatrix.needsUpdate = true; if (lm.instanceColor) lm.instanceColor.needsUpdate = true; scene.add(lm); S0.palmLed = lm;
+    }
     scene.add(tmesh, cmesh);
   }
   // ---- árvores dos glades (cipreste) e capim
@@ -794,12 +858,13 @@ export function buildWorld(scene, Q) {
     SPAWNS.taxiStands.push({ x: 293.7, z: -60, h: Math.PI }, { x: -306.3, z: -230, h: 0 }, { x: 173.7, z: 220, h: Math.PI });
   }
 
-  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow };
+  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed };
   S.setNight = (night, wet) => {
     M.deco.emissiveIntensity = night * 0.9; M.tower.emissiveIntensity = night * 0.85;
     const k = 0.55 + night * 2.4;
     M.neon.forEach((m, i) => m.color.set(NEON_COLS[i]).multiplyScalar(k));
     M.sign.color.setScalar(0.5 + night * 2.2);
+    M.shop.emissiveIntensity = 0.05 + night * 1.25; M.shopSign.color.setScalar(0.8 + night * 0.9); M.palmLed.color.setScalar(0.3 + night * 2.3);
     M.lampHead.color.set(0xfff1d0).multiplyScalar(0.3 + night * 3);
     glowMat.opacity = night * 0.7; glow.visible = night > 0.02;
     M.road.roughness = 0.92 - wet * 0.62; M.road.color.setScalar(1 - wet * 0.35);
