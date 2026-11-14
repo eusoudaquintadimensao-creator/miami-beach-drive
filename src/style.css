@@ -641,3 +641,19 @@ body.touch.land #megaCard{top:auto;bottom:calc(var(--sab) + 56px);max-width:min(
 /* mapa completo: zoom */
 #bmBtns{position:absolute;right:calc(var(--sar,0px) + 14px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2}
 #bmBtns button{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(20,16,40,.85);color:#fff;font-size:22px;font-weight:800}
+
+/* Versões do jogo (tela inicial) */
+.install.ver{border-color:#29f0ff}
+#verPanel{position:fixed;inset:0;z-index:30;background:rgba(6,3,18,.72);display:flex;align-items:center;justify-content:center;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px)}
+#verPanel[hidden]{display:none}
+.verBox{width:min(460px,100%);max-height:100%;overflow:auto;background:linear-gradient(160deg,#2a1050,#0d1a3a 70%);border:2px solid rgba(255,255,255,.35);border-radius:22px;padding:14px;box-shadow:0 20px 60px #000a;text-align:left}
+.verHead{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:10px}
+.verX{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:16px}
+.verList{display:flex;flex-direction:column;gap:8px}
+.verCard{display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);color:#fff;text-decoration:none}
+.verCard i{font-style:normal;font-size:28px;width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--c)}
+.verCard span{flex:1;display:flex;flex-direction:column}.verCard small{opacity:.8;font-size:12px}
+.verCard em{font-style:normal;font-weight:800;font-size:13px;color:var(--c);white-space:nowrap}
+.verCard.cur{border-color:var(--c);background:rgba(255,255,255,.16)}
+.verSite{align-self:flex-end;font-size:12.5px;color:#9feaff;margin:-2px 6px 2px}
+@media (max-height:500px){.verBox{width:min(640px,100%)}.verList{display:grid;grid-template-columns:1fr 1fr;gap:8px}.verCard{padding:9px}.verSite{grid-column:span 2;align-self:center}}
