@@ -38,6 +38,7 @@ import { Islands } from './islands.js';
 import { BoatRace } from './boatrace.js';
 import { MegaGarage } from './megagarage.js';
 import { OsmGps } from './gpsosm.js';
+import { setupVersions } from './versions.js';
 import { buildLife } from './life.js';
 import { Birds } from './birds.js';
 import { Gifts } from './gifts.js';
@@ -830,6 +831,7 @@ function render() {
   }
 }
 
+setupVersions('solara'); // tela inicial: Versões do jogo
 $('play').onclick = () => {
   G.audio.init(); $('start').hidden = true; $('hud').hidden = false; G.started = true; G.ui.resize(); resize();
   if (touch && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
