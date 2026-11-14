@@ -378,6 +378,13 @@ hold('bPow', () => G.powers.trigger());
 hold('bReset', () => G.race.resetCar());
 $('bRec').onclick = () => { G.audio.init(); G.rec.toggle(); };
 $('rpClose').onclick = () => { $('recPanel').hidden = true; G.paused = false; };
+{ // t399: atalhos recolhíveis (paisagem começa recolhido para não cobrir a cidade); lembra a escolha
+  const qk = 'quickMin-v1', qb = $('qMore'), qd = $('quick');
+  const apply = (m) => { qd.classList.toggle('min', m); qb.textContent = m ? '▦' : '✕'; qb.title = m ? 'Mostrar atalhos' : 'Ocultar atalhos'; };
+  const pref = () => { const v = localStorage.getItem(qk); return v === null ? innerWidth > innerHeight : v === '1'; };
+  apply(pref()); addEventListener('resize', () => { if (localStorage.getItem(qk) === null) apply(innerWidth > innerHeight); });
+  qb.onclick = (e) => { e.stopPropagation(); const m = !qd.classList.contains('min'); localStorage.setItem(qk, m ? '1' : '0'); apply(m); };
+}
 $('bPhone').onclick = () => G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); $('bMap').onclick = () => G.ui.openMap(); $('bRadio').onclick = () => { G.audio.init(); G.radioSet(G.audio.station + 1); }; $('bCam').onclick = () => cycleCam();
 function cycleCam() { G.camMode = (G.camMode + 1) % 3; G.ui.toast(['Câmera normal', 'Câmera distante', 'Câmera próxima'][G.camMode], 1400); }
 G.radioSet = (i) => { const st = G.audio.setStation(i); save.station = G.audio.station; G.ui.radio(st); persist(); };
@@ -386,12 +393,29 @@ let photoReq = false;
 function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.chime('photo'); }
 
 // ---------------- entrar e sair
+// t398: só o veículo MAIS PERTO, medido até a lateral/porta (borda da carroceria), até ~3,5 m; sem prioridade por tipo, sem buscar longe
+const ENTER_R = 3.5, ENTER_R_BOAT = 4.5;
+function doorDist(v, x, z) {
+  const cs = v.circles(); if (!cs.length) return 1e9; // no ar
+  const r = v.type === 'plane' ? 1.5 : v.type === 'heli' ? 1.4 : Math.min(v.spec.w || 1.8, 3.2) * 0.5;
+  let d = 1e9; for (const c of cs) d = Math.min(d, Math.hypot(c[0] - x, c[1] - z));
+  return Math.max(0, d - r);
+}
+function enterRange(v) { return v.spec.boat ? ENTER_R_BOAT : ENTER_R; }
 function nearestVehicle() {
   if (G.bail && G.bail.mode && G.bail.mode !== 'roll') return null; // no ar ou nadando: nada para entrar
-  const p = G.player; let best = null, bd = 1e9;
-  for (const v of G.vehicles) { if (v.driver || v.noEnter) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'plane' ? 10 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
+  const p = G.player, C = G.carCall; let best = null, bd = 1e9;
+  for (const v of G.vehicles) {
+    if (v.driver || v.noEnter || v.air) continue;
+    if (Math.hypot(v.x - p.x, v.z - p.z) > 16) continue;
+    if (C && C.v === v && C.t < C.dur) continue; // chamado ainda chegando: só depois de parar
+    const d = doorDist(v, p.x, p.z); if (d <= enterRange(v) && d < bd) { bd = d; best = v; }
+  }
+  // o seu veículo chamado para ~5-7 m à frente: alcance um pouco maior, mas SÓ se não houver outro ao alcance
+  const sc = G.sigCar; if (!best && sc && !sc.driver && !(C && C.v === sc) && G.vehicles.indexOf(sc) >= 0 && doorDist(sc, p.x, p.z) <= 6) best = sc;
   return best;
 }
+G.nearestVehicleObj = nearestVehicle; G.doorDist = doorDist;
 function onActTap(n) {
   if (!G.started || G.paused) return; G.audio.init();
   if (G.race.active && n === 1) { G.race.askQuit(); return; }
@@ -408,10 +432,9 @@ function onActTap(n) {
   // a pé: se há carro para entrar (o chamado, chegando ou parado perto, ou outro ao lado) entra; senão chama
   if (G.orla && G.orla.act()) return; // academia, eventos e pedidos da orla
   if (G.mega && G.mega.act()) return; // perto de um carro à venda na Mega Garagem = comprar
-  const C = G.carCall;
-  if (C && C.v && !C.v.driver) { finishCarCall(G); enterVehicle(C.v); return; }
-  const sc = G.sigCar; if (sc && !sc.driver && G.vehicles.indexOf(sc) >= 0 && Math.hypot(sc.x - p.x, sc.z - p.z) < 30) { enterVehicle(sc); return; }
-  if (nearestVehicle()) { enterNearest(); return; }
+  if (nearestVehicle()) { enterNearest(); return; } // t398: sempre o mais perto (o chamado não passa na frente)
+  const C = G.carCall; // chamado chegando e nada ao alcance: termina a chegada e entra só se ele parar ao alcance
+  if (C && C.v && !C.v.driver) { finishCarCall(G); const v = nearestVehicle(); if (v) enterVehicle(v); else G.ui.toast(`🚘 ${C.v.sigName || C.v.spec.name} parou ali · chegue perto da porta para entrar`, 2200); return; }
   if (G.home.near()) { G.home.open(); return; }
   const npc = G.talk.cool > 0 ? null : G.talk.nearest(); if (npc) { G.talk.open(npc); return; }
   if (G.callCar()) {
@@ -641,7 +664,7 @@ function updatePrompts() {
   let html = '';
   if (s) html = touch ? `Toque em ▶ para iniciar: <b>${s.name}</b>` : `<kbd>Enter</kbd> iniciar: <b>${s.name}</b>`;
   else if (near && near.mine) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>seu carro tunado</b>`;
-  else if (near) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>${near.spec.name}</b>`;
+  else if (near) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>${near.sigName || near.spec.name}</b>`;
   if (!v && !G.talk.cur) { const npc = G.talk.cool > 0 ? null : G.talk.nearest(); if (npc && (!near || Math.hypot(npc.x - p.x, npc.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z) - 1)) { const W = G.talk.whoOf(npc); talkNear = W; if (!s) html = `<kbd>E</kbd> ${touch ? 'Toque em 💬 para ' : ''}conversar com <b>${W.emoji} ${W.name}</b>`; } else talkNear = null; } else talkNear = null;
   if (!html && G.home.near()) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar em casa: <b>visual, salvar, descansar</b>`;
   if (!html && v && v.type === 'plane') html = v.air ? '' : v.speed < 2 && v.thr < 0.1 ? (touch ? 'Segure ⤒ para acelerar e puxe o joystick para cima para decolar ✈️' : 'Segure <kbd>Espaço</kbd> (manete) e <kbd>W</kbd> para decolar ✈️') : '';
@@ -760,12 +783,12 @@ function step(dt) {
   G._lodT = (G._lodT || 0) - dt; if (G._lodT <= 0) { G._lodT = 0.5; G.lodHidden = G.world.lod(camera.position.x, camera.position.z, Q.detail); }
   if (grade) { grade.uniforms.uWarm.value = 0.4 + (1 - G.env.night) * 0.4; grade.uniforms.uSat.value = 1.15 + G.env.night * 0.1 - G.env.rain * 0.15; }
   if (zoomBlur) { const bv = G.player.vehicle; const want = bv && bv.boosting ? Math.min(1, bv.speed / 40) : 0; zoomBlur.uniforms.uAmt.value += (want - zoomBlur.uniforms.uAmt.value) * Math.min(1, dt * 6); zoomBlur.enabled = zoomBlur.uniforms.uAmt.value > 0.02; }
-  if (bloom) { bloom.strength = 0.26 + G.env.night * 0.2 + G.env.wet * 0.05; bloom.threshold = 2.32 - G.env.night * 0.62; }
+  if (bloom) { const hb = G.player.vehicle && DriveUI.highBeam ? 1 : 0; bloom.strength = 0.26 + G.env.night * (0.2 - hb * 0.06) + G.env.wet * 0.05; bloom.threshold = 2.32 - G.env.night * (0.62 - hb * 0.22); } // t399: farol alto não estoura o bloom
   // farol do jogador à noite
   const v = G.player.vehicle;
   if (Q.level !== 'low' && v && !v.spec.boat && !v.spec.air && G.env.night > 0.3) {
-    if (!headlight) { headlight = new THREE.SpotLight(0xfff2d8, 0, 70, 0.55, 0.5, 1.2); scene.add(headlight, headlight.target); }
-    const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 60 * G.env.night + (G.street && G.street.flashT > 0 ? 150 * Math.min(1, G.street.flashT * 4) : 0);
+    if (!headlight) { headlight = new THREE.SpotLight(0xfff2d8, 0, 60, 0.75, 0.9, 1.2); scene.add(headlight, headlight.target); }
+    const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 18 * G.env.night + (G.street && G.street.flashT > 0 ? 150 * Math.min(1, G.street.flashT * 4) : 0);
   } else if (headlight) headlight.intensity = 0;
   // esconde carros estacionados distantes
   for (const c of G.vehicles) c.root.visible = Math.hypot(c.x - camera.position.x, c.z - camera.position.z) < Q.viewHide;

@@ -687,7 +687,7 @@ export class Vehicle {
     // feixe falso barato: cone aberto com ponta no farol, gradiente que some à frente, sem neblina
     if (!BEAM_TEX) {
       const c = document.createElement('canvas'); c.width = 4; c.height = 64; const g = c.getContext('2d');
-      const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,255,255,.5)'); gr.addColorStop(0.18, 'rgba(255,255,255,.75)'); gr.addColorStop(0.5, 'rgba(255,255,255,.28)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); // t399: ponta sem clarão
       g.fillStyle = gr; g.fillRect(0, 0, 4, 64); BEAM_TEX = new THREE.CanvasTexture(c);
     }
     const L = 16;
@@ -728,10 +728,10 @@ export class Vehicle {
     this.setupBeams();
     const on = night > 0.32;
     if (this.fakeBeam) {
-      const op = !on ? 0 : isPlayer ? (high ? 0.17 : 0.11) : 0.06;
+      const op = !on ? 0 : isPlayer ? (high ? 0.055 : 0.045) : 0.045; // t399: feixe visível mais suave (sem clarão no centro)
       this._beamM.opacity = op;
       this.fakeBeam.visible = op > 0.03;
-      const sL = isPlayer ? (high ? 3.0 : 1.7) : 1, sW = isPlayer ? (high ? 1.35 : 1.1) : 1;
+      const sL = isPlayer ? (high ? 2.6 : 1.6) : 1, sW = isPlayer ? (high ? 1.7 : 1.25) : 1;
       this.fakeBeam.scale.set(sW, sL, sW);
     }
     this.setupTailGlow();
@@ -743,11 +743,12 @@ export class Vehicle {
     if (isPlayer && on) {
       const s = this.ensureSpot();
       if (s) {
-        // farol potente: baixo já ilumina a rua; alto alcança longe
-        s.intensity = (high ? 520 : 150) * Math.min(1, night * 1.3);
-        s.angle = high ? Math.PI / 7 : Math.PI / 8.5;
-        s.distance = high ? 240 : 115;
-        if (this.spotTgt) this.spotTgt.position.z = high ? 110 : 60;
+        // t399: baixo ilumina a rua sem estourar; alto vai longe com cone largo e borda macia (sem clarão branco/bloom no centro)
+        s.intensity = (high ? 150 : 80) * Math.min(1, night * 1.3);
+        s.angle = high ? Math.PI / 5.6 : Math.PI / 7.5;
+        s.penumbra = high ? 0.85 : 0.7;
+        s.distance = high ? 200 : 105;
+        if (this.spotTgt) { this.spotTgt.position.z = high ? 110 : 55; this.spotTgt.position.y = high ? 0.6 : 0.15; }
         s.visible = true;
       }
     } else if (this.spot) { this.spot.intensity = 0; this.spot.visible = false; }

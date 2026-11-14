@@ -705,3 +705,19 @@ body.touch.land.driving #giftHud{top:calc(var(--sat) + 104px)}
 body.touch.land #orlaCard,body.touch.land #gymGame{bottom:calc(var(--sab) + 8px);max-width:min(400px,40vw)}
 body.orlaUi #area{visibility:hidden;opacity:0}
 body.driving.touch:not(.land) #nitroW{bottom:calc(var(--sab) + 296px)}
+
+/* ——— t399: controles de direção mais altos e vidro mais transparente (cidade aparece); atalhos recolhíveis ——— */
+body.touch{--gFill:linear-gradient(155deg,rgba(120,240,255,.13),rgba(18,12,44,.16) 60%,rgba(255,79,184,.08))}
+body.touch .glassDrv,body.touch #drvBrake,body.touch #drvRev,body.touch #drvBeam,body.touch #drvCruise,body.touch #drvGear,body.touch .drvRight #bAct,body.touch #bNeutral{backdrop-filter:blur(5px) saturate(1.3)!important;-webkit-backdrop-filter:blur(5px) saturate(1.3)!important}
+body.touch.land.driving .drvRight{bottom:calc(var(--sab) + 74px)}
+body.touch.land.driving #btns{bottom:calc(var(--sab) + 74px)}
+body.touch.land.driving #drvCruise{bottom:calc(var(--sab) + 74px);height:128px}
+body.touch.land.driving #drvGear{bottom:calc(var(--sab) + 74px)}
+body.touch.land.driving #btns #bNeutral{bottom:calc(var(--sab) + 130px)}
+#qMore{display:none}
+body.touch #qMore{display:block;font-size:15px!important;font-weight:800}
+body.touch #quick.min button:not(#qMore){display:none}
+body.touch #quick.min{width:auto}
+body.touch #quick button{opacity:.88}
+body.touch.land #quick button{width:34px;height:34px;font-size:15px;border-radius:10px}
+body.touch.land #quick{width:150px;gap:5px}
