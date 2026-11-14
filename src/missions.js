@@ -72,7 +72,7 @@ export class Missions {
   canStart(s) {
     const v = this.G.player.vehicle;
     if (s.type === 'garagem') return null;
-    if (s.type === 'autodromo') return v && (v.spec.boat || v.type === 'heli') ? 'Desça da lancha/helicóptero para ir ao autódromo' : null;
+    if (s.type === 'autodromo') return v && (v.spec.boat || v.spec.air) ? 'Desça da lancha/helicóptero para ir ao autódromo' : null;
     if (s.type === 'corrida') { if (v && v.spec.heli) return 'Corridas são no chão: desça do helicóptero 🚁'; if (s.race.boat) return v && v.spec.boat ? null : 'Precisa estar numa lancha (tem na marina)'; return v && !v.spec.boat ? null : 'Entre num veículo para correr'; }
     return null;
   }

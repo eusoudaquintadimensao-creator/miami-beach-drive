@@ -82,7 +82,7 @@ export class Gifts {
   push(o, ex, ez) {
     const G = this.G; if (!this.has('superforca') || o.driver === G.player || o === G.player.vehicle) return false;
     if (o.npc) { o.bumped = Math.max(o.bumped || 0, 2.5); o.shake = 0.6; return false; }
-    if (o.type === 'heli' || (o.spec && o.spec.boat)) return false;
+    if ((o.spec && o.spec.air) || (o.spec && o.spec.boat)) return false;
     const e = this.pushed.find(q => q.v === o) || (this.pushed.push({ v: o, vx: 0, vz: 0, w: 0 }), this.pushed[this.pushed.length - 1]);
     e.vx = -ex * 7; e.vz = -ez * 7; e.w = (Math.random() - 0.5) * 1.5; if (!this.pushedOnce) { this.pushedOnce = true; G.ui.toast('💪 Empurrou o carro com cuidado!', 1600); } G.audio.thud && G.audio.thud(4); return true;
   }

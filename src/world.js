@@ -102,6 +102,10 @@ function landBase(x, z) {
 }
 export function groundY(x, z) {
   if (x > 280) for (const f of HOOKS.grounds) { const y = f(x, z); if (y != null) return y; } // tabuleiro da ponte sobre o mar
+  return baseGroundY(x, z);
+}
+// chão sem o tabuleiro da ponte (o que fica EMBAIXO dela: mar ou terra) — usado por quem voa por baixo da ponte
+export function baseGroundY(x, z) {
   const p = onPier(x, z); if (p) return p.y !== undefined ? p.y : 0.3;
   if (onBridge(x, z)) return 0.2;
   if (landBase(x, z)) { if (x > 330 && x >= ISL.x0) return -(x - 330) * 0.011; return 0; }

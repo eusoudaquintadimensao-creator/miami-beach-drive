@@ -61,7 +61,7 @@ export class Powers {
     else if (k === 'impacto') { if (p.grounded) { p.vy = 6.5; p.grounded = false; } this.slam = 1; this.cool = 1.2; this.hint('imp', '🟣 <b>Pisão de onda</b> · só luz e vento, ninguém se machuca'); }
     else if (k === 'forca') {
       if (this.carried) return this.toss(fx, fz), true;
-      let best = null, bd = 4.2; for (const v of G.vehicles) { if (v.driver || v.type === 'heli' || v.spec.boat || v.lifted) continue; const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < bd) { bd = d; best = v; } }
+      let best = null, bd = 4.2; for (const v of G.vehicles) { if (v.driver || v.spec.air || v.spec.boat || v.lifted) continue; const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < bd) { bd = d; best = v; } }
       if (best) { this.carried = best; best.lifted = true; best.parked = true; this.hint('forca', '💪 <b>Levantou o carro!</b> X joga com cuidado (nada quebra)'); G.audio.thud && G.audio.thud(8); }
       else { this.hint('forca0', '💪 Chegue perto de um carro parado e aperte X · segure Espaço para o super pulo'); return false; }
       this.cool = 0.4;
@@ -120,7 +120,7 @@ export class Powers {
     if (k === 'impacto' && this.slam) {
       if (!p.grounded && p.vy < 2) p.vy = Math.min(p.vy, -16);
       if (p.grounded && p.jumpT > 0.15) { this.slam = 0; this.ring(p.x, gy, p.z, 0xc58cff, 16, 0.9); this.ring(p.x, gy, p.z, 0xffd27a, 9, 0.6); G.shake && G.shake(0.5); G.audio.thud && G.audio.thud(20);
-        for (const v of G.vehicles) { const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < 12 && !v.driver && !v.lifted && v.type !== 'heli') v.hop = Math.max(v.hop || 0, (12 - d) / 12 * 0.5); }
+        for (const v of G.vehicles) { const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < 12 && !v.driver && !v.lifted && !v.spec.air) v.hop = Math.max(v.hop || 0, (12 - d) / 12 * 0.5); }
         this.cheer(p.x, p.z, 26); }
     }
     return false;

@@ -165,7 +165,7 @@ export class BridgeFun {
     this.group.visible = Math.hypot(cx - 960, cz) < 3600; if (!this.group.visible) return;
     this.updateScenery(dt, t);
     // reaparecer e animar coletáveis perto da câmera
-    const v = G.player.vehicle; const ok = v && !v.spec.boat && v.type !== 'heli';
+    const v = G.player.vehicle; const ok = v && !v.spec.boat && !v.spec.air;
     for (const it of this.items) { if (!it.on && it.back && t > it.back) { it.on = true; it.back = 0; this.setItem(it, t); } if (it.on && Math.abs(it.x - cx) < 160 && Math.abs(it.z - cz) < 160) this.setItem(it, t); }
     if (ok && loc && loc.d < 40 && Math.abs(loc.lat) < this.P.halfW + 2 && Math.abs(v.y - loc.y) < 3) {
       for (const it of this.items) { if (!it.on) continue; const ds = wrapD(it.s - loc.s, this.P.L); if (ds < -6 || ds > 6) continue; if (Math.hypot(it.x - v.x, it.z - v.z) < 2.7) this.collect(it, v); }

@@ -58,7 +58,7 @@ export class DriftFX {
     // escala dos pontos acompanha a tela e o campo de visão
     const h = this.renderer.domElement.height; this.mat.uniforms.uScale.value = h / (2 * Math.tan(camera.fov * Math.PI / 360));
     const lum = 0.32 + (1 - night) * 0.58; this.mat.uniforms.uCol.value.setRGB(lum, lum, lum * 1.04);
-    if (v && !v.spec.boat && v.type !== 'heli' && v.rpm !== undefined) {
+    if (v && !v.spec.boat && !v.spec.air && v.rpm !== undefined) {
       const sp = v.speed, ang = v.driftAng || 0; const burn = v.spec.race && v.vf < 9 && v._thr > 0.9 && v.wheelspin;
       const k = clamp((ang - 0.18) * 3.2, 0, 1) * clamp((sp - 6) / 10, 0, 1) + (v.drifting ? 0.35 : 0) + (burn ? 0.6 : 0) + (v.brakeOn && v.spec.race && sp > 18 && !v.drifting ? 0.12 : 0);
       const [fx, fz] = v.fwd(); const rx = -fz, rz = fx; const half = v.spec.w / 2 - 0.2, back = v.spec.wb / 2;
@@ -97,7 +97,7 @@ export class DriftScore {
   constructor(G) { this.G = G; this.chain = 0; this.combo = 1; this.grace = 0; this.total = 0; this.best = 0; this.on = false; this.el = $('drift'); this.showT = 0; }
   reset() { this.chain = 0; this.combo = 1; this.grace = 0; this.total = 0; this.best = 0; this.on = false; this.render(true); }
   update(dt, v) {
-    const ok = v && !v.spec.boat && v.type !== 'heli' && v.driftAng > 0.2 && v.speed > 9 && v.vf > 0;
+    const ok = v && !v.spec.boat && !v.spec.air && v.driftAng > 0.2 && v.speed > 9 && v.vf > 0;
     if (v && v.hitT > 0.25 && this.chain > 0) { this.chain = 0; this.combo = 1; this.grace = 0; this.on = false; this.flash('💥 Combo perdido', '#ff6b6b'); }
     if (ok) {
       if (!this.on) { if (this.grace > 0 && this.chain > 0) this.combo = Math.min(5, this.combo + 1); this.on = true; }

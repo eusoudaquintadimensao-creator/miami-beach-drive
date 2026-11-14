@@ -11,7 +11,7 @@ export const HOME_ZONE = { x0: -522, x1: -418, z0: 612, z1: 718 };
 export function inHomeZone(x, z, m = 0) { return x > HOME_ZONE.x0 - m && x < HOME_ZONE.x1 + m && z > HOME_ZONE.z0 - m && z < HOME_ZONE.z1 + m; }
 const KEY = 'mbd-casa-v1';
 const $ = (id) => document.getElementById(id);
-const BAYS = [12.6, 17.2, 21.8]; // centros das vagas (x local); carros de frente para a rua (norte)
+const BAYS = [12.6, 17.2, 21.8, 28.6]; // 4ª vaga (fora, ao lado da garagem): carro presente da ponte // centros das vagas (x local); carros de frente para a rua (norte)
 
 export class Home {
   constructor(G) {
@@ -87,11 +87,11 @@ export class Home {
   garageList() {
     const G = this.G; const T = G.save.tune; const rd = G.race && G.race.data || { car: 'rc_gt', liv: 0 };
     return [{ type: T && T.type || 'sport', tune: T ? { ...T } : { paint: 0x1f6bff, glow: 0x29f0ff, spoiler: 2, kit: true, rim: 0x1a1a1a, text: 'CASA SOLARA', style: 0, accent: 0xffffff } },
-      { type: rd.car, tune: raceTune(rd.car, rd.liv || 0, 1) }, { type: 'moto', tune: undefined }];
+      { type: rd.car, tune: raceTune(rd.car, rd.liv || 0, 1) }, { type: 'moto', tune: undefined }].concat(G.save.giftCar ? [{ type: G.save.giftCar.type, tune: { ...G.save.giftCar.tune } }] : []);
   }
   spawnCars() {
     const G = this.G; const list = this.garageList();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < list.length; i++) {
       const c = this.cars[i]; const want = list[i];
       if (c && c.v && (c.v.driver || Math.hypot(c.v.x - (HOME.x + BAYS[i]), c.v.z - (HOME.z - 3)) > 30)) { if (!c.v.driver) { this.place(c.v, i); } continue; }
       if (c && c.v && c.type === want.type && JSON.stringify(c.tune) === JSON.stringify(want.tune)) continue;

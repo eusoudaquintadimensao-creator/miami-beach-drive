@@ -21,6 +21,7 @@ import { initInstall, promptInstall } from './install.js';
 import { Garage } from './garage.js';
 import { Rivals } from './rivals.js';
 import { Heli, HeliFleet, buildHelipad, HELIPAD } from './heli.js';
+import { Plane, buildSeaplaneBase, SEAPLANE_BASE } from './plane.js';
 import { Talk } from './talk.js';
 import { Powers, roofAt } from './powers.js';
 import { Track } from './track.js';
@@ -161,6 +162,7 @@ async function boot() {
   for (const s of SPAWNS.taxiStands) { const v = new Vehicle('taxi', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
   for (const s of SPAWNS.boats) { const v = new Vehicle('boat', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
   G.heli = new Heli(scene, Q, { color: 0xff2d55, stripe: 0xffffff }); G.heli.place(HELIPAD.x, HELIPAD.z, -Math.PI / 2); G.vehicles.push(G.heli);
+  G.seabase = buildSeaplaneBase(scene, Q); G.plane = new Plane(scene, Q); G.plane.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h); G.vehicles.push(G.plane);
   G.helis = new HeliFleet(G, Q.helis);
   G.audio = new AudioSys(); G.audio.muted = !!save.muted; G.audio.station = save.station || 0;
   G.ui = new UI(G);
@@ -207,7 +209,21 @@ G.replaceVehicle = (v, tune, color) => {
   if (G.player.vehicle === v) { G.player.vehicle = nv; nv.driver = G.player; nv.parked = false; }
   v.dispose(scene); return nv;
 };
-// entrar/sair de um carro sem as regras de missão (usado pelo modo corrida)
+// troca o veículo por outro TIPO no mesmo lugar (carro presente da ponte)
+G.swapVehicle = (v, type, tune) => {
+  const nv = new Vehicle(type, scene, Q, undefined, tune); nv.place(v.x, v.z, v.h); nv.y = v.y; nv.vx = v.vx; nv.vz = v.vz; nv.vf = v.vf || 0; nv.nitro = 1; nv.mine = true; nv.gift = true; if (SPECS[type].race) nv.race = false;
+  const i = G.vehicles.indexOf(v); if (i >= 0) G.vehicles[i] = nv; else G.vehicles.push(nv);
+  if (G.player.vehicle === v) { G.player.vehicle = nv; nv.driver = G.player; nv.parked = false; seatHero(nv); }
+  if (G.vehicles.indexOf(v) < 0 && !v.home) v.dispose(scene); return nv;
+};
+// tela de prêmio: carro presente por completar uma volta inteira na ponte
+G.showGift = (gift, lt) => {
+  const el = $('giftScreen'); if (!el) return; const css = (h) => '#' + h.toString(16).padStart(6, '0'); const T = gift.tune;
+  $('giftInfo').innerHTML = `<b>${gift.name}</b><span class="chips"><i style="background:${css(T.paint)}"></i>violeta metálico <i style="background:${css(T.glow)};box-shadow:0 0 10px ${css(T.glow)}"></i>neon embaixo <i style="background:${css(T.rim)}"></i>rodas douradas</span><small>Asa GT · kit largo · nitro · adesivo "${T.text}" · volta em ${Math.floor(lt / 60)}:${String(Math.floor(lt % 60)).padStart(2, '0')}</small><small>Guardado na garagem da sua casa 🏠 (e no seu progresso).</small>`;
+  el.hidden = false; G.paused = true; G.giftOpen = true; if (document.pointerLockElement) document.exitPointerLock(); G.audio.chime && G.audio.chime('win'); G.ui.big('PRESENTE!');
+  const close = (drive) => { el.hidden = true; G.paused = false; G.giftOpen = false; const v = G.player.vehicle; if (drive && v && !v.spec.boat && !v.spec.air) { G.swapVehicle(v, gift.type, { ...gift.tune }); G.ui.toast(`🎁 Você está no <b>${gift.name}</b>! Aperte <b>${touch ? '🔥' : 'Shift'}</b> para o nitro`, 3200); } };
+  $('giftDrive').onclick = () => close(true); $('giftLater').onclick = () => close(false);
+};
 G.enterCar = (v) => { const p = G.player; p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0; p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; seatHero(v); G.camYaw = v.h; };
 G.leaveCar = (silent) => { const p = G.player, v = p.vehicle; if (!v) return; scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0); G.hero.g.scale.setScalar(1); v.driver = null; v.parked = true; v.vx = v.vz = v.vf = 0; v.brakeOn = false; v.steer = 0; v.boosting = false; p.vehicle = null; p.vx = p.vz = 0; if (!silent) v.sync(0); };
 G.callHeli = () => {
@@ -224,6 +240,22 @@ G.callHeli = () => {
   G.ui.toast('🚁 Helicóptero a caminho! Fique longe do ponto de pouso', 2600); G.audio.chime && G.audio.chime('start'); return true;
 };
 G.callCar = () => callCar(G, save.avatar || 'ela');
+// ✈️ vai até o Hidroporto da Baía (a pé, ao lado do avião anfíbio); o avião volta para o píer se estiver parado longe
+G.callPlane = () => {
+  const p = G.player, A = G.plane; if (G.race.active) { G.ui.toast('🏁 Termine a corrida antes de ir ao hidroporto', 2200); return false; }
+  if (p.vehicle === A) { // pilotando: se estiver na água/chão, taxia "instantâneo" de volta ao píer do hidroporto
+    if (A.air) { G.ui.toast('✈️ Pouse primeiro (na água ou em terra plana)', 1800); return false; }
+    respawnFade(() => { A.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h); p.x = A.x; p.z = A.z; p.y = A.y; p.h = A.h; G.camYaw = A.h; G.snapCam(); G.ui.toast(`✈️ De volta ao <b>${SEAPLANE_BASE.name}</b> · ${touch ? 'toque 🚶 Sair' : 'aperte <kbd>E</kbd> para sair'}`, 2600); });
+    return true; }
+  if (p.vehicle && p.vehicle.spec.air && p.vehicle.air) { G.ui.toast('Pouse primeiro 🚁', 1600); return false; }
+  respawnFade(() => {
+    if (G.player.vehicle) G.leaveCar(true); if (G.jet.on) G.jet.set(false, true);
+    if (!A.driver && (A.air || Math.hypot(A.x - SEAPLANE_BASE.x, A.z - SEAPLANE_BASE.z) > 30)) A.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h);
+    G.placeOnFoot(SEAPLANE_BASE.pier.x0 + 1.5, (SEAPLANE_BASE.pier.z0 + SEAPLANE_BASE.pier.z1) / 2, -Math.PI / 2); G.snapCam();
+    G.ui.toast(`✈️ <b>${SEAPLANE_BASE.name}</b> · ${touch ? 'toque 🚗 Entrar' : 'aperte <kbd>E</kbd>'} no <b>${A.spec.name}</b> · decola e pousa na água!`, 3600);
+  });
+  return true;
+};
 MOTOR.lvl = save.motor || 0;
 G.sigName = (id) => (SIGNATURE[id] || SIGNATURE.ela).name;
 G.placeOnFoot = (x, z, h) => { const p = G.player; p.x = x; p.z = z; p.h = h || 0; p.y = surfaceY(x, z); p.vx = p.vz = p.vy = 0; G.hero.g.position.set(p.x, p.y, p.z); G.camYaw = p.h; };
@@ -269,6 +301,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyC' && !e.repeat) input.kick = true;
   if (e.code === 'KeyJ' && G.started && !G.paused) G.jet.toggle();
   if (e.code === 'KeyG' && G.started && !G.paused) G.callHeli();
+  if (e.code === 'KeyY' && G.started && !G.paused) G.callPlane();
   if (e.code === 'KeyB' && G.started && !G.paused) G.callCar();
   if (e.code === 'Enter') startNear();
   if (e.code === 'KeyF') photo();
@@ -342,7 +375,7 @@ function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.
 // ---------------- entrar e sair
 function nearestVehicle() {
   const p = G.player; let best = null, bd = 1e9;
-  for (const v of G.vehicles) { if (v.driver || v.noEnter) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
+  for (const v of G.vehicles) { if (v.driver || v.noEnter) continue; let d = Math.hypot(v.x - p.x, v.z - p.z); if (d > 12) continue; for (const c of v.circles()) d = Math.min(d, Math.hypot(c[0] - p.x, c[1] - p.z)); const lim = v.spec.boat ? 5.5 : v.type === 'plane' ? 10 : v.type === 'heli' ? 5 : 3.2; if (d < lim && d < bd) { bd = d; best = v; } }
   return best;
 }
 function onActTap(n) {
@@ -377,11 +410,17 @@ function enterNearest() {
   if (!v) { G.ui.toast('Nenhum veículo por perto para entrar. Toque uma vez para chamar o seu 🚘', 2200); return; }
   enterVehicle(v);
 }
+function airToast(v) {
+  if (v.type === 'heli') { G.ui.toast(`🚁 <b>${v.spec.name}</b> · ` + (touch ? 'joystick anda e gira · ⤒ sobe · ⤓ desce · soltou, ele paira' : 'W/S frente e ré · A/D gira · Espaço sobe · Shift desce'), 5000); return true; }
+  if (v.type === 'plane') { G.ui.toast(`✈️ <b>${v.spec.name}</b> · ` + (touch ? '⤒ acelera · joystick ↑ sobe, ↓ desce, lados = curva · ⤓ reduz' : 'Espaço acelera · Shift reduz · W sobe o nariz · S desce · A/D curva'), 6000); return true; }
+  return false;
+}
 function enterVehicle(v) {
   const p = G.player; if (p.vehicle || !v || v.driver) return;
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
-  G.ui.toast(v.type === 'heli' ? '🚁 <b>Helicóptero</b> · ' + (touch ? 'joystick anda e gira · ⤒ sobe · ⤓ desce' : 'W/S frente e ré · A/D gira · Espaço sobe · Shift desce') : `${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : (touch ? ' · deslize para cima: nitro · para baixo: drift' : '')}`, v.type === 'heli' ? 5000 : 2400);
+  if (airToast(v)) { } else
+  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : (touch ? ' · deslize para cima: nitro · para baixo: drift' : '')}`, 2400);
   if (STATIONS[G.audio.station].bpm) G.ui.radio(STATIONS[G.audio.station]);
   G.camYaw = v.h;
 }
@@ -399,12 +438,13 @@ function action() {
   if (!v) { G.ui.toast('Ninguém nem nenhum veículo por perto. Procure um carro 🚗 ou alguém com 💬', 2000); return; }
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
-  G.ui.toast(v.type === 'heli' ? '🚁 <b>Helicóptero</b> · ' + (touch ? 'joystick anda e gira · ⤒ sobe · ⤓ desce' : 'W/S frente e ré · A/D gira · Espaço sobe · Shift desce') : `${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : ''}`, v.type === 'heli' ? 5000 : 2400);
+  if (airToast(v)) { } else
+  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : ''}`, 2400);
   if (STATIONS[G.audio.station].bpm) G.ui.radio(STATIONS[G.audio.station]);
   G.camYaw = v.h;
 }
 // avatar sentado no banco do motorista (visível pelos vidros), em pé na lancha
-const SEAT = { sport: [0.4, -0.3, -0.45], sedan: [0.4, -0.12, -0.35], taxi: [0.4, -0.12, -0.35], classic: [0.36, -0.12, -0.3], suv: [0.42, 0.15, -0.2], moto: [0, 0.42, -0.32], heli: [0.42, 0.62, 0.55] };
+const SEAT = { sport: [0.4, -0.3, -0.45], sedan: [0.4, -0.12, -0.35], taxi: [0.4, -0.12, -0.35], classic: [0.36, -0.12, -0.3], suv: [0.42, 0.15, -0.2], moto: [0, 0.42, -0.32], heli: [-0.42, 0.72, 1.0], plane: [0.3, 1.55, 0.75] };
 function seatHero(v) {
   const g = G.hero.g; v.body.add(g); g.rotation.set(0, 0, 0); g.visible = true; G.powers.reset(); g.scale.setScalar(Math.min(1, 1.8 / ((G.hero.def && G.hero.def.height) || 1.75)));
   if (v.spec.boat) g.position.set(0, 0.82, -0.2); else { const s = v.spec.seat || SEAT[v.type] || SEAT.sedan; g.position.set(s[0], s[1], s[2]); }
@@ -412,13 +452,14 @@ function seatHero(v) {
 }
 function exitVehicle() {
   const p = G.player, v = p.vehicle; if (!v) return;
-  if (v.type === 'heli') { if (v.air || v.speed > 3) { G.ui.toast('Pouse primeiro: segure ' + (touch ? '⤓' : 'Shift') + ' para descer 🚁', 1800); return; } }
+  if (v.type === 'plane') { if (v.air || v.speed > 3) { G.ui.toast('Pouse e pare primeiro: ⤓ reduz a manete ✈️', 1800); return; } }
+  else if (v.type === 'heli') { if (v.air || v.speed > 3) { G.ui.toast('Pouse primeiro: segure ' + (touch ? '⤓' : 'Shift') + ' para descer 🚁', 1800); return; } }
   else if (v.speed > 6 && !v.spec.boat) { G.ui.toast('Pare o veículo para descer', 1500); return; }
   const [fx, fz] = v.fwd(); let spot = null;
   const sd = v.type === 'heli' ? 2.6 : 1.8; const tries = v.spec.boat ? [] : [[-fz * -sd, fx * -sd], [fz * -sd, -fx * -sd], [fx * 3.2, fz * 3.2], [-fx * 3.4, -fz * 3.4], [-fx * 7.5, -fz * 7.5]];
   for (const [ox, oz] of tries) { const x = v.x + ox, z = v.z + oz; if (walkable(x, z)) { spot = [x, z]; break; } }
-  if (v.spec.boat) { for (let r = 3; r < 12 && !spot; r += 1) for (let a = 0; a < 16; a++) { const x = v.x + Math.cos(a / 16 * Math.PI * 2) * r, z = v.z + Math.sin(a / 16 * Math.PI * 2) * r; if (walkable(x, z)) { spot = [x, z]; break; } } }
-  if (!spot) { G.ui.toast(v.spec.boat ? 'Encoste a lancha num píer ou na praia para descer ⚓' : 'Sem espaço para descer aqui', 2200); return; }
+  if (v.spec.boat || (v.type === 'plane' && !spot)) { for (let r = 3; r < (v.type === 'plane' ? 18 : 12) && !spot; r += 1) for (let a = 0; a < 16; a++) { const x = v.x + Math.cos(a / 16 * Math.PI * 2) * r, z = v.z + Math.sin(a / 16 * Math.PI * 2) * r; if (walkable(x, z)) { spot = [x, z]; break; } } }
+  if (!spot) { G.ui.toast(v.spec.boat ? 'Encoste a lancha num píer ou na praia para descer ⚓' : v.type === 'plane' ? 'Taxie até um píer ou a praia para descer ✈️ (ou toque ✈️ para voltar ao hidroporto)' : 'Sem espaço para descer aqui', 2600); return; }
   if (G.missions.active && (G.missions.active.type === 'corrida' || G.missions.active.type === 'taxi')) G.missions.cancel(G.missions.active.type === 'taxi' ? 'Corrida de táxi encerrada' : 'Corrida cancelada');
   scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0); G.hero.g.scale.setScalar(1);
   p.x = spot[0]; p.z = spot[1]; p.y = surfaceY(p.x, p.z); p.h = v.h; v.driver = null; v.parked = true; p.vehicle = null; v.brakeOn = false; v.steer = 0; p.vx = p.vz = 0;
@@ -443,8 +484,8 @@ function updatePlayer(dt) {
   let mag = Math.min(1, Math.hypot(mx, my)); let fromStick = false;
   if (input.stick) { mx = input.stick[0]; my = input.stick[1]; mag = Math.min(1, Math.hypot(mx, my)); fromStick = true; }
   if (v) {
-    const mobileDrive = touch && v.type !== 'heli';
-    if (mobileDrive) DriveUI.setDriving(true, v); else if (!v || v.type === 'heli') DriveUI.setDriving(false, v);
+    const mobileDrive = touch && !v.spec.air;
+    if (mobileDrive) DriveUI.setDriving(true, v); else if (!v || v.spec.air) DriveUI.setDriving(false, v);
     if (mobileDrive) DriveUI.tick(dt);
     let steer = mx, thr = my;
     if (fromStick && !mobileDrive) { steer = Math.sign(mx) * Math.min(1, Math.abs(mx) * 1.25) ** 1.4; thr = Math.abs(my) < 0.18 ? 0 : my; }
@@ -459,6 +500,13 @@ function updatePlayer(dt) {
       p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; hero.pose('drive', 0, dt); G.engine = { type: v.type, rpm: v.rpm, thr: Math.max(0, thr) }; G.skid = 0; return;
     }
     v._thr = thr; v.wheelspin = !!(v.spec.race && thr > 0.9 && v.vf >= 0 && v.vf < 9);
+    if (v.type === 'plane') {
+      const down = nitro || keys.has('ControlLeft') || input.down; const up = hb;
+      const impact = v.drive(dt, { x: steer, y: fromStick ? (Math.abs(my) < 0.12 ? 0 : my) : thr, up, down });
+      if (impact > 3) { G.audio.thud(impact); G.shake(Math.min(0.5, impact * 0.04)); if (v.hardT > 1.4) G.ui.toast('Pouso duro! Desça mais devagar: nariz um pouco para cima ✈️', 1800); }
+      p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; hero.pose('drive', 0, dt);
+      G.engine = { type: 'plane', rpm: v.rpm, thr: v.thr }; G.skid = 0; return;
+    }
     if (v.type === 'heli') {
       const down = nitro || keys.has('ControlLeft') || keys.has('KeyQ') || input.down; const up = hb || keys.has('KeyE') && false;
       const impact = v.drive(dt, { x: steer, y: fromStick ? (Math.abs(my) < 0.15 ? 0 : my) : thr, up, down });
@@ -540,14 +588,14 @@ function updateCamera(dt, snap) {
   const mult = [1, 1.45, 0.7][G.camMode];
   let D, H, focusY;
   if (v) {
-    D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
-    if (lookT <= 0 && v.speed > 2) { const target = v.drifting || (v.spec.race && v.driftAng > 0.15) ? v.h + angDiff(v.h, Math.atan2(v.vx, v.vz)) * 0.55 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.type === 'heli' ? 1.6 : 2.6)); G.camPitch = lerp(G.camPitch, v.type === 'heli' && v.air ? 0.3 : 0.16, dt * 1.5); }
+    D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'plane' ? 2.8 : v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
+    if (lookT <= 0 && v.speed > 2) { const target = v.drifting || (v.spec.race && v.driftAng > 0.15) ? v.h + angDiff(v.h, Math.atan2(v.vx, v.vz)) * 0.55 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.spec.air ? 1.6 : 2.6)); G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
   } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly || G.jet.airPose ? 1.5 : 1); focusY = 1.55 * hk; }
   const yaw = G.camYaw, pit = G.camPitch;
   const fx = p.x, fz = p.z, fy = p.y + focusY;
   let cx = fx - Math.sin(yaw) * Math.cos(pit) * D, cz = fz - Math.cos(yaw) * Math.cos(pit) * D, cy = fy + Math.sin(pit) * D + (v ? 0.6 : 0.15);
   const tb = rayBlock(fx, fz, fy, cx, cz, cy); if (tb < 1) { const k = Math.max(0.12, tb - 0.06); cx = fx + (cx - fx) * k; cz = fz + (cz - fz) * k; cy = fy + (cy - fy) * k; }
-  const floor = Math.max(surfaceY(cx, cz), WATER_Y) + 0.35; if (cy < floor) cy = floor;
+  const floor = (v && v.spec.air && v.y < surfaceY(cx, cz) - 1.2 ? WATER_Y : Math.max(surfaceY(cx, cz), WATER_Y)) + 0.35; if (cy < floor) cy = floor; // por baixo da ponte a câmera fica embaixo também
   if (snap || !camInit) { camPos.set(cx, cy, cz); camInit = true; } else { const k = Math.min(1, dt * (v ? 10 : 14)); camPos.x = lerp(camPos.x, cx, k); camPos.y = lerp(camPos.y, cy, k); camPos.z = lerp(camPos.z, cz, k); }
   camera.position.copy(camPos);
   // tremor com trauma² (game-feel): pancadas leves quase não mexem, as fortes empurram; intensidade 0–1 em save.shake (acessibilidade)
@@ -573,6 +621,7 @@ function updatePrompts() {
   else if (near) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar: <b>${near.spec.name}</b>`;
   if (!v && !G.talk.cur) { const npc = G.talk.cool > 0 ? null : G.talk.nearest(); if (npc && (!near || Math.hypot(npc.x - p.x, npc.z - p.z) < Math.hypot(near.x - p.x, near.z - p.z) - 1)) { const W = G.talk.whoOf(npc); talkNear = W; if (!s) html = `<kbd>E</kbd> ${touch ? 'Toque em 💬 para ' : ''}conversar com <b>${W.emoji} ${W.name}</b>`; } else talkNear = null; } else talkNear = null;
   if (!html && G.home.near()) html = `<kbd>E</kbd> ${touch ? 'Toque em 🚗 para ' : ''}entrar em casa: <b>visual, salvar, descansar</b>`;
+  if (!html && v && v.type === 'plane') html = v.air ? '' : v.speed < 2 && v.thr < 0.1 ? (touch ? 'Segure ⤒ para acelerar e puxe o joystick para cima para decolar ✈️' : 'Segure <kbd>Espaço</kbd> (manete) e <kbd>W</kbd> para decolar ✈️') : '';
   if (!html && v && v.type === 'heli') html = v.air ? '' : (touch ? 'Segure ⤒ para decolar 🚁' : 'Segure <kbd>Espaço</kbd> para decolar · <kbd>Shift</kbd> desce');
   if (!html && lm && !G.save.photos.includes(lm.id)) html = `<kbd>F</kbd> 📷 Ponto de foto: <b>${lm.name}</b>`;
   ui.prompt(html);
@@ -593,12 +642,13 @@ function updatePrompts() {
     const lbl = rc ? '🏳️<small>Sair</small>' : ponteNear ? '🌉<small>Aceitar</small>' : raceNear ? '🏁<small>Iniciar corrida</small>' : v ? '🚶<small>Sair</small>' : G.talk.cur ? '💬<small>Mais</small>' : (G.carCall || near || (G.sigCar && !G.sigCar.driver && G.vehicles.indexOf(G.sigCar) >= 0 && Math.hypot(G.sigCar.x - p.x, G.sigCar.z - p.z) < 30)) ? '🚗<small>Entrar</small>' : talkNear ? '💬<small>Conversar</small>' : '🚘<small>Chamar</small>';
     if (act._l !== lbl) { act.innerHTML = lbl; act._l = lbl; act.title = v ? (ponteNear ? 'Aceitar a sessão de drift na ponte (até 50 m)' : raceNear ? 'Iniciar a corrida de rua (até 50 m do rival, mesmo passando)' : 'Descer do veículo') : 'Um toque chama seu veículo (para à sua frente); o próximo toque entra.'; }
     act.style.opacity = 1;
-    const heli = v && v.type === 'heli';
-    document.body.classList.toggle('heli', !!heli);
+    const heli = v && v.spec.air, plane = v && v.type === 'plane';
+    document.body.classList.toggle('heli', !!heli); document.body.classList.toggle('plane', !!plane);
     $('bReset').hidden = !rc; $('bPhoto').hidden = !!rc;
     $('bStart').hidden = !s; $('bHorn').hidden = !v || heli || !!rc; $('bNitro').hidden = !(v && v.tune); if (!v || !v.tune) input.nitro = false; const flyP = !v && (G.powers.fly || G.powers.lev || G.jet.on && !G.player.grounded); $('bDown').hidden = !heli && !flyP; if (!heli && !flyP) input.down = false; $('bPow').hidden = !!v || !(G.hero.def && G.hero.def.hero);
-    const jl = heli || flyP ? '⤒<small>Subir</small>' : v && v.spec.race ? '🌀<small>Drift</small>' : v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>'; const bj = $('bJump'); if (bj._l !== jl) { bj.innerHTML = jl; bj._l = jl; }
-    if (v && v.type !== 'heli') { $('bPhoto').hidden = true; $('bHorn').hidden = true; $('bStart').hidden = true; const q = $('quick'); if (q) q.hidden = true; }
+    const jl = plane ? '⤒<small>Acelerar</small>' : heli || flyP ? '⤒<small>Subir</small>' : v && v.spec.race ? '🌀<small>Drift</small>' : v ? '⛔<small>Freio</small>' : '⤒<small>Pular</small>'; const bj = $('bJump'); if (bj._l !== jl) { bj.innerHTML = jl; bj._l = jl; }
+    { const bd = $('bDown'); const dl = plane ? '⤓<small>Reduzir</small>' : '⤓<small>Descer</small>'; if (bd._l !== dl) { bd.innerHTML = dl; bd._l = dl; } }
+    if (v && !v.spec.air) { $('bPhoto').hidden = true; $('bHorn').hidden = true; $('bStart').hidden = true; const q = $('quick'); if (q) q.hidden = true; }
     else { const q = $('quick'); if (q) q.hidden = false; }
   }
 }
@@ -682,14 +732,14 @@ function step(dt) {
   const K = G.env.update(dt, t, camera.position);
   G.world.setNight(G.env.night, G.env.wet); updateAllLights(); G.world.update(t, dt);
   updateHelis(dt, t); updateCarCall(G, dt);
-  { const pv = G.player.vehicle; G.track.update(dt, t, G.env.night, camera.position, pv ? [pv, ...G.race.cars] : G.race.cars); G.fx.update(dt, pv, G.env.night, camera); G.drift.update(dt, pv && pv.type !== 'heli' && !pv.spec.boat ? pv : null); }
+  { const pv = G.player.vehicle; G.track.update(dt, t, G.env.night, camera.position, pv ? [pv, ...G.race.cars] : G.race.cars); G.fx.update(dt, pv, G.env.night, camera); G.drift.update(dt, pv && !pv.spec.air && !pv.spec.boat ? pv : null); }
   G._lodT = (G._lodT || 0) - dt; if (G._lodT <= 0) { G._lodT = 0.5; G.lodHidden = G.world.lod(camera.position.x, camera.position.z, Q.detail); }
   if (grade) { grade.uniforms.uWarm.value = 0.4 + (1 - G.env.night) * 0.4; grade.uniforms.uSat.value = 1.15 + G.env.night * 0.1 - G.env.rain * 0.15; }
   if (zoomBlur) { const bv = G.player.vehicle; const want = bv && bv.boosting ? Math.min(1, bv.speed / 40) : 0; zoomBlur.uniforms.uAmt.value += (want - zoomBlur.uniforms.uAmt.value) * Math.min(1, dt * 6); zoomBlur.enabled = zoomBlur.uniforms.uAmt.value > 0.02; }
   if (bloom) { bloom.strength = 0.26 + G.env.night * 0.2 + G.env.wet * 0.05; bloom.threshold = 2.32 - G.env.night * 0.62; }
   // farol do jogador à noite
   const v = G.player.vehicle;
-  if (Q.level !== 'low' && v && !v.spec.boat && v.type !== 'heli' && G.env.night > 0.3) {
+  if (Q.level !== 'low' && v && !v.spec.boat && !v.spec.air && G.env.night > 0.3) {
     if (!headlight) { headlight = new THREE.SpotLight(0xfff2d8, 0, 70, 0.55, 0.5, 1.2); scene.add(headlight, headlight.target); }
     const [fx, fz] = v.fwd(); headlight.position.set(v.x + fx * 2.2, v.y + 0.8, v.z + fz * 2.2); headlight.target.position.set(v.x + fx * 20, v.y - 0.5, v.z + fz * 20); headlight.intensity = 60 * G.env.night + (G.street && G.street.flashT > 0 ? 150 * Math.min(1, G.street.flashT * 4) : 0);
   } else if (headlight) headlight.intensity = 0;
@@ -711,7 +761,14 @@ function step(dt) {
 let heliSpot = null;
 function updateHelis(dt, t) {
   const H = G.heli, night = G.env.night;
-  { const el = $('heliHud'); const on = G.player.vehicle === H; if (el) { if (on !== !el.hidden) el.hidden = !on; if (on) { const alt = Math.max(0, H.y - H.floor(H.x, H.z)); const vs = H.vy; const h = `<span class="att"><i style="transform:translateY(${(H.pitch * 40).toFixed(1)}px) rotate(${(-H.roll * 57.3).toFixed(0)}deg)"></i></span><span>ALT <b>${Math.round(alt)}</b> m</span><span><b>${Math.round(H.speed * 3.6)}</b> km/h</span><span>${vs > 0.6 ? '▲' : vs < -0.6 ? '▼' : '◆'} ${Math.abs(vs).toFixed(1)} m/s</span>`; if (el._h !== h) { el.innerHTML = h; el._h = h; } } } }
+  { const el = $('heliHud'); const A = G.plane; const pv = G.player.vehicle; const on = pv === H || pv === A; if (el) { if (on !== !el.hidden) el.hidden = !on; if (on) {
+    let h;
+    if (pv === A) { const alt = Math.max(0, A.y - A.floorAt(A.x, A.z, A.y)); const vs = A.vy;
+      h = `<span class="att"><i style="transform:translateY(${(A.pitch * 40).toFixed(1)}px) rotate(${(-A.roll * 57.3).toFixed(0)}deg)"></i></span><span>✈️ <b>${Math.round(A.thr * 100)}</b>%</span><span><b>${Math.round(A.airspeed * 3.6)}</b> km/h</span><span>ALT <b>${Math.round(alt)}</b> m</span><span>${vs > 0.6 ? '▲' : vs < -0.6 ? '▼' : '◆'} ${Math.abs(vs).toFixed(1)}</span>${A.stall && A.air ? '<span class="stall">⚠ ESTOL · acelere</span>' : ''}`; }
+    else { const alt = Math.max(0, H.y - H.floor(H.x, H.z)); const vs = H.vy; h = `<span class="att"><i style="transform:translateY(${(H.pitch * 40).toFixed(1)}px) rotate(${(-H.roll * 57.3).toFixed(0)}deg)"></i></span><span>ALT <b>${Math.round(alt)}</b> m</span><span><b>${Math.round(H.speed * 3.6)}</b> km/h</span><span>${vs > 0.6 ? '▲' : vs < -0.6 ? '▼' : '◆'} ${Math.abs(vs).toFixed(1)} m/s</span>`; }
+    if (el._h !== h) { el.innerHTML = h; el._h = h; } } }
+    const out = pv && pv.spec.air && pv.outside; if (out && !G._outT) { G._outT = 6; G.ui.toast('🧭 Limite do espaço aéreo · o vento te leva de volta para a cidade', 2600); } G._outT = Math.max(0, (G._outT || 0) - dt);
+    if (!A.driver && (A.speed > 0.05 || A.air || A.thr > 0 || A._pr > 0)) A.drive(dt, {}); A.lights(night, t); G.seabase.update(night, t); }
   if (G.heliCall && !H.driver) { // o helicóptero chamado chega voando e pousa perto de você
     const C = G.heliCall; C.t += dt; const k = clamp(C.t / C.dur, 0, 1), e = 1 - (1 - k) ** 3; const fl = groundY(C.x, C.z);
     H.x = lerp(C.sx, C.x, e); H.z = lerp(C.sz, C.z, e); H.y = fl + 0.3 + (1 - smooth(0.35, 1, k)) * 38; H.h = C.h; H.spool = 1; H.air = k < 1; H.vx = H.vz = H.vy = 0; H.sync(dt);
@@ -772,12 +829,15 @@ $('raceBtn').onclick = () => { $('play').onclick(); G.race.openMenu(); };
 $('qRace').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); if (G.race.active) G.race.askQuit(); else G.race.openMenu(); };
 $('qJet').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.jet.toggle(); };
 $('qHeli').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callHeli(); };
+$('qPlane').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callPlane(); };
 $('qCar').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callCar(); };
 $('qHome').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.home.go(); };
 $('qFlash').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.street.flash(); };
 $('qSerp').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.serp.go(); };
+$('ponteQuit').onclick = (e) => { e.stopPropagation(); if (G.ponte) G.ponte.quit(); };
+$('ponteQuit').addEventListener('pointerdown', (e) => e.stopPropagation());
 $('qPonte').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.ponte.go(); };
-for (const id of ['qRace', 'qJet', 'qHeli', 'qCar', 'qHome', 'qFlash', 'qSerp', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
+for (const id of ['qRace', 'qJet', 'qHeli', 'qPlane', 'qCar', 'qHome', 'qFlash', 'qSerp', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
 addEventListener('visibilitychange', () => { if (document.hidden) { persist(); if (G.rec && G.rec.recording) G.rec.stop(); } });
 addEventListener('pagehide', persist);
 
@@ -795,7 +855,7 @@ window.MBD = {
   tuneCar: (t) => { const v = G.player.vehicle; if (v) G.replaceVehicle(v, t); },
   sim(n, dt = 1 / 30) { const t0 = performance.now(); for (let i = 0; i < n; i++) step(dt); recordStep((performance.now() - t0) / Math.max(1, n)); }, // testes: avança a lógica sem desenhar
   frameStats: () => G.frameStats(),
-  cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
+  cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), callPlane: () => G.callPlane(), plane: () => G.plane, race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
   life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,

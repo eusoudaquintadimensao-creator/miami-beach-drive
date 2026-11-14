@@ -25,7 +25,7 @@
   <div id="talk" hidden><div id="tkName"></div><span id="tkStep"></span><div class="tkBtns"><button id="tkNext">💬 Mais</button><button id="tkYes" hidden>✅ Topo!</button><button id="tkBye">👋 Tchau</button></div></div>
   <div id="prompt" hidden></div>
   <div id="icons"><button id="bPhone" title="Celular (P)">📱</button><button id="bMap" title="Mapa (M)">🗺️</button><button id="bRadio" title="Rádio (R)">📻</button><button id="bCam" title="Câmera (C)">🎥</button><button id="bRec" title="Gravar vídeo (V)">🔴</button></div>
-  <div id="quick"><button id="qRace" title="Corrida no Autódromo Neon">🏁</button><button id="qJet" title="Mochila a jato (J)">🎒</button><button id="qHeli" title="Chamar o helicóptero (G)">🚁</button><button id="qCar" title="Chamar veículo (B)">🚘</button><button id="qHome" title="Ir para casa">🏠</button><button id="qPonte" title="Ponte do Mar: drift sobre o mar com 5 pilotos (O)">🌉</button><button id="qSerp" title="Circuito Serpentina (K)">🐍</button><button id="qFlash" title="Piscar o farol: desafiar rival da Liga da Madrugada (L)">💡</button></div>
+  <div id="quick"><button id="qRace" title="Corrida no Autódromo Neon">🏁</button><button id="qJet" title="Mochila a jato (J)">🎒</button><button id="qHeli" title="Chamar o helicóptero (G)">🚁</button><button id="qPlane" title="Hidroporto: avião anfíbio Baía Anfíbia A1 (Y)">✈️</button><button id="qCar" title="Chamar veículo (B)">🚘</button><button id="qHome" title="Ir para casa">🏠</button><button id="qPonte" title="Ponte do Mar: drift sobre o mar com 5 pilotos (O)">🌉</button><button id="qSerp" title="Circuito Serpentina (K)">🐍</button><button id="qFlash" title="Piscar o farol: desafiar rival da Liga da Madrugada (L)">💡</button></div>
   <div id="giftHud" hidden></div>
   <div id="stTip" hidden></div>
   <div id="stHud" hidden></div>
@@ -34,7 +34,7 @@
   <div id="recBar" hidden><i></i><b>REC</b><span id="recTime">0:00</span><button id="recStop" title="Parar gravação">■ Parar</button></div>
   <div id="raceHud" hidden></div>
   <div id="drift" hidden></div>
-  <div id="serpHud" hidden></div><div id="ponteHud" hidden></div><div id="turnCue" hidden></div><div id="bfPop"></div><div id="heliHud" hidden></div><div id="bfZone" hidden></div><div id="radioSub" hidden></div><div id="nitroW" hidden><div class="nSegs"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div><span id="nitroL">NITRO</span></div><div id="driftW" hidden><div id="driftBar"><b id="driftB"></b></div><span id="driftL">DRIFT</span></div>
+  <div id="serpHud" hidden></div><div id="ponteHud" hidden></div><button id="ponteQuit" hidden title="Sair da corrida da ponte">🏳️ Desistir</button><div id="turnCue" hidden></div><div id="bfPop"></div><div id="heliHud" hidden></div><div id="bfZone" hidden></div><div id="radioSub" hidden></div><div id="nitroW" hidden><div class="nSegs"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div><span id="nitroL">NITRO</span></div><div id="driftW" hidden><div id="driftBar"><b id="driftB"></b></div><span id="driftL">DRIFT</span></div>
   <div id="touch">
     <div id="stickZone"><div id="stick"><div id="knob"></div></div></div>
     <div id="btns">
@@ -98,4 +98,5 @@
 </div>
 <noscript><p style="color:#fff;padding:20px">Ative o JavaScript para jogar.</p></noscript>
 <script type="module" src="src/main.js"></script>
+  <div id="giftScreen" hidden><div class="gCard"><div class="gIco">🎁🏎️</div><h2>PRESENTE DA PONTE!</h2><p>Você completou uma volta inteira. Bah, que pilotagem!</p><div id="giftInfo"></div><div class="gBtns"><button id="giftLater">Continuar</button><button id="giftDrive">🚗 Dirigir agora</button></div></div></div>
 </body></html>

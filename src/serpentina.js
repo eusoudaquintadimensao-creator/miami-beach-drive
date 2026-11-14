@@ -239,7 +239,7 @@ export class Serpentina {
     if (far) {
       for (const c of this.cars) c.root.visible = false;
       const v = G.player.vehicle;
-      const loc = v && !v.spec.boat && v.type !== 'heli' ? this.locate(v.x, v.z, this.hint) : null;
+      const loc = v && !v.spec.boat && !v.spec.air ? this.locate(v.x, v.z, this.hint) : null;
       const on = !!(loc && Math.abs(loc.lat) < D.wall + 4);
       if (on) { this.hint = loc.i; this.leftT = 0; }
       else if (this.on) { this.leftT += dt; if (this.leftT > 6) this.endSession(); }
@@ -248,7 +248,7 @@ export class Serpentina {
     }
     this.ai(dt); this.updateFans(dt, G.env.hour, t);
     // sessão de pontuação: começa ao entrar na pista de carro, fecha ao sair
-    const v = G.player.vehicle; const loc = v && !v.spec.boat && v.type !== 'heli' ? this.locate(v.x, v.z, this.hint) : null;
+    const v = G.player.vehicle; const loc = v && !v.spec.boat && !v.spec.air ? this.locate(v.x, v.z, this.hint) : null;
     const on = !!(loc && Math.abs(loc.lat) < D.wall + 4);
     if (on) { this.hint = loc.i; this.leftT = 0; if (!this.on) { this.on = true; this.session = G.drift.total; this.stuckT = 0; G.ui.toast('🐍 Sessão de drift na Serpentina! Pontos valem o recorde da pista.', 2600); } }
     else if (this.on) { this.leftT += dt; if (this.leftT > 6) this.endSession(); }

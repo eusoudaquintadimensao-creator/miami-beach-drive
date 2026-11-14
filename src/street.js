@@ -81,7 +81,7 @@ export class Street {
     const n = this.nearRival(50);
     if (!n) { this._flashWhy = 'none:' + G.env.hour; { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
     const r = n.r; if (this.save.rep < r.need) { this._flashWhy = 'rep'; this.say(r, pick(STREET.locked)); G.ui.toast(`🔒 ${r.name} pede reputação ${r.need} (você tem ${this.save.rep})`, 2600); return false; }
-    if (!v || v.spec.boat || v.type === 'heli') { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
+    if (!v || v.spec.boat || v.spec.air) { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
     if (G.race.active || G.missions.active) { this._flashWhy = 'busy'; G.ui.toast('Termine a missão/corrida atual antes do racha', 2200); return false; }
     this._flashWhy = 'ok'; this.start(n.ri, n); return true;
   }
@@ -205,12 +205,12 @@ export class Street {
     const el = document.getElementById('stRes'); if (!el) return; const R = this.lastResult, k = this.rank();
     el.querySelector('h3').textContent = R.win ? '🏆 Vitória na Liga da Madrugada!' : '🌙 Foi por pouco!';
     el.querySelector('.stBody').innerHTML = `<p><b>${R.place || (R.win ? 1 : '-')}º lugar</b> de 5</p><p>+${R.rep} reputação · +$${R.cash}</p>${R.rewards.map(x => `<p>${x}</p>`).join('')}<ol>${k.rows.map(r => `<li class="${r.me ? 'me' : ''}">${r.name}${r.beat ? ' ✓' : ''}<span>${r.rep}</span></li>`).join('')}</ol>`;
-    const ap = document.getElementById('stApply'); const pv = this.G.player.vehicle; if (ap) ap.hidden = !(R.liv && pv && !pv.spec.boat && pv.type !== 'heli');
+    const ap = document.getElementById('stApply'); const pv = this.G.player.vehicle; if (ap) ap.hidden = !(R.liv && pv && !pv.spec.boat && !pv.spec.air);
     el.hidden = false;
   }
   closeResult() { const el = document.getElementById('stRes'); if (el) el.hidden = true; }
   applyLivery(id) {
-    const G = this.G, r = LEAGUE.find(o => o.id === (id || (this.lastResult && this.lastResult.liv))); const pv = G.player.vehicle; if (!r || !pv || pv.spec.boat || pv.type === 'heli' || !this.save.liveries.includes(r.id)) return false;
+    const G = this.G, r = LEAGUE.find(o => o.id === (id || (this.lastResult && this.lastResult.liv))); const pv = G.player.vehicle; if (!r || !pv || pv.spec.boat || pv.spec.air || !this.save.liveries.includes(r.id)) return false;
     const nv = G.replaceVehicle(pv, Object.assign({}, pv.tune || {}, r.liv)); G.ui.toast(`🎨 Pintura <b>${r.liv.text}</b> aplicada!`, 2000); this.closeResult(); return !!nv;
   }
 

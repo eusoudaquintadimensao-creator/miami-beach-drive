@@ -310,7 +310,7 @@ export const DriveUI = {
   },
 
   setDriving(on, veh) {
-    const ground = !!(on && veh && veh.type !== 'heli');
+    const ground = !!(on && veh && !veh.spec.air);
     if (this.driving === ground && (!ground || this._veh === veh)) {
       if (!ground) { this.hardBrake = false; }
       return;

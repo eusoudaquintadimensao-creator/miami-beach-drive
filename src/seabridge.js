@@ -25,6 +25,8 @@ export const PONTE = {
   ],
 };
 const LAPS = 2;
+// carro presente por completar uma volta inteira na ponte (t361): esportivo original "Aurora X1 · Maré Neon"
+export const GIFT_CAR = { id: 'mare-neon', type: 'rc_hyper', name: 'Aurora X1 · Maré Neon', tune: { paint: 0x7d4dff, glow: 0x29f0ff, spoiler: 2, kit: true, rim: 0xffd23f, text: 'MARÉ NEON', style: 1, accent: 0xffffff, num: 88, livery: 1 } };
 // ritmo de drift (de lado, sem tirar de grip): ~72 km/h nas retas em S e aceleração lateral menor que no grip
 const DRIFT_PACE = { cruise: 20, lat: 6 };
 const HALF_W = 9; // meia largura do asfalto (tabuleiro de 18 m)
@@ -302,18 +304,18 @@ export class SeaBridge {
   }
   // ---------------- sessão ----------------
   nearGate() { const v = this.G.player.vehicle; const p = v || this.G.player; return Math.hypot(p.x - GATE.x, p.z - GATE.z); }
-  canAccept() { const v = this.G.player.vehicle; return !!(v && !v.spec.boat && v.type !== 'heli' && !this.on && this.nearGate() < 50); }
+  canAccept() { const v = this.G.player.vehicle; return !!(v && !v.spec.boat && !v.spec.air && !this.on && this.nearGate() < 50); }
   accept() {
     const G = this.G, v = G.player.vehicle; if (!v) return false;
     respawnFade(() => {
       const p = this.loop.at(this.L - 14, -3); v.place(p.x, p.z, p.h); v.y = p.y + 0.2; v.vf = v.vx = v.vz = 0; v.drifting = false; v.yawV = 0;
       G.player.x = p.x; G.player.z = p.z; G.player.h = p.h; G.camYaw = p.h; if (G.snapCam) G.snapCam(); v.sync(0);
-      this.start(true);
+      this.noAuto = false; this.start(true);
     });
     return true;
   }
   start(accepted) {
-    const G = this.G; this.makeCars(); this.on = true; this.leftT = 0; this.stuckT = 0; this.lap = 0; this.lapStart = 0; this.prog = 0; this.lastS = null; this.session = G.drift.total; this.best = 0; this.halfSaid = false; this.lastLap = 0;
+    const G = this.G; this.makeCars(); this.on = true; this.odo = 0; this._lp = null; this.noAuto = false; this.leftT = 0; this.stuckT = 0; this.lap = 0; this.lapStart = 0; this.prog = 0; this.lastS = null; this.session = G.drift.total; this.best = 0; this.halfSaid = false; this.lastLap = 0;
     this.radio.load(); this.radio.reset(); this.banterT = 26 + Math.random() * 10;
     const v = G.player.vehicle; const loc = v ? this.loop.locate(v.x, v.z) : null; const sP = loc ? loc.s : 0; this.placeCars(sP);
     G.ui.toast(`${PONTE.icon} <b>${PONTE.name}</b> · ${(this.L / 1000).toFixed(1).replace('.', ',')} km · volta ~${fmtT(this.estimate.t).replace(/\.\d$/, '')} no ritmo de drift · ${LAPS} voltas · 5 pilotos no tandem!`, 3600);
@@ -329,6 +331,26 @@ export class SeaBridge {
     else if (pts > 20) G.ui.toast(`${PONTE.icon} Sessão encerrada · ${pts.toLocaleString('pt-BR')} pts · recorde de pontos ${this.data.bestScore.toLocaleString('pt-BR')}`, 3000);
     this.hud(true);
   }
+  // progresso até a bandeirada (0–1): voltas completas + parte da volta atual
+  progress() { if (!this.on || !this.lapStart) return 0; return clamp(((Math.min(this.lap, LAPS) - 1) * this.L + clamp(this.prog, 0, this.L)) / (LAPS * this.L), 0, 1); }
+  // 🏳️ Desistir: encerra a sessão sem penalidade e leva o carro de volta à rampa (não recomeça sozinho)
+  quit() {
+    if (!this.on) return false; const G = this.G; this.quits = (this.quits || 0) + 1;
+    const km = ((this.odo || 0) / 1000).toFixed(1).replace('.', ',');
+    this.end(false); this.noAuto = true; this.radio.reset();
+    G.ui.toast(`🏳️ Você saiu da corrida da ${PONTE.name} · ${km} km rodados · volte quando quiser!`, 3200);
+    respawnFade(() => { const v = G.player.vehicle; if (v && !v.spec.boat && !v.spec.air) { const p = this.ramp.at(2, 0); v.place(p.x, p.z, p.h); v.vf = v.vx = v.vz = 0; G.player.x = p.x; G.player.z = p.z; G.camYaw = p.h; G.snapCam && G.snapCam(); v.sync(0); } });
+    return true;
+  }
+  // volta completa: 1ª vez ganha o carro presente (fica na garagem de casa e no save); depois, prêmio em dinheiro
+  reward(lt) {
+    const G = this.G; const S = G.save; if (!S) return;
+    if (!S.giftCar) {
+      S.giftCar = { type: GIFT_CAR.type, tune: { ...GIFT_CAR.tune }, name: GIFT_CAR.name, at: Date.now(), lap: +lt.toFixed(1) }; G.persist && G.persist();
+      this.radio.say('gift', null, 0, true); this.giftShown = (this.giftShown || 0) + 1;
+      if (G.showGift) G.showGift(GIFT_CAR, lt);
+    } else { G.addMoney && G.addMoney(300); G.ui.toast(`🏁 Volta completa! Prêmio da ponte: <b>$300</b>`, 2400); }
+  }
   onLine(t) {
     const G = this.G;
     if (!this.lapStart) { this.lapStart = t; this.lap = 1; this.prog = 0; this.halfSaid = false; this.radio.say('lapsLeft2', null, 0); return; }
@@ -337,6 +359,7 @@ export class SeaBridge {
     const rec = !this.data.bestLap || lt < this.data.bestLap; if (rec) this.data.bestLap = lt; if (!this.best || lt < this.best) this.best = lt; saveData(this.data);
     G.ui.toast(`${PONTE.icon} Volta ${this.lap}: <b>${fmtT(lt)}</b>${rec ? ' · 🏆 recorde!' : ' · recorde ' + fmtT(this.data.bestLap)}`, 3000);
     if (rec) this.radio.say('record', null, 0, true);
+    this.reward(lt);
     this.lap++; this.lapStart = t; this.prog = 0; this.halfSaid = false;
     if (this.lap > LAPS) { this.end(true); return; }
     if (this.lap === LAPS) this.radio.say('lastLap', null, 0, true);
@@ -355,11 +378,13 @@ export class SeaBridge {
     this.mPool.opacity = clamp((G.env.night - 0.25) * 1.3, 0, 0.75);
     this.beam.visible = G.env.night > 0.2 || !this.on; this.beam.material.opacity = 0.08 + G.env.night * 0.14;
     // sessão
-    const v = G.player.vehicle; const ok = v && !v.spec.boat && v.type !== 'heli';
+    const v = G.player.vehicle; const ok = v && !v.spec.boat && !v.spec.air;
     const loc = ok ? this.loop.locate(v.x, v.z, this.hint) : null; this._loc = loc;
     const onLoop = !!(loc && loc.d < 40 && Math.abs(loc.lat) < HALF_W + 3);
-    if (onLoop) { this.hint = loc.i; this.leftT = 0; if (!this.on) this.start(false); }
-    else if (this.on) { this.leftT += dt; if (this.leftT > 6) this.end(false); }
+    if (onLoop) { this.hint = loc.i; this.leftT = 0; this.offT = 0; if (!this.on && !this.noAuto) this.start(false); }
+    else { this.offT = (this.offT || 0) + dt; if (this.offT > 2) this.noAuto = false; // depois de desistir, só recomeça ao sair do laço (ou aceitando no pórtico)
+      if (this.on) { this.leftT += dt; if (this.leftT > 6) this.end(false); } }
+    if (this.on && v) { if (this._lp) { const d = Math.hypot(v.x - this._lp[0], v.z - this._lp[1]); if (d < 40) this.odo += d; } this._lp = [v.x, v.z]; }
     if (this.on && onLoop) {
       if (this.lastS != null) { const d = wrapD(loc.s - this.lastS, this.L); if (Math.abs(d) < 60) { this.prog += d; if (this.lastS > this.L - 80 && loc.s < 80 && d > 0) this.onLine(t); } }
       this.lastS = loc.s;
@@ -377,7 +402,11 @@ export class SeaBridge {
     if (v.drifting && (v.dTime > 2.4 || (this.G.drift.combo || 1) >= 3)) R.say('playerDrift', null, 22);
     let tand = null; for (const r of this.cars) if (r.active && r._d < 7.5 && r.drifting && v.drifting) tand = r;
     this.tandT = tand ? (this.tandT || 0) + dt : 0; if (this.tandT > 1.2) { if (R.say('tandemClose', tand.drvId, 26) || R.say('tandemClose', null, 26)) this.tandemSaid = (this.tandemSaid || 0) + 1; }
-    if ((Math.abs(loc.lat) > HALF_W - 0.9 && v.speed > 12) || (v.hitT > 0 && v.speed > 6)) R.say('wall', null, 18);
+    if (v.hitT > 0 && !this._hitW) { if (!R.say('crash', null, 16)) R.say('wall', null, 18); } else if (Math.abs(loc.lat) > HALF_W - 0.9 && v.speed > 12) R.say('wall', null, 18);
+    this._hitW = v.hitT > 0;
+    if (v.boosting && !this._boostW) R.say('nitro', null, 20); this._boostW = !!v.boosting;
+    { const G = this.G; let air = null; for (const h of [G.heli, G.plane, ...(G.helis ? G.helis.list : [])]) { if (!h || !h.root || !h.root.visible || !h.air) continue; const d = Math.hypot(h.x - v.x, h.z - v.z); if (d < 160 && h.y - v.y > 12) { air = h; break; } }
+      this.airT = air ? (this.airT || 0) + dt : 0; if (this.airT > 1) R.say('heli', null, 70); }
     for (const r of this.cars) { if (!r.active) continue; const rel = wrapD(r.total - loc.s, L); if (r._rel != null) { if (r._rel > 2 && rel < -2 && Math.abs(rel) < 40) R.say('playerPass', r.drvId, 24); else if (r._rel < -2 && rel > 2 && Math.abs(rel) < 40) R.say('aiPass', r.drvId, 24); } r._rel = rel; }
     this.banterT -= dt; if (this.banterT <= 0) { this.banterT = 38 + Math.random() * 20; R.banter(); }
   }
@@ -398,15 +427,18 @@ export class SeaBridge {
   }
   go() {
     const G = this.G; const v = G.player.vehicle;
-    if (v && !v.spec.boat && v.type !== 'heli') { const p = this.ramp.at(2, 0); v.place(p.x, p.z, p.h); v.vf = v.vx = v.vz = 0; G.player.x = p.x; G.player.z = p.z; G.camYaw = p.h; G.snapCam && G.snapCam(); v.sync(0); G.ui.toast(`${PONTE.icon} <b>${PONTE.name}</b> · toque <b>${PONTE.icon} Aceitar</b> (até 50 m) e os 5 pilotos entram no tandem!`, 3200); return; }
+    if (v && !v.spec.boat && !v.spec.air) { const p = this.ramp.at(2, 0); v.place(p.x, p.z, p.h); v.vf = v.vx = v.vz = 0; G.player.x = p.x; G.player.z = p.z; G.camYaw = p.h; G.snapCam && G.snapCam(); v.sync(0); G.ui.toast(`${PONTE.icon} <b>${PONTE.name}</b> · toque <b>${PONTE.icon} Aceitar</b> (até 50 m) e os 5 pilotos entram no tandem!`, 3200); return; }
     if (v) G.leaveCar(true);
     G.placeOnFoot(GATE.x - 4, GATE.z - 22, 0); G.snapCam();
     G.callCar && G.callCar();
     G.ui.toast(`${PONTE.icon} <b>${PONTE.name}</b> · seu carro vem parar à sua frente: toque para entrar e depois <b>${PONTE.icon} Aceitar</b>.`, 3600);
   }
+  placeQuit() { const qb = $('ponteQuit'), el = $('ponteHud'); if (!qb || qb.hidden || !el || el.hidden) return; const r = el.getBoundingClientRect(); if (!r.height) return;
+    const w = qb.offsetWidth || 96; const roomR = innerWidth - r.right > w + 12;
+    if (roomR) { qb.style.left = Math.round(r.right + 6) + 'px'; qb.style.top = Math.round(r.top) + 'px'; } else { qb.style.left = Math.round(Math.min(innerWidth - w - 6, r.right - w)) + 'px'; qb.style.top = Math.round(r.bottom + 4) + 'px'; } }
   hud(force) {
     const el = $('ponteHud'); if (!el) return;
-    document.body.classList.toggle('ponteOn', !!this.on);
+    document.body.classList.toggle('ponteOn', !!this.on); { const qb = $('ponteQuit'); if (qb && qb.hidden === !!this.on) { qb.hidden = !this.on; if (this.on) this.placeQuit(); } }
     if (!this.on) {
       if (this.canAccept()) { const h = `<b>${PONTE.icon} ${PONTE.title}</b> ${this.G.touch ? `toque <span>${PONTE.icon} Aceitar</span>` : 'aperte <span>E</span> para aceitar'}<small>5 pilotos · ${LAPS} voltas · ${(this.L / 1000).toFixed(1).replace('.', ',')} km · recorde ${fmtT(this.data.bestLap)}</small>`; if (el.hidden) el.hidden = false; if (h !== this._h) { el.innerHTML = h; this._h = h; } return; }
       if (!el.hidden) el.hidden = true; return;
@@ -414,8 +446,9 @@ export class SeaBridge {
     el.hidden = false; const G = this.G;
     const pts = Math.max(0, Math.round(G.drift.total - this.session)); const km = ((this.prog > 0 ? this.prog : 0) / 1000).toFixed(1).replace('.', ',');
     const lt = this.lapStart ? fmtT(this.t - this.lapStart) : 'largada →';
-    const h = `<b>${PONTE.icon} ${PONTE.title}</b> volta ${Math.min(this.lap || 1, LAPS)}/${LAPS} · <span>${lt}</span> · ${km}/${(this.L / 1000).toFixed(1).replace('.', ',')} km<small>${pts.toLocaleString('pt-BR')} pts · melhor volta ${fmtT(this.data.bestLap)} · ${this.driftN || 0}/5 em drift</small>`;
-    if (force || h !== this._h) { el.innerHTML = h; this._h = h; if (this.radio && !$('radioSub').hidden) this.radio.place(); }
+    const pc = Math.floor(this.progress() * 100); const odo = ((this.odo || 0) / 1000).toFixed(1).replace('.', ',');
+    const h = `<b>${PONTE.icon} ${PONTE.title}</b> volta ${Math.min(this.lap || 1, LAPS)}/${LAPS} · <span>${lt}</span> · 🏁 <span class="pc">${pc}%</span> · 🛣️ <span class="odo">${odo} km</span><i class="pbar"><i style="width:${pc}%"></i></i><small>${pts.toLocaleString('pt-BR')} pts · volta ${km}/${(this.L / 1000).toFixed(1).replace('.', ',')} km · melhor ${fmtT(this.data.bestLap)} · ${this.driftN || 0}/5 em drift</small>`;
+    if (force || h !== this._h) { el.innerHTML = h; this._h = h; this.placeQuit(); if (this.radio && !$('radioSub').hidden) this.radio.place(); }
   }
 }
 
