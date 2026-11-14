@@ -62,4 +62,5 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] SW solara-v23-2026-11-14-orla / neon-dist-v15-2026-11-14-orla (CORE com frota/marraces/palmbreak/outdoor/gauchos)
 - [x] matriz q6 (18 testes × d/i/il/al × 2 jogos; /tmp/q6s.txt /tmp/q6n.txt): tudo PASS menos t361 hidroavião (alcance t398 curto demais do píer) e t392 Solara (erro avc1: adapt mudava resolução gravando)
 - [x] correções: hidroavião embarca pela asa (alcance 5 m); adapt congela durante gravação. q7 (t392+t361 × 4 × 2; /tmp/q7*.txt): t392 8/8 PASS
-- [ ] t361 rerun → push → site (deploy/ passos) → live
+- [x] t361 8/8 PASS, t398 d/i PASS; push 19:13 (Solara 5de91c9, Neon 7a9f8ce)
+- [ ] site MIAMI DRIVE redeploy → live
