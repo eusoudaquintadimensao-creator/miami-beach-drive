@@ -90,3 +90,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
     interior claro com araras/manequins/espelho; cartão comprar/vestir; modo espelho (câmera de frente, poses, reações); app 👗 Lojas no celular + atalho no GPS; mapa
   · pedestres com paleta Miami + saias/chapéus; NPCs de conversa com roupa padrão
   · testes t408.js / t410.js (prints loja-*, espelho-*, trajes-*)
+  · t412 (20:45, junto na FASE 7): a pé entrar no mar andando (água até pernas/cintura, respingos, mais lento; fundo = nadar, sem travar/afundar; voltar andando)
+    + passarelas/pontes sobre a areia: elevar (pilares espaçados) para carros passarem por baixo na praia; ponte da corrida e ruas continuam alinhadas. Testar praia inteira de carro + entrar/sair do mar.

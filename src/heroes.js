@@ -7,7 +7,7 @@ const GLOW = (color, i = 2.2) => new THREE.MeshStandardMaterial({ color, emissiv
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 
 // prende uma malha a um osso numa posição/rotação do espaço do modelo (metros, modelo olhando para +z)
-function attach(model, bone, obj, off, k, rot) {
+export function attach(model, bone, obj, off, k, rot) {
   model.updateMatrixWorld(true);
   const b = model.getObjectByName(bone) || model;
   const ms = model.getWorldScale(new THREE.Vector3()); const bx = ms.x / ms.y, bz = ms.z / ms.y; // "bulk" (largura extra)
