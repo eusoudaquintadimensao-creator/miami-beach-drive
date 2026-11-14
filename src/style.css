@@ -704,3 +704,4 @@ body.touch.land.driving #giftHud{top:calc(var(--sat) + 104px)}
 /* academia/pedidos da orla em paisagem: no rodapé central, sem cobrir botões */
 body.touch.land #orlaCard,body.touch.land #gymGame{bottom:calc(var(--sab) + 8px);max-width:min(400px,40vw)}
 body.orlaUi #area{visibility:hidden;opacity:0}
+body.driving.touch:not(.land) #nitroW{bottom:calc(var(--sab) + 296px)}
