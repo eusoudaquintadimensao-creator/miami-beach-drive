@@ -93,6 +93,30 @@ fs.mkdirSync(SH, { recursive: true });
     ck('gps: guardado offline pelo service worker; abre o mapa do jogo', R.g3.sw && R.g3.big, R.g3);
   }
 
+  if (want('vida')) {
+    R.v1 = await ev(() => { const G = window.__G; if (G.phoneOpen) G.ui.closePhone(); window.__onFoot(372, -332); MBD.setHour(11); G.camYaw = Math.PI; G.camPitch = 0.1; for (let i = 0; i < 30; i++) MBD.sim(1, 1 / 30);
+      const B = MBD.beach(); const c = B.counts(); const vis = B.torso.visible; let near = 0; for (const f of B.figs) if (!f.hidden && Math.hypot(f.x - 372, f.z + 332) < 120) near++;
+      const surf = B.figs.filter(f => f.kind === 'surf'); const sx0 = surf.map(f => f.x); for (let i = 0; i < 60; i++) MBD.sim(1, 1 / 30); const moved = surf.some((f, k) => Math.abs(f.x - sx0[k]) > 0.5);
+      const inWater = surf.every(f => f.x > 384) && B.figs.filter(f => f.kind === 'swim').every(f => f.x > 384);
+      return { c, vis, near, moved, inWater, peds: MBD.state.peds, q: MBD.state.quality }; });
+    await shot('vida-praia');
+    R.v2 = await ev(() => { const G = window.__G, B = MBD.beach(); MBD.setHour(23.5); MBD.sim(3, 1 / 30); const night = B.counts(); MBD.setHour(11); MBD.sim(3, 1 / 30); window.__onFoot(-480, -300); MBD.sim(5, 1 / 30); const away = !B.torso.visible; return { night, away }; });
+    R.v3 = await ev(() => { const G = window.__G; const v = G.vehicles.find(x => x.npc && x.type === 'sedan') || G.vehicles.find(x => x.type === 'sedan'); let mir = false; v && v.body.traverse(o => { if (o.geometry && o.geometry.attributes.position && o.material === v.body.children[0].material) { } }); const n = v ? v.body.children.length : 0;
+      const cr = G.crowd; return { carParts: n, shoes: !!cr.shoes && cr.shoes.count === cr.n * 2, hairL: !!cr.hairL }; });
+    R.v4 = await ev(() => { const G = window.__G; G.ui.openMap(); const s0 = G.ui.bv.s; document.querySelector('#bmBtns button[data-z="1"]').click(); const s1 = G.ui.bv.s; document.querySelector('#bmBtns button[data-z="0"]').click(); const pl = G.player; const v = G.ui.bv; const cx = (G.ui.map.X(pl.x) - v.ox) * v.s, cz = (G.ui.map.Z(pl.z) - v.oy) * v.s; const W = G.ui.bm.width, H = G.ui.bm.height;
+      const r = G.ui.bm.getBoundingClientRect(); const o = { pointerId: 9, bubbles: true, clientX: r.left + r.width * 0.3, clientY: r.top + r.height * 0.4 }; G.ui.waypoint = null; G.ui.bm.dispatchEvent(new PointerEvent('pointerdown', o)); G.ui.bm.dispatchEvent(new PointerEvent('pointerup', o));
+      return { s0, s1, centered: Math.abs(cx - W / 2) < W * 0.3 && Math.abs(cz - H / 2) < H * 0.3, wp: !!G.ui.waypoint, btns: window.__box(['bmBtns', 'bmX', 'bmLeg'], ['bmBtns']) }; });
+    await shot('vida-mapa-zoom');
+    await ev(() => window.__G.ui.closeMap());
+    const minPeds = { low: 40, medium: 84, high: 124 }[R.v1.q] || 40;
+    ck('vida: praia cheia de dia (banhistas, vôlei, crianças, surfistas, nadadores, vendedores, pipas)', R.v1.vis && R.v1.c.lie >= 20 && R.v1.c.sit >= 10 && R.v1.c.volley === 8 && R.v1.c.kid >= 5 && R.v1.c.surf >= 4 && R.v1.c.swim >= 6 && R.v1.c.vendor >= 2 && R.v1.c.kiter >= 2 && R.v1.near >= 15, R.v1);
+    ck('vida: surfistas se movem e ficam no mar', R.v1.moved && R.v1.inWater, R.v1);
+    ck('vida: mais pedestres na calçada', R.v1.peds >= minPeds, { peds: R.v1.peds, q: R.v1.q });
+    ck('vida: de madrugada a praia esvazia; longe da praia nada é desenhado', !R.v2.night.lie && !R.v2.night.volley && R.v2.away, R.v2);
+    ck('vida: carros com retrovisores, pedestres com sapatos e cabelos variados', R.v3.carParts >= 8 && R.v3.shoes && R.v3.hairL, R.v3);
+    ck('vida: mapa completo com zoom, centralizar e marcar destino', R.v4.s1 > R.v4.s0 && R.v4.centered && R.v4.wp && R.v4.btns.off.length === 0, R.v4);
+  }
+
   console.log('errors:', errs.slice(0, 5));
   if (errs.length) fail.push('console errors ' + errs.length);
   console.log(fail.length ? 'FAIL ' + out + ': ' + fail.join(' | ') : 'PASS ' + out);
