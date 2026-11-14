@@ -66,7 +66,7 @@ fs.mkdirSync(SH, { recursive: true });
   const mid = (o) => o.cx > o.W * 0.3 && o.cx < o.W * 0.7 && o.cy > o.H * 0.25 && o.cy < o.H * 0.75;
   ck('D drift fora do centro, à direita (t402)', !mid(r.drift) && r.drift.cx > r.drift.W * 0.6, r.drift); ck('D bônus fora do centro', !mid(r.bfPop), r.bfPop);
   // E) mesmo vidro em todos os botões de direção (mesma cor de borda)
-  if (mobile) { r = await ev(() => { __car(); return new Promise(res => setTimeout(() => { const ids = ['drvBrake', 'drvRev', 'drvBeam', 'bNeutral', 'bAct']; res(ids.map(id => { const e = document.getElementById(id); return e && e.offsetWidth ? getComputedStyle(e).borderTopColor : null; }).filter(Boolean)); }, 500)); });
+  if (mobile) { r = await ev(() => { const G = window.__G; if (!G.player.vehicle) { const sc = G.sigCar; if (sc && !sc.driver) G.enterCar(sc); else __car(); } MBD.sim(3, 1 / 30); return new Promise(res => setTimeout(() => { const ids = ['drvBrake', 'drvRev', 'drvBeam', 'bNeutral', 'bAct']; res(ids.map(id => { const e = document.getElementById(id); return e && e.offsetWidth ? getComputedStyle(e).borderTopColor : null; }).filter(Boolean)); }, 500)); });
     ck('E botões com a mesma borda de vidro', r.length >= 4 && new Set(r).size === 1, r); await shot('botoes', 300); }
   ck('sem erros no console', errs.length === 0, errs.slice(0, 5));
   console.log(fail.length ? 'FAIL ' + fail.join(' | ') : 'PASS ' + out); await browser.close(); process.exit(fail.length ? 1 : 0);
