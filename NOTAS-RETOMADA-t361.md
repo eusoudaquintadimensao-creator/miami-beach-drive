@@ -71,6 +71,7 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] test/t405.js PASS d/i/il/al Solara (prints botoes405-*); Solara a3d4246 SW solara-v24-2026-11-14-vidro
 - [x] Neon port + t405 ×4 PASS (Neon commit acima)
 - [x] matriz q9 PASS (t387/t400 re-rodados após fix em q10: 8/8 cada) + t405 ×4 ×2 PASS → push → site
+- [x] 20:40 publicado: push Solara 0c7a4bc / Neon 02f283a; site MIAMI DRIVE republicado; live 4 sw.js = solara-v24-2026-11-14-vidro / neon-dist-v16-2026-11-14-vidro, livever 4 alvos 0 erros, live-drive site-il + pages-d ok nos 2 jogos. FASE 6 CONCLUÍDA. Próximo: FASE 7 (t408+t410) quando o pai relançar.
 - [x] fix: borda branca uniforme (t400 E) e controles a 40 px (deitado) / 60 px (em pé) da borda de baixo (barra de gestos, t387) via --edgeB
 
 ## FASE 7 (FILA — t408, NÃO começar antes de publicar a FASE 6; o pai relança)
