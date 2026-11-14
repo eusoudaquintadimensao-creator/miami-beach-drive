@@ -148,7 +148,7 @@ export class Crowd {
       let ddt = dt; if (Math.abs(p.x - camX) + Math.abs(p.z - camZ) > 150) { p.acc = (p.acc || 0) + dt; if ((this.frame + p.i) % 3) continue; ddt = p.acc; p.acc = 0; }
       // reação a veículos (desvio — ninguém se machuca)
       for (const v of vehicles) {
-        if (!v.driver && !v.npc) continue; if (v.air) continue; const sp = v.speed; if (sp < 1.5) continue;
+        if (!v.driver && !v.npc && !v.coast) continue; if (v.air) continue; const sp = v.speed; if (sp < 1.5) continue;
         const dx = p.x - v.x, dz = p.z - v.z; if (dx * dx + dz * dz > 400) continue;
         const [fx, fz] = v.fwd(); const ahead = dx * fx + dz * fz, lat = dx * -fz + dz * fx;
         if (ahead > -1 && ahead < sp * 1.1 + 5 && Math.abs(lat) < v.spec.w / 2 + 1.4 && p.dodgeT <= 0 && p.mode !== 'sit') {

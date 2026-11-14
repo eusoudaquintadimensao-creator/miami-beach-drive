@@ -28,6 +28,7 @@ import { Track } from './track.js';
 import { Race } from './race.js';
 import { DriftFX, DriftScore } from './fx.js';
 import { Home, HOME } from './home.js';
+import { Bailout } from './bailout.js';
 import { Jetpack } from './jetpack.js';
 import { Voices } from './voice.js';
 import { callCar, updateCarCall, finishCarCall, SIGNATURE } from './signature.js';
@@ -178,7 +179,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mega = new MegaGarage(G); G.beach = new BeachLife(G, scene, Q); G.orla = new Orla(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mega = new MegaGarage(G); G.beach = new BeachLife(G, scene, Q); G.bail = new Bailout(G, scene); G.orla = new Orla(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -232,7 +233,7 @@ G.showGift = (gifts, lt) => {
   $('giftDrive').onclick = () => close(true); $('giftLater').onclick = () => close(false);
 };
 G.enterCar = (v) => { const p = G.player; p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0; p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h; seatHero(v); G.camYaw = v.h; };
-G.leaveCar = (silent) => { const p = G.player, v = p.vehicle; if (!v) return; scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0); G.hero.g.scale.setScalar(1); v.driver = null; v.parked = true; v.vx = v.vz = v.vf = 0; v.brakeOn = false; v.steer = 0; v.boosting = false; p.vehicle = null; p.vx = p.vz = 0; if (!silent) v.sync(0); };
+G.leaveCar = (silent) => { const p = G.player, v = p.vehicle; if (!v) return; if (v.type === 'heli' || v.type === 'plane') v.abandon = false; scene.add(G.hero.g); G.hero.g.visible = true; G.hero.g.rotation.set(0, 0, 0); G.hero.g.scale.setScalar(1); v.driver = null; v.parked = true; v.vx = v.vz = v.vf = 0; v.brakeOn = false; v.steer = 0; v.boosting = false; p.vehicle = null; p.vx = p.vz = 0; if (!silent) v.sync(0); };
 G.callHeli = () => {
   const p = G.player, H = G.heli; if (G.race.active) { G.ui.toast('🏁 Termine a corrida antes de chamar o helicóptero', 2200); return false; }
   if (p.vehicle === H) { G.ui.toast('🚁 Você já está pilotando', 1600); return false; }
@@ -431,7 +432,7 @@ function airToast(v) {
   return false;
 }
 function enterVehicle(v) {
-  const p = G.player; if (p.vehicle || !v || v.driver) return;
+  const p = G.player; if (p.vehicle || !v || v.driver) return; if (G.bail && G.bail.mode) { if (G.bail.mode !== 'roll') return; G.bail.cancel(); }
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
   if (airToast(v)) { } else
@@ -470,6 +471,7 @@ function seatHero(v) {
 }
 function exitVehicle() {
   const p = G.player, v = p.vehicle; if (!v) return;
+  if (G.bail && G.bail.tryStart(v)) return; // t390: pular do carro andando (rolamento) ou saltar de paraquedas da aeronave no ar
   if (v.type === 'plane') { if (v.air || v.speed > 3) { G.ui.toast('Pouse e pare primeiro: ⤓ reduz a manete ✈️', 1800); return; } }
   else if (v.type === 'heli') { if (v.air || v.speed > 3) { G.ui.toast('Pouse primeiro: segure ' + (touch ? '⤓' : 'Shift') + ' para descer 🚁', 1800); return; } }
   else if (v.speed > 6 && !v.spec.boat) { G.ui.toast('Pare o veículo para descer', 1500); return; }
@@ -502,6 +504,7 @@ function updatePlayer(dt) {
   if (keys.has('KeyD') || keys.has('ArrowRight')) mx += 1; if (keys.has('KeyA') || keys.has('ArrowLeft')) mx -= 1;
   let mag = Math.min(1, Math.hypot(mx, my)); let fromStick = false;
   if (input.stick) { mx = input.stick[0]; my = input.stick[1]; mag = Math.min(1, Math.hypot(mx, my)); fromStick = true; }
+  if (G.bail && G.bail.mode) { if (v) G.bail.cancel(); else if (G.bail.drive(dt, mx, my, input)) { DriveUI.setDriving(false); G.engine = null; G.skid = 0; return; } }
   if (v) {
     const mobileDrive = touch && !v.spec.air;
     if (mobileDrive) DriveUI.setDriving(true, v); else if (!v || v.spec.air) DriveUI.setDriving(false, v);
@@ -609,7 +612,7 @@ function updateCamera(dt, snap) {
   if (v) {
     D = v.spec.cam * mult + Math.min(v.speed, 40) * 0.05; H = 0; focusY = v.type === 'plane' ? 2.8 : v.type === 'heli' ? 2.6 : v.spec.boat ? 2.2 : v.type === 'suv' ? 1.9 : 1.5;
     if (lookT <= 0 && v.speed > 2) { const target = v.drifting || (v.spec.race && v.driftAng > 0.15) ? v.h + angDiff(v.h, Math.atan2(v.vx, v.vz)) * 0.55 : v.h; G.camYaw += angDiff(G.camYaw, target) * Math.min(1, dt * (v.spec.air ? 1.6 : 2.6)); G.camPitch = lerp(G.camPitch, v.spec.air && v.air ? (v.type === 'plane' ? 0.2 - clamp(v.pitch, -0.3, 0.3) * 0.5 : 0.3) : 0.16, dt * 1.5); }
-  } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly || G.jet.airPose ? 1.5 : 1); focusY = 1.55 * hk; }
+  } else { const hk = clamp(G.hero.heightK || 1, 0.9, 1.5); D = 4.3 * mult * (0.6 + hk * 0.4) * (G.powers.fly || G.jet.airPose ? 1.5 : 1); focusY = 1.55 * hk; if (G.bail && G.bail.mode === 'chute') { D = 11 * mult; focusY = 3.4; if (lookT <= 0) G.camPitch = lerp(G.camPitch, 0.04, Math.min(1, dt * 1.5)); } else if (G.bail && G.bail.mode === 'swim') focusY = 0.9; }
   const yaw = G.camYaw, pit = G.camPitch;
   const fx = p.x, fz = p.z, fy = p.y + focusY;
   let cx = fx - Math.sin(yaw) * Math.cos(pit) * D, cz = fz - Math.cos(yaw) * Math.cos(pit) * D, cy = fy + Math.sin(pit) * D + (v ? 0.6 : 0.15);
@@ -740,9 +743,9 @@ function step(dt) {
   updatePlayer(dt);
   const honk = G.traffic.update(dt, t, G.player, G.crowd, Q);
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
-  const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
+  const movers = [G.player.vehicle, G.bail && G.bail.coast, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
   G._hudT = (G._hudT || 0) - dt; if (G._hudT <= 0) { G._hudT = 0.5; const h = $('hud'); if (G.started && !G.paused && !G.garageOpen && !G.raceMenu && !G.homeIntro && h) { let fixed = 0; if (h.classList.contains('ghide')) { h.classList.remove('ghide'); fixed++; } if (h.hidden) { h.hidden = false; fixed++; } if (document.body.classList.contains('cine')) { document.body.classList.remove('cine'); fixed++; } if (fixed) G.hudFixes = (G.hudFixes || 0) + fixed; } }
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
@@ -864,9 +867,10 @@ addEventListener('pagehide', persist);
 
 // ---------------- API de teste (somente leitura/ações do próprio jogo)
 window.MBD = {
+  bail() { return G.bail; }, walkable(x, z) { return walkable(x, z); },
   callCar: () => G.callCar(), SIGNATURE, hero: () => G.hero, get sigCar() { return G.sigCar; }, get carCall() { return G.carCall; },
   get state() { const p = G.player; return { x: p.x, z: p.z, y: p.y, inVehicle: !!p.vehicle, vehicle: p.vehicle && p.vehicle.type, speed: p.vehicle ? p.vehicle.speed : Math.hypot(p.vx || 0, p.vz || 0), hour: G.env.hour, money: save.money, mission: G.missions.active && G.missions.active.type, fps, pr, quality: Q.level, draws: renderer.info.render.calls, tris: renderer.info.render.triangles, done: save.done, avatar: G.hero.id, avatar3d: !!G.hero.rig, anim: G.hero.cur ? G.hero.cur.getClip().name : G.hero.mode, grounded: p.grounded, device: Q.device, prMax: Q.prMax, peds: Q.peds, detail: Q.detail, lodHidden: G.lodHidden || 0, talkers: G.talk.talkers.length, talking: !!G.talk.cur, heliAlt: G.heli.y - groundY(G.heli.x, G.heli.z), heliAir: G.heli.air, helisFlying: G.helis.list.filter(h => h.root.visible).length, loadMs: G.loadMs }; },
-  teleport(x, z, h = 0) { const p = G.player; if (p.vehicle) { p.vehicle.place(x, z, h); } p.vx = p.vz = p.vy = 0; p.x = x; p.z = z; p.h = h; p.y = surfaceY(x, z); G.camYaw = h; camInit = false; },
+  teleport(x, z, h = 0) { const p = G.player; if (G.bail) G.bail.cancel(); if (p.vehicle) { p.vehicle.place(x, z, h); } p.vx = p.vz = p.vy = 0; p.x = x; p.z = z; p.h = h; p.y = surfaceY(x, z); G.camYaw = h; camInit = false; },
   setHour(h) { G.env.setTime(h); G.env.update(0.001, G.t, camera.position); G.env.updateEnv(); },
   weather(w) { G.env.setWeather(w); G.env.rain = w === 'chuva' ? 1 : 0; G.env.cloud = w === 'chuva' ? 0.85 : 0.25; G.env.wet = w === 'chuva' ? 1 : 0; },
   action, startNear, keys, nearestVehicle: () => { const v = nearestVehicle(); return v && v.type; },

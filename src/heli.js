@@ -228,9 +228,10 @@ export class Heli {
   }
   // pilotagem: inp.x gira, inp.y frente/ré, inp.up sobe, inp.down desce
   drive(dt, inp) {
-    const piloted = !!this.driver; this.spool = clamp(this.spool + (piloted ? 0.55 : -0.35) * dt, 0, 1);
+    if (!this.driver && this.auto > 0) { this.auto -= dt; inp = { x: 0, y: 0, up: false, down: this.auto < 85, downK: 0.45 }; } // t390: largado no ar — paira e desce devagar
+    const piloted = !!this.driver || this.auto > 0; this.spool = clamp(this.spool + (piloted ? 0.55 : -0.35) * dt, 0, 1);
     const lift = this.spool > 0.8; const fl = this.floor(this.x, this.z); const alt = this.y - fl; const airborne = alt > 0.6;
-    const fwdIn = lift ? clamp(inp.y, -0.6, 1) : 0, yawIn = this.spool > 0.4 ? clamp(inp.x, -1, 1) : 0, upIn = (inp.up ? 1 : 0) - (inp.down ? 1 : 0);
+    const fwdIn = lift ? clamp(inp.y, -0.6, 1) : 0, yawIn = this.spool > 0.4 ? clamp(inp.x, -1, 1) : 0, upIn = (inp.up ? 1 : 0) - (inp.down ? (inp.downK || 1) : 0);
     const [fx, fz] = this.fwd(); const rx = -fz, rz = fx; // frente e "direita" (+x local) no mundo
     let lf = this.vx * fx + this.vz * fz, ls = this.vx * rx + this.vz * rz;
     // cíclico: o manche define a ATITUDE (bico abaixa = acelera); sem comando, nivela sozinho e faz um flare suave até pairar
@@ -279,7 +280,7 @@ export class Heli {
     const f2 = this.floor(nx, nz, ny);
     if (ny <= f2) { if (this.vy < -4) impact = Math.max(impact, -this.vy); ny = f2; this.vy = Math.max(0, this.vy); const dmp = upIn > 0 || Math.abs(fwdIn) > 0.05 ? 1.2 : 6; this.vx *= Math.exp(-dt * dmp); this.vz *= Math.exp(-dt * dmp); }
     { const d = deckInfo(nx, nz); const under = d && ny < d.top - 1.2; const b = under ? d.under : surfaceY(nx, nz); this.washWater = b < WATER_Y + 0.2; this.washY = this.washWater ? WATER_Y : Math.max(b, f2 - 0.05); if (f2 > b + 1) this.washY = f2; }
-    this.y = ny; this.air = this.y - f2 > 0.35;
+    this.y = ny; this.air = this.y - f2 > 0.35; if (this.auto > 0 && !this.driver && !this.air && this.auto < 85) this.auto = 0;
     // atitude visível: arfagem = disco do cíclico; rolagem = curva coordenada + deslize; tudo limitado e auto-nivelado
     const [gx, gz] = this.fwd(); this.vf = this.vx * gx + this.vz * gz; const side = this.vx * -gz + this.vz * gx;
     const rollT = this.air ? clamp(-this.yawRate * Math.max(4, Math.abs(this.vf)) * 0.03 + side * 0.01, -0.5, 0.5) : 0;
