@@ -27,3 +27,9 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 - [x] 13:20 GitHub Pages no ar (v17/v9, live-drive d+i PASS 0 erros) e site Cloudflare republicado e testado (2 jogos, d+i PASS). FASE 2 (A+B+C+D+H) CONCLUÍDA. Próximo: E/F/G. (t367+t361+t335 × d/i/il/al × 2 jogos) → SW v17/v9 → push → site Cloudflare
 - Teste novo: test/t367.js (ONLY=ilhas,ponte,garagem,rua,neutro,lancha,radio,shots). Runner: /workspace/t367/m367.sh (T=, GAMES=, CFG=), logs /workspace/t367/log-*.txt
 - Restante (próxima fase): E garagem gigante com 50 carros; F vida na cidade/realismo + mapa completo; G app GPS do celular com OpenStreetMap
+
+## FASE 3 (pedido 13:10: E, F, G) — publicar em subfases (E primeiro)
+- [x] E código Solara: src/megagarage.js (bloco 'mega' em world.js i=0 j=6, galpão x -642..-558 z 322..428, porta leste z=375; 50 modelos CATALOG; carros de verdade perto (N/R por qualidade) + vitrine instanciada; save.mega {owned,tunes}; ficha #megaCard; E/🚗 compra; 🎨 abre a Oficina no carro; app 🏎️ no celular com endereço e GPS). Vehicle aceita tune.model/pmax/pacc/pgrip. Probe /workspace/t380/p-mega.js OK.
+- [ ] E: port Neon, teste t380.js, matriz, publicar
+- [ ] F vida/realismo/praia/NPCs/mapa completo
+- [ ] G app GPS OpenStreetMap
