@@ -109,7 +109,7 @@ fs.mkdirSync(SH, { recursive: true });
     await shot('vida-mapa-zoom');
     await ev(() => window.__G.ui.closeMap());
     const minPeds = Math.round(({ low: 40, medium: 84, high: 124 }[R.v1.q] || 40) * (mobile ? 0.75 : 1)); // celular usa 75% (era 22/45/69)
-    ck('vida: praia cheia de dia (banhistas, vôlei, crianças, surfistas, nadadores, vendedores, pipas)', R.v1.vis && R.v1.c.lie >= 20 && R.v1.c.sit >= 10 && R.v1.c.volley === 8 && R.v1.c.kid >= 5 && R.v1.c.surf >= 4 && R.v1.c.swim >= 6 && R.v1.c.vendor >= 2 && R.v1.c.kiter >= 2 && R.v1.near >= 15, R.v1);
+    ck('vida: praia cheia de dia (banhistas, vôlei, crianças, surfistas, nadadores, vendedores, pipas)', R.v1.vis && R.v1.c.lie >= 20 && R.v1.c.sit >= 10 && R.v1.c.volley === 8 && R.v1.c.kid >= 5 && R.v1.c.surf >= 4 && R.v1.c.swim >= 6 && R.v1.c.vendor >= 2 && R.v1.c.kiter >= 2 && R.v1.near >= (R.v1.q === 'low' ? 10 : 15), R.v1); // low: 26 banhistas na praia inteira (t386 reservou zonas da orla)
     ck('vida: surfistas se movem e ficam no mar', R.v1.moved && R.v1.inWater, R.v1);
     ck('vida: mais pedestres na calçada', R.v1.peds >= minPeds, { peds: R.v1.peds, q: R.v1.q });
     ck('vida: de madrugada a praia esvazia; longe da praia nada é desenhado', !R.v2.night.lie && !R.v2.night.volley && R.v2.away, R.v2);

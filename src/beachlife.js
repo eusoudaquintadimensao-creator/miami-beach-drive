@@ -12,7 +12,7 @@ const SCHED = THEME.sched || { lie: [[8.5, 17.5]], sit: [[7.5, 19.8]], volley: [
 export function scheduled(f, h) {
   const j = ((f.i * 0.6180339) % 1 - 0.5) * 1.4; const w = SCHED[f.kind]; if (!w) return true;
   for (const [a, b] of w) if (h >= a + j && h < b + j) return true;
-  return f.kind === 'jog' && f.i % 3 === 0 && h > 6 && h < 22; // alguns corredores treinam o dia todo
+  return f.kind === 'jog' && f.i % 4 !== 3 && h > 6 && h < 22; // alguns corredores treinam o dia todo
 }
 const SKIN = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac, 0x6b3e26, 0xd9a066];
 const HAIR = [0x1a1110, 0x3b2314, 0x6a4e2a, 0xd8b26e, 0x111111, 0x8a3b12];
@@ -30,10 +30,12 @@ export class BeachLife {
     // banhistas deitados nas toalhas e sentados sob os guarda-sóis
     // trechos mais cheios (guarda-sóis e toalhas próprios, além dos espalhados da praia)
     this.umb = []; this.tow = [];
-    for (const cz0 of [-470, -130, 60, 330, 500]) for (let i = 0; i < N([6, 12, 18]); i++) { const x = 338 + r() * 38, z = cz0 + (r() - 0.5) * 120; if (huts(z) || inCourt(x, z)) continue; const rr = r(); this.umb.push([x, z, rr]); this.tow.push([x + 1.5, z + (r() - 0.5) * 2, r()]); if (r() < 0.6) this.tow.push([x - 1.4, z + (r() - 0.5) * 2, r()]); }
-    const tw = BEACH.towels.filter(([x, z]) => !inKeep(x, z, 1)).concat(this.tow); const um = BEACH.umbrellas.filter(([x, z]) => !inKeep(x, z, 1)).concat(this.umb);
-    for (let i = 0; i < N([26, 48, 70]) && tw.length; i++) { const [x, z, rr] = tw.splice(Math.floor(r() * tw.length), 1)[0]; add({ kind: 'lie', x, z, h: rr * 0.6 + (r() < 0.5 ? 0 : Math.PI), day: true }); }
-    for (let i = 0; i < N([14, 26, 38]) && um.length; i++) { const [x, z] = um.splice(Math.floor(r() * um.length), 1)[0]; add({ kind: 'sit', x: x + 0.9, z: z - 0.8, h: Math.PI / 2 + (r() - 0.5) * 0.6, day: true, late: true }); }
+    for (const cz0 of [-470, -330, -130, 60, 330, 500]) for (let i = 0; i < N([6, 12, 18]); i++) { const x = 338 + r() * 38, z = cz0 + (r() - 0.5) * 120; if (huts(z) || inCourt(x, z)) continue; const rr = r(); this.umb.push([x, z, rr]); this.tow.push([x + 1.5, z + (r() - 0.5) * 2, r()]); if (r() < 0.6) this.tow.push([x - 1.4, z + (r() - 0.5) * 2, r()]); }
+    const out = (a) => { const [x, z] = a; const c = BEACH.keep.find(k => Math.abs(x - k.x) < k.hw + 1 && Math.abs(z - k.z) < k.hl + 1); if (!c) return a; const z2 = z < c.z ? c.z - c.hl - 2.5 - (c.z - z) * 0.3 : c.z + c.hl + 2.5 + (z - c.z) * 0.3; return inKeep(x, z2, 1) || huts(z2) ? null : [x, z2, a[2]]; }; // zonas reservadas: o banhista deita logo ao lado
+    const tw0 = BEACH.towels.map(out).filter(Boolean), um0 = BEACH.umbrellas.map(out).filter(Boolean), tw1 = this.tow.slice(), um1 = this.umb.slice(); // 70% nos trechos cheios
+    const take = (A, B) => { const S = (A.length && (r() < 0.7 || !B.length)) ? A : B; return S.splice(Math.floor(r() * S.length), 1)[0]; };
+    for (let i = 0; i < N([26, 48, 70]) && (tw0.length || tw1.length); i++) { const [x, z, rr] = take(tw1, tw0); add({ kind: 'lie', x, z, h: rr * 0.6 + (r() < 0.5 ? 0 : Math.PI), day: true }); }
+    for (let i = 0; i < N([14, 26, 38]) && (um0.length || um1.length); i++) { const [x, z] = take(um1, um0); add({ kind: 'sit', x: x + 0.9, z: z - 0.8, h: Math.PI / 2 + (r() - 0.5) * 0.6, day: true, late: true }); }
     // vôlei de praia
     this.courts = BEACH.courts.map((c, ci) => { const pl = []; for (const side of [-1, 1]) for (const lane of [-1, 1]) pl.push(add({ kind: 'volley', x: c.x + lane * 2, z: c.z + side * 4.5, h: side > 0 ? Math.PI : 0, side, lane, c, day: true })); return { c, pl, ball: { t: r() * 2, from: 0, to: 2 } }; });
     // crianças com castelos de areia (areia molhada, perto do mar)
