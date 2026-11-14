@@ -98,7 +98,7 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.6;
 renderer.info.autoReset = false; renderer.shadowMap.enabled = Q.shadows; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.15, 6000);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.32, 6000); // t391: near maior = profundidade precisa (sem z-fighting/pisca no chão e na água)
 let composer = null, bloom = null, grade = null, zoomBlur = null;
 function setupComposer() {
   if (!Q.bloom) return;
@@ -754,9 +754,12 @@ function loop(now) {
   render();
   fpsAcc += (now - realLast) / 1000; realLast = now; fpsN++; if (fpsAcc >= 1) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; fpsHist.push(fps); if (fpsHist.length > 30) fpsHist.shift(); if (G.showFps) $('fps').textContent = `${fps.toFixed(0)} fps · ${Q.level} · ${pr.toFixed(2)}x · ${renderer.info.render.calls} draws`; else $('fps').textContent = ''; if (G.started && !G.paused) adapt(); }
 }
+let adLo = 0, adHi = 0, adCool = 0, adDropT = -1e9; // t391: histerese + espera; não fica subindo/descendo a resolução (cada troca recriava os buffers = pisca)
 function adapt() { // resolução dinâmica para manter fluido
-  if (fps < 40 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) setPR(pr - 0.1);
-  else if (fps > 57 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) setPR(pr + 0.05);
+  const nowS = performance.now() / 1000; adCool = Math.max(0, adCool - 1);
+  adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
+  if (adCool > 0) { } else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
+  else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
   if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low') { slowT++; if (slowT >= 6 && !sessionStorage.getItem('mbd-down')) { sessionStorage.setItem('mbd-down', '1'); G.ui.toast('Deixando os gráficos mais leves para ficar fluido…'); persist(); const nq = Q.level === 'high' ? 'medium' : 'low'; setTimeout(() => { location.search = '?q=' + nq; }, 900); } } else slowT = 0;
 }
 const stepMs = [];

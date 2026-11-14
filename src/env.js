@@ -57,7 +57,7 @@ export function createEnv(scene, renderer, Q) {
   const sun = new THREE.DirectionalLight(0xffffff, 3); scene.add(sun); scene.add(sun.target);
   if (Q.shadows) {
     sun.castShadow = true; sun.shadow.mapSize.set(Q.shadowSize, Q.shadowSize);
-    const c = sun.shadow.camera; c.left = -90; c.right = 90; c.top = 90; c.bottom = -90; c.near = 1; c.far = 700;
+    const SB = Q.device && /cel|tab|mob|ios|android/i.test(Q.device) ? 64 : 90; const c = sun.shadow.camera; c.left = -SB; c.right = SB; c.top = SB; c.bottom = -SB; c.near = 1; c.far = 700;
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.6;
   }
   E.sun = sun; E.hemi = hemi;
@@ -179,11 +179,16 @@ export function createEnv(scene, renderer, Q) {
     // sol/lua
     const moon = E.night > 0.5; const ld = moon ? sunDir.clone().negate().setY(Math.abs(sunDir.y) * 0.8 + 0.3).normalize() : sunDir.clone().setY(Math.max(sunDir.y, 0.06)).normalize();
     sun.color.copy(K.sun); sun.intensity = (moon ? 0.16 : K.sunI * dayAmt) * (1 - gray * 0.75);
-    sun.position.copy(camPos).addScaledVector(ld, 300); sun.target.position.copy(camPos);
-    if (Q.shadows) { // estabiliza a sombra por texel
-      const s = 180 / Q.shadowSize; sun.target.position.x = Math.round(sun.target.position.x / s) * s; sun.target.position.z = Math.round(sun.target.position.z / s) * s;
-      sun.position.copy(sun.target.position).addScaledVector(ld, 300);
+    // t391: direção da luz em degraus (não "rasteja" a cada quadro) e alvo preso ao texel NO ESPAÇO DA LUZ = sombras sem tremer/piscar
+    if (!E._ld || E._ld.angleTo(ld) > 0.012 || moon !== E._ldMoon) { E._ld = (E._ld || new THREE.Vector3()).copy(ld); E._ldMoon = moon; }
+    const L = E._ld; sun.target.position.copy(camPos);
+    if (Q.shadows) {
+      const s = (sun.shadow.camera.right - sun.shadow.camera.left) / Q.shadowSize;
+      const rx = new THREE.Vector3(0, 1, 0).cross(L).normalize(), uy = L.clone().cross(rx).normalize();
+      const a = Math.round(camPos.dot(rx) / s) * s, b = Math.round(camPos.dot(uy) / s) * s, c = camPos.dot(L);
+      sun.target.position.copy(rx.multiplyScalar(a)).addScaledVector(uy, b).addScaledVector(L, c);
     }
+    sun.position.copy(sun.target.position).addScaledVector(L, 300);
     hemi.color.copy(K.hs); hemi.groundColor.copy(K.hg); hemi.intensity = K.hemiI * (1 + gray * 0.3) + E.flash * 3;
     scene.environmentIntensity = K.envI * (1 - gray * 0.3) + E.wet * 0.3;
     E.stars.material.opacity = smooth(0.3, 0.95, E.night) * (1 - E.cloud * 0.8); E.stars.position.copy(camPos);
@@ -201,7 +206,7 @@ export function createEnv(scene, renderer, Q) {
     E.flash = Math.max(0, E.flash - dt * 3);
     // reflexos: atualiza conforme o tempo passa
     envTimer -= dt;
-    if (Q.env && (envTimer <= 0 && Math.abs(h - E._envT) > 0.25 || Math.abs(h - E._envT) > 1.5)) { envTimer = 4; E._envT = h; E.updateEnv(); }
+    if (Q.env && (envTimer <= 0 && Math.abs(h - E._envT) > 0.5 || Math.abs(h - E._envT) > 1.5)) { envTimer = 12; E._envT = h; E.updateEnv(); } // t391: reflexos regenerados mais raramente (cada troca era um "pisca")
     return K;
   };
   return E;
