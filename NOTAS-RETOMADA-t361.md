@@ -71,3 +71,10 @@ FASE 3 (E, F, G) + t383 CONCLUÍDOS.
 - [x] test/t405.js PASS d/i/il/al Solara (prints botoes405-*); Solara a3d4246 SW solara-v24-2026-11-14-vidro
 - [x] Neon port + t405 ×4 PASS (Neon commit acima)
 - [ ] matriz q9 (t400 t401 t398 t387 t335 t402 t391 t390 t386 t392 t367 t361 ×4 ×2; /tmp/q9s.txt /tmp/q9n.txt) → push → site → live
+- [x] fix: borda branca uniforme (t400 E) e controles a 40 px (deitado) / 60 px (em pé) da borda de baixo (barra de gestos, t387) via --edgeB
+
+## FASE 7 (FILA — t408, NÃO começar antes de publicar a FASE 6; o pai relança)
+- t408 nos 2 jogos: roupas estilo Miami para todos (seda/linho/resort; homens roupa masculina, mulheres feminina) incl. super-heróis originais; modelos mais realistas;
+  1 personagem feminina nova original (pele morena quente, cabelo cacheado escuro, elegante; sem semelhança com pessoa real, sem nome real);
+  prédio na orla com porta grande → loja de roupas grande e iluminada, andar entre araras, comprar roupa/sapato/chapéu/óculos/bolsa com dinheiro de corrida,
+  vestir na hora, espelho com poses/reações, salvar comprados+vestidos por personagem; loja no GPS do celular.
