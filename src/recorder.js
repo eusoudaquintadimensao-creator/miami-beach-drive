@@ -14,7 +14,7 @@ export function canRecord(canvas) { return !!(window.MediaRecorder && canvas.cap
 export class Recorder {
   constructor(G, canvas, opts) {
     this.G = G; this.canvas = canvas; this.opts = opts; this.rec = null; this.chunks = []; this.blob = null; this.url = ''; this.t0 = 0; this.timer = 0;
-    this.maxSec = 120; // até 2 minutos por vídeo (para sozinho em 2:00)
+    this.maxSec = 300; // t392: até 5 minutos por vídeo (para sozinho em 5:00)
     $('recStop').onclick = () => this.stop();
     $('rpSave').onclick = () => this.save();
     $('rpShare').onclick = () => this.share();
@@ -40,7 +40,7 @@ export class Recorder {
     // áudio do jogo (rádio, motor, ambiente)
     const at = G.audio.recordStream && G.audio.recordStream();
     if (at) for (const tr of at.getAudioTracks()) stream.addTrack(tr);
-    const vbr = this.opts.touch ? 2_000_000 : 3_500_000; // ~30 MB (celular) / ~53 MB (computador) em 2 min
+    const vbr = this.opts.touch ? 1_600_000 : 3_000_000; // t392: ~62 MB (celular) / ~115 MB (computador) em 5 min, pedaços de 1 s
     try { this.rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: vbr, audioBitsPerSecond: 96000 } : { videoBitsPerSecond: vbr }); }
     catch (e) { try { this.rec = new MediaRecorder(stream); } catch (e2) { this.opts.onState && this.opts.onState(false); G.ui.toast('A gravação não é suportada aqui.'); return false; } }
     this.type = this.rec.mimeType || type || 'video/webm'; this.chunks = []; this.stream = stream;

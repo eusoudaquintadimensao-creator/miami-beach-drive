@@ -1,0 +1,31 @@
+// Teste t392: gravação (REC) até 5:00 — HUD mostra 0:0x/5:00, contagem regressiva no fim, para sozinha em 5:00 e o arquivo salvo abre. Uso: node test/t392.js W H q tag
+const puppeteer = require('puppeteer-core'); const fs = require('fs');
+const PORT = process.env.PORT || 8765; const [,, W = 1280, H = 720, q = 'low', out = 'd'] = process.argv; const mobile = Math.min(+W, +H) < 600;
+const SH = process.env.SHOTS || '/workspace/t361-prints/'; const GAME = process.env.GAME || 'solara'; const KEY = process.env.KEYP || 'mbd';
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const DL = '/tmp/t392-dl-' + GAME + '-' + out; fs.rmSync(DL, { recursive: true, force: true }); fs.mkdirSync(DL, { recursive: true });
+(async () => {
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+  const page = await browser.newPage(); await page.setViewport({ width: +W, height: +H, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: mobile ? 2 : 1 });
+  const cdp = await page.target().createCDPSession(); await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: DL }).catch(() => cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: DL }));
+  const errs = []; page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); page.on('pageerror', e => errs.push('PAGE: ' + e.message));
+  const fail = []; const ck = (n, ok, info) => { console.log((ok ? 'ok   ' : 'FAIL ') + n + (info !== undefined ? ' ' + JSON.stringify(info) : '')); if (!ok) fail.push(n); };
+  await page.goto(`http://localhost:${PORT}/?q=${q}`, { waitUntil: 'load' });
+  await page.evaluate((K) => { localStorage.setItem(K + '-casa-v1', JSON.stringify({ intro: true, visits: 1 })); }, KEY);
+  await page.waitForFunction('window.MBD_READY === true', { timeout: 120000 }); await page.evaluate(() => { MBD.home().data.intro = true; }); await page.click('#play'); await sleep(1500);
+  const a = await page.evaluate(() => { const r = window.__G.rec; return { max: r.maxSec, started: r.start() !== false }; }); await sleep(2600);
+  a.hud = await page.evaluate(() => { window.__G.rec.tick(); return document.getElementById('recTime').textContent; });
+  await sleep(300); await page.screenshot({ path: `${SH}rec5-${GAME}-${out}-hud.png` });
+  ck('REC: limite 5:00 e HUD mostra 0:0x/5:00', a.max === 300 && a.started && /0:0[1-9]\s?\/\s?5:00/.test(a.hud), a);
+  const b = await page.evaluate(() => { const r = window.__G.rec; r.t0 = performance.now() - 292000; r.tick(); return { hud: document.getElementById('recTime').textContent, ending: document.getElementById('recBar').classList.contains('ending'), rec: r.recording }; });
+  ck('REC: perto do fim mostra contagem regressiva', b.rec && b.ending && /4:5\d/.test(b.hud), b);
+  await sleep(9500);
+  const c = await page.evaluate(async () => { const r = window.__G.rec; for (let i = 0; i < 40 && !r.blob; i++) await new Promise(f => setTimeout(f, 250)); const out = { rec: r.recording, size: r.blob ? r.blob.size : 0, secs: r.secs, type: r.type, url: !!r.url };
+    if (r.url) { const v = document.createElement('video'); v.muted = true; v.src = r.url; out.meta = await new Promise(f => { v.onloadedmetadata = () => f({ w: v.videoWidth, h: v.videoHeight }); v.onerror = () => f({ err: v.error && v.error.code }); setTimeout(() => f({ timeout: true }), 6000); }); } return out; });
+  ck('REC: para sozinha em 5:00 e o vídeo abre', !c.rec && c.size > 10000 && c.secs >= 299 && c.meta && c.meta.w > 0, c);
+  await page.evaluate(() => window.__G.rec.save()); await sleep(2500);
+  const files = fs.readdirSync(DL).filter(f => !f.endsWith('.crdownload')); const sz = files.length ? fs.statSync(DL + '/' + files[0]).size : 0;
+  ck('REC: arquivo salvo (download) com o vídeo', files.length === 1 && sz === c.size && /\.(webm|mp4)$/.test(files[0]), { files, sz });
+  console.log('errors:', JSON.stringify(errs.slice(0, 5)));
+  console.log(fail.length || errs.length ? 'FAIL ' + out + ': ' + fail.join(' | ') : 'PASS ' + out);
+  await browser.close(); process.exit(fail.length || errs.length ? 1 : 0);
+})().catch(e => { console.error('Error', e); process.exit(2); });
