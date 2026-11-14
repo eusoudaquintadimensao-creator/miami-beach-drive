@@ -30,6 +30,7 @@ Teste: cd test && NODE_PATH=/workspace/miami-test/node_modules nice -n 19 node t
 
 ## FASE 3 (pedido 13:10: E, F, G) — publicar em subfases (E primeiro)
 - [x] E código Solara: src/megagarage.js (bloco 'mega' em world.js i=0 j=6, galpão x -642..-558 z 322..428, porta leste z=375; 50 modelos CATALOG; carros de verdade perto (N/R por qualidade) + vitrine instanciada; save.mega {owned,tunes}; ficha #megaCard; E/🚗 compra; 🎨 abre a Oficina no carro; app 🏎️ no celular com endereço e GPS). Vehicle aceita tune.model/pmax/pacc/pgrip. Probe /workspace/t380/p-mega.js OK.
-- [ ] E: port Neon, teste t380.js, matriz, publicar
+- [x] E port Neon (Mega Garagem Prisma, 6d760fe) + test/t380.js (ONLY=mega) PASS d/i/il/al Solara
+- [ ] E matriz completa (logs /workspace/t380/E-*.txt) → SW v18/v10 → push → site
 - [ ] F vida/realismo/praia/NPCs/mapa completo
 - [ ] G app GPS OpenStreetMap
