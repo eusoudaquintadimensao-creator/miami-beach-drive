@@ -17,7 +17,24 @@ export class UI {
     this.bm = $('bm'); this.bctx = this.bm.getContext('2d');
     this.waypoint = null;
     $('bmX').onclick = () => this.closeMap();
-    this.bm.addEventListener('pointerdown', (e) => { const r = this.bm.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * this.bm.width / MAPSCALE + BOUNDS.x0, z = (e.clientY - r.top) / r.height * this.bm.height / MAPSCALE + BOUNDS.z0; this.waypoint = [x, z]; if (!G.missions.active) G.setRoute([x, z]); this.drawBig(); this.toast('📍 Destino marcado no GPS'); });
+    // mapa completo: arrastar = mover, pinça/roda/botões = zoom, toque rápido = marcar destino
+    this.bv = { s: 1, ox: 0, oy: 0 };
+    const bpts = new Map(); let bmov = 0, bpin = 0;
+    const cpx = (e) => { const r = this.bm.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * this.bm.width, (e.clientY - r.top) / r.height * this.bm.height, this.bm.width / r.width]; };
+    this.bm.addEventListener('pointerdown', (e) => { try { this.bm.setPointerCapture(e.pointerId); } catch (_) { } bpts.set(e.pointerId, [e.clientX, e.clientY]); bmov = 0; if (bpts.size === 2) { const [a, b] = [...bpts.values()]; bpin = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+    this.bm.addEventListener('pointermove', (e) => {
+      if (!bpts.has(e.pointerId)) return; const o = bpts.get(e.pointerId); const dx = e.clientX - o[0], dy = e.clientY - o[1]; bpts.set(e.pointerId, [e.clientX, e.clientY]); const k = cpx(e)[2];
+      if (bpts.size === 1) { bmov += Math.abs(dx) + Math.abs(dy); if (bmov > 8 && this.bv.s > 1) { this.bv.ox -= dx * k / this.bv.s; this.bv.oy -= dy * k / this.bv.s; this.clampBig(); this.drawBig(); } }
+      else if (bpts.size === 2) { const [a, b] = [...bpts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (bpin > 0) { const r = this.bm.getBoundingClientRect(); this.zoomBig(d / bpin, ((a[0] + b[0]) / 2 - r.left) * k, ((a[1] + b[1]) / 2 - r.top) * k); } bpin = d; bmov = 99; }
+    });
+    this.bm.addEventListener('pointerup', (e) => {
+      if (!bpts.has(e.pointerId)) return; bpts.delete(e.pointerId); if (bpts.size < 2) bpin = 0; if (bmov > 8) return;
+      const [px, py] = cpx(e); const mx = px / this.bv.s + this.bv.ox, my = py / this.bv.s + this.bv.oy; const x = mx / MAPSCALE + BOUNDS.x0, z = my / MAPSCALE + BOUNDS.z0;
+      this.waypoint = [x, z]; if (!G.missions.active) G.setRoute([x, z]); this.drawBig(); this.toast('📍 Destino marcado no GPS · ' + districtName(x, z));
+    });
+    this.bm.addEventListener('pointercancel', (e) => { bpts.delete(e.pointerId); bpin = 0; });
+    this.bm.addEventListener('wheel', (e) => { e.preventDefault(); const [px, py] = cpx(e); this.zoomBig(e.deltaY < 0 ? 1.25 : 0.8, px, py); }, { passive: false });
+    document.querySelectorAll('#bmBtns button').forEach(b => b.onclick = () => { const z = +b.dataset.z; if (z === 0) { this.centerBig(); this.drawBig(); } else this.zoomBig(z > 0 ? 1.5 : 1 / 1.5, this.bm.width / 2, this.bm.height / 2); });
     $('phClose').onclick = () => this.closePhone(); $('phBack').onclick = () => this.phoneHome();
     $('phOk').onclick = () => { $('photo').hidden = true; G.paused = false; };
   }
@@ -98,11 +115,15 @@ export class UI {
     // norte
     const [nx, nz] = toS(pl.x, pl.z - 5000); c.fillStyle = '#fff'; c.font = `bold ${12 * S}px sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('N', nx, nz);
   }
-  openMap() { if (this.G.phoneOpen) this.closePhone(); $('bigmap').hidden = false; this.G.paused = true; this.drawBig(); }
+  openMap() { if (this.G.phoneOpen) this.closePhone(); $('bigmap').hidden = false; this.G.paused = true; if (this.bv.s > 1) this.centerBig(); this.drawBig(); }
+  clampBig() { const v = this.bv, W = this.map.canvas.width, H = this.map.canvas.height; v.ox = Math.max(0, Math.min(W - W / v.s, v.ox)); v.oy = Math.max(0, Math.min(H - H / v.s, v.oy)); }
+  zoomBig(f, px, py) { const v = this.bv; const mx = px / v.s + v.ox, my = py / v.s + v.oy; v.s = Math.max(1, Math.min(6, v.s * f)); v.ox = mx - px / v.s; v.oy = my - py / v.s; this.clampBig(); this.drawBig(); }
+  centerBig() { const v = this.bv, pl = this.G.player; if (v.s <= 1) v.s = 2.5; v.ox = this.map.X(pl.x) - this.map.canvas.width / (2 * v.s); v.oy = this.map.Z(pl.z) - this.map.canvas.height / (2 * v.s); this.clampBig(); }
   closeMap() { $('bigmap').hidden = true; this.G.paused = false; }
   drawBig() {
-    const G = this.G; const mc = this.map.canvas; this.bm.width = mc.width; this.bm.height = mc.height; const c = this.bctx;
-    c.drawImage(mc, 0, 0); const X = this.map.X, Z = this.map.Z;
+    const G = this.G; const mc = this.map.canvas; if (this.bm.width !== mc.width || this.bm.height !== mc.height) { this.bm.width = mc.width; this.bm.height = mc.height; } const c = this.bctx; const v = this.bv;
+    c.imageSmoothingEnabled = v.s < 3; c.clearRect(0, 0, mc.width, mc.height); c.drawImage(mc, v.ox, v.oy, mc.width / v.s, mc.height / v.s, 0, 0, mc.width, mc.height); const X = (x) => (this.map.X(x) - v.ox) * v.s, Z = (z) => (this.map.Z(z) - v.oy) * v.s;
+    $('bigmap').dataset.zoom = v.s.toFixed(2);
     c.font = 'bold 15px sans-serif'; c.fillStyle = '#fff'; c.textAlign = 'center'; c.shadowColor = '#000'; c.shadowBlur = 4;
     for (const [t, x, z] of [['SOLARA BEACH', 180, -40], ['CENTRO', -480, -520], ['GLADES', -880, -560], ['BAÍA', -120, 40], ['OCEANO', 650, 0], ['PRAIA', 360, -660]]) c.fillText(t, X(x), Z(z));
     c.shadowBlur = 0;

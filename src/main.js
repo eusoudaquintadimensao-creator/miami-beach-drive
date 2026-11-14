@@ -38,6 +38,7 @@ import { Islands } from './islands.js';
 import { BoatRace } from './boatrace.js';
 import { MegaGarage } from './megagarage.js';
 import { OsmGps } from './gpsosm.js';
+import { BeachLife } from './beachlife.js';
 import { buildLife } from './life.js';
 import { Birds } from './birds.js';
 import { Gifts } from './gifts.js';
@@ -66,9 +67,9 @@ function detectQuality() {
   return 'medium';
 }
 const PRESETS = {
-  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 30, traffic: 10, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
-  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 60, traffic: 17, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
-  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 92, traffic: 24, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
+  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 40, traffic: 10, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
+  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 84, traffic: 17, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
+  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 124, traffic: 24, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
 };
 // celular/tablet: menos pixels, sombras menores, menos gente e carros, menos distância de desenho
 function forDevice(P) {
@@ -175,7 +176,7 @@ async function boot() {
   G.garage = new Garage(G);
   G.talk = new Talk(G); G.powers = new Powers(G);
   G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mega = new MegaGarage(G); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mega = new MegaGarage(G); G.beach = new BeachLife(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -735,7 +736,7 @@ function step(dt) {
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mega.update(dt, t, camera, G.env.night);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mega.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour);
   G._hudT = (G._hudT || 0) - dt; if (G._hudT <= 0) { G._hudT = 0.5; const h = $('hud'); if (G.started && !G.paused && !G.garageOpen && !G.raceMenu && !G.homeIntro && h) { let fixed = 0; if (h.classList.contains('ghide')) { h.classList.remove('ghide'); fixed++; } if (h.hidden) { h.hidden = false; fixed++; } if (document.body.classList.contains('cine')) { document.body.classList.remove('cine'); fixed++; } if (fixed) G.hudFixes = (G.hudFixes || 0) + fixed; } }
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
@@ -869,7 +870,7 @@ window.MBD = {
   sim(n, dt = 1 / 30) { const t0 = performance.now(); for (let i = 0; i < n; i++) step(dt); recordStep((performance.now() - t0) / Math.max(1, n)); }, // testes: avança a lógica sem desenhar
   frameStats: () => G.frameStats(),
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), callPlane: () => G.callPlane(), plane: () => G.plane, race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
-  life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, ilhas: () => G.ilhas, boatRace: () => G.boatRace, mega: () => G.mega, gps: () => G.gps, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
+  life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, ilhas: () => G.ilhas, boatRace: () => G.boatRace, mega: () => G.mega, gps: () => G.gps, beach: () => G.beach, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };

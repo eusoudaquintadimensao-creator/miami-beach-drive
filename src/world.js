@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { rng, MeshBuilder, canvasTex, C, clamp, pick } from './util.js';
 
 export const WATER_Y = -0.6;
+// vida na praia (beachlife.js): quadras de vôlei ficam livres de guarda-sóis; guarda-sóis/toalhas exportados para banhistas
+export const BEACH = { courts: [{ x: 366, z: -350, hw: 4.5, hl: 9 }, { x: 366, z: 210, hw: 4.5, hl: 9 }], umbrellas: [], towels: [] };
 export const SHORE_X = 390;
 export const BOUNDS = { x0: -1100, x1: 1500, z0: -1100, z1: 1160 }; // leste/sul ampliados p/ a ponte sobre o mar
 const ISL = { x0: 30, z0: -680, z1: 680 };
@@ -647,7 +649,8 @@ export function buildWorld(scene, Q) {
       addBox(x - 1.7, z - 1.7, x + 1.7, z + 1.7, 6.2);
       if (k === 5) LANDMARKS.push({ id: 'salva', name: 'Posto Salva-vidas', x: x - 12, z, r: 14, look: [x, 4, z] });
     }
-    for (let i = 0; i < 140; i++) { const x = 334 + R() * 44, z = -620 + R() * 1240; umbrellas.push([x, z, R()]); towels.push([x + 1.5, z + (R() - 0.5) * 2, R()]); }
+    for (let i = 0; i < 140; i++) { const x = 334 + R() * 44, z = -620 + R() * 1240, r = R(); if (BEACH.courts.some(c => Math.abs(x - c.x) < c.hw + 3 && Math.abs(z - c.z) < c.hl + 3)) continue; umbrellas.push([x, z, r]); towels.push([x + 1.5, z + (R() - 0.5) * 2, R()]); }
+    BEACH.umbrellas = umbrellas; BEACH.towels = towels;
   }
   // ---- glades: mirante, cabana
   {

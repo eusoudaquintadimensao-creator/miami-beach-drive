@@ -637,3 +637,7 @@ body.touch.land #megaCard{top:auto;bottom:calc(var(--sab) + 56px);max-width:min(
 .gpsTabs{margin-bottom:6px}
 .gpsH4{margin:10px 2px 6px;font-size:13px;opacity:.85}
 .gpsBtns .gpsMe{font-size:15px}
+
+/* mapa completo: zoom */
+#bmBtns{position:absolute;right:calc(var(--sar,0px) + 14px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2}
+#bmBtns button{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(20,16,40,.85);color:#fff;font-size:22px;font-weight:800}
