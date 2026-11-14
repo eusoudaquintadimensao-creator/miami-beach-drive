@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Hero } from './people.js';
 import { lerp } from './util.js';
 import { HEROES, heroMaterials, nanoSuit } from './heroes.js';
+import { applyLook } from './wardrobe.js';
 
 export const AVATARS = {
   ela: {
@@ -17,10 +18,18 @@ export const AVATARS = {
     fallback: { skin: 0xc58c5c, shirt: 0x19c3c9, pants: 0xe8dcc0, hair: 0x1b120c, stripe: 0xffffff },
   },
 };
+// Marisol (t408): personagem original nova — pele morena quente, cabelo cacheado escuro, elegante (nome e visual inventados)
+AVATARS.marisol = {
+  id: 'marisol', label: 'Marisol', name: 'Marisol', base: 'ela', file: 'assets/avatars/ela.glb', height: 1.72, curls: true, hoops: true,
+  colors: { Shirt: 0x0f8a6a, Pants: 0x8a5232, Shoes: 0xd9b45a, Hair: 0x1a0f0a, HairBase: 0x1a0f0a, Skin: 0x8a5232 },
+  fallback: { skin: 0x8a5232, shirt: 0x0f8a6a, pants: 0x8a5232, hair: 0x1a0f0a, stripe: 0xd9b45a },
+};
 // heróis originais: usam o esqueleto/arquivo de uma base (ela/ele) com materiais e acessórios próprios
 for (const H of Object.values(HEROES)) AVATARS[H.id] = Object.assign({ hero: true, file: AVATARS[H.base].file }, H);
 export const AVATAR_IDS = Object.keys(AVATARS);
 export const BASE_IDS = ['ela', 'ele'];
+// de onde vem o visual (roupa/traje) de cada personagem do jogador — o guarda-roupa registra aqui
+let lookOf = null; export function setLookSource(fn) { lookOf = fn; }
 
 // ---- carregamento (uma vez por arquivo) e preparo da malha: normais suaves para um visual menos "quadrado"
 const cache = new Map(); let libs = null;
@@ -62,7 +71,7 @@ export function loadAvatar(id) {
 export function preloadAvatars() { for (const id of BASE_IDS) loadAvatar(id).catch(() => { }); }
 
 // Cria uma cópia animável do modelo (com cores próprias). Usado pelo jogador e pelos moradores que conversam.
-export async function makeModel(id, colors, height, suit) {
+export async function makeModel(id, colors, height, suit, look) {
   const A = AVATARS[id] || AVATARS.ela; const { gltf, L } = await loadAvatar(A.id);
   const model = L.SkeletonUtils.clone(gltf.scene);
   const cols = Object.assign({}, A.colors, colors || {}); const mats = new Map();
@@ -74,8 +83,12 @@ export async function makeModel(id, colors, height, suit) {
   });
   model.scale.multiplyScalar((height || A.height) / gltf.rawHeight);
   if (A.bulk) { model.scale.x *= A.bulk; model.scale.z *= A.bulk; }
-  if (A.hero) { heroMaterials(A, [...mats.values()]); try { A.gear(model, (height || A.height) / AVATARS[A.base].height); } catch (e) { console.info('acessório do herói falhou:', e && e.message); } }
-  if (suit) nanoSuit(A, model, [...mats.values()], (height || A.height) / AVATARS[A.hero ? A.base : A.id].height);
+  const kk = (height || A.height) / AVATARS[A.base || A.id].height;
+  if (look) applyLook(A, model, [...mats.values()], kk, look); // roupa estilo Miami ou traje (t408/t410)
+  else {
+    if (A.hero) { heroMaterials(A, [...mats.values()]); try { A.gear(model, kk); } catch (e) { console.info('acessório do herói falhou:', e && e.message); } }
+    if (suit) nanoSuit(A, model, [...mats.values()], kk);
+  }
   const mixer = new THREE.AnimationMixer(model); const acts = {};
   for (const c of gltf.animations) acts[c.name] = mixer.clipAction(c);
   for (const k of ['Jump', 'Standing']) if (acts[k]) { acts[k].setLoop(THREE.LoopOnce, 1); acts[k].clampWhenFinished = true; }
@@ -101,9 +114,9 @@ export class Avatar {
     const tmp = new THREE.Group(); this.fb = new Hero(tmp, this.Q, A.fallback); this.fb.inner.scale.setScalar(A.height / 1.8);
     this.def = A; this.heightK = A.height / 1.75;
     if (A.bulk) { this.fb.inner.scale.x *= A.bulk; this.fb.inner.scale.z *= A.bulk; }
-    if (A.id === 'ela') { const hairM = this.fb.hair.material; const pony = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.28, 2, 6).translate(0, 1.5, -0.14), hairM); this.fb.inner.add(pony); }
+    if (A.id === 'ela' || A.curls) { const hairM = this.fb.hair.material; const pony = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.28, 2, 6).translate(0, 1.5, -0.14), hairM); this.fb.inner.add(pony); }
     tmp.remove(this.fb.g); this.g.add(this.fb.g); this.fb.g.visible = !this.rig;
-    const id0 = A.id; return makeModel(id0, null, null, true).then((r) => {
+    const id0 = A.id; const lk = lookOf ? lookOf(id0) : null; return makeModel(id0, null, null, !lk, lk).then((r) => {
       if (tok !== this.token) return;
       if (this.rig) { this.g.remove(this.rig.model); this.rig.mixer.stopAllAction(); }
       this.rig = r; this.g.add(r.model); this.fb.g.visible = false; this.loaded = true; this.failed = false; this.cur = null; this.play(this.mode, 1, 0);

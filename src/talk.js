@@ -7,6 +7,7 @@ import { POIS } from './missions.js';
 import { RACHAS } from './rivals.js';
 import { PERS, GENERIC_PERS, REACT, FAVORS, OFFER_TXT, BYE, THANKS, buildScript, periodOf } from './phrases.js';
 import { makeModel } from './avatar.js';
+import { npcLook } from './wardrobe.js';
 import { HELIPAD } from './heli.js';
 import { SPECS, TUNABLE } from './vehicles.js';
 
@@ -51,7 +52,8 @@ export class Talk {
       [x, z] = freeSpot(x, z);
       const T = { kind: 'talker', model: C.model, per: C.per, name: C.name, emoji: PERS[C.per].emoji, x, z, h: Math.random() * 6, h0: 0, favor: C.favor, mode: 'idle', t: 0 };
       try {
-        const R = await makeModel(C.model, C.colors, C.h); T.rig = R; R.model.position.set(x, surfaceY(x, z), z); G.scene.add(R.model);
+        const lk = npcLook(C.model, (C.name || '').split('').reduce((a, c) => a * 31 + c.charCodeAt(0), 7)); if (C.colors && C.colors.Skin != null) lk.skin = C.colors.Skin;
+        const R = await makeModel(C.model, C.colors, C.h, false, lk); T.rig = R; R.model.position.set(x, surfaceY(x, z), z); G.scene.add(R.model);
         R.acts.Idle.play(); R.acts.Idle.time = Math.random() * 3; R.mixer.update(0.01);
         const ic = new THREE.Sprite(new THREE.SpriteMaterial({ map: talkIcon(), depthWrite: false, transparent: true, fog: false })); ic.scale.setScalar(0.7); ic.position.set(x, surfaceY(x, z) + C.h + 0.55, z); G.scene.add(ic); T.icon = ic;
       } catch (e) { continue; }

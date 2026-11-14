@@ -1,11 +1,11 @@
-// Gera as miniaturas do seletor de personagem (assets/avatars/<id>.webp, 192x256, fundo transparente) já com o traje nano-metal
+// Gera as miniaturas do seletor de personagem (assets/avatars/<id>.webp, 192x256, fundo transparente) com o visual padrão (t408: roupa Miami; heróis no traje clássico)
 const puppeteer = require('puppeteer-core'); const fs = require('fs');
-const OUT = '/workspace/miami-mundo-aberto/assets/avatars/';
+const OUT = process.env.OUT || '/workspace/miami-mundo-aberto/assets/avatars/'; const PORT = process.env.PORT || 8765;
 (async () => {
   const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader'] });
   const page = await browser.newPage(); await page.setViewport({ width: 800, height: 600 });
   const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
-  await page.goto('http://localhost:8765/?q=low', { waitUntil: 'load' }); await page.waitForFunction('window.MBD_READY === true', { timeout: 120000 });
+  await page.goto('http://localhost:' + PORT + '/?q=low', { waitUntil: 'load' }); await page.waitForFunction('window.MBD_READY === true', { timeout: 120000 });
   const res = await page.evaluate(async () => {
     const THREE = await import('three'); const AV = await import('/src/avatar.js');
     const W = 384, H = 512; const r = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setClearColor(0x000000, 0); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.15;
@@ -18,7 +18,7 @@ const OUT = '/workspace/miami-mundo-aberto/assets/avatars/';
     for (const id of AV.AVATAR_IDS) {
       const scene = new THREE.Scene(); scene.environment = envRT.texture;
       scene.add(new THREE.HemisphereLight(0xffffff, 0x445066, 1.4)); const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(2, 4, 5); scene.add(key); const rim = new THREE.DirectionalLight(0x9fdcff, 2.2); rim.position.set(-3, 3, -4); scene.add(rim);
-      const m = await AV.makeModel(id, null, null, true); scene.add(m.model); const idle = m.acts.Idle; if (idle) { idle.play(); m.mixer.update(0.6); }
+      const W8 = await import('/src/wardrobe.js'); const m = await AV.makeModel(id, null, null, false, W8.isHero(id) ? { mode: 'suit', suit: 'classico' } : { mode: 'civil', eq: {} }); scene.add(m.model); const idle = m.acts.Idle; if (idle) { idle.play(); m.mixer.update(0.6); }
       m.model.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(m.model); const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
       const cam = new THREE.PerspectiveCamera(24, W / H, 0.1, 100); const hgt = size.y * 1.1; const dist = (hgt / 2) / Math.tan(THREE.MathUtils.degToRad(12));
       cam.position.set(c.x + dist * 0.12, c.y + size.y * 0.04, c.z + dist); cam.lookAt(c.x, c.y, c.z);

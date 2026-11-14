@@ -17,10 +17,10 @@ const RAW = [
   ['f-vest-slip-perola', 'top', 'f', 'Vestido slip de cetim pérola', 590, 0xf4efe6, 'seda', 'vestido', { len: 0.45 }],
   ['f-vest-chemise-ceu', 'top', 'f', 'Vestido chemise de linho azul-céu', 420, 0x8ecae6, 'linho', 'vestido', { len: 0.58, belt: 0xf7f3ea }],
   ['f-vest-tubinho-fucsia', 'top', 'f', 'Vestido de seda fúcsia', 560, 0xd6247f, 'seda', 'vestido', { len: 0.5 }],
-  ['f-pantalona-off', 'bottom', 'f', 'Pantalona de linho off-white', 240, 0xf1ece0, 'linho', 'calca'],
+  ['f-pantalona-off', 'bottom', 'f', 'Short de linho off-white', 240, 0xf1ece0, 'linho', 'calca'],
   ['f-saia-midi-rosa', 'bottom', 'f', 'Saia midi de seda rosa', 260, 0xf7a8c4, 'seda', 'saia', { len: 0.58 }],
   ['f-saia-longa-turquesa', 'bottom', 'f', 'Saia longa de linho turquesa', 280, 0x2ab3b8, 'linho', 'saia', { len: 0.84 }],
-  ['f-cigarrete-areia', 'bottom', 'f', 'Calça cigarrete areia', 230, 0xe3d2b0, 'algodao', 'calca'],
+  ['f-cigarrete-areia', 'bottom', 'f', 'Short de alfaiataria areia', 230, 0xe3d2b0, 'algodao', 'calca'],
   ['m-camisa-linho', 'top', 'm', 'Camisa de linho branca', 190, 0xf8f6f0, 'linho', 'camisa'],
   ['m-camisa-palmeiras', 'top', 'm', 'Camisa de seda estampa palmeiras', 340, 0x0e6b5c, 'seda', 'camisa', { print: 0xf6e7c8 }],
   ['m-guayabera', 'top', 'm', 'Guayabera de linho areia', 260, 0xe9dcc0, 'linho', 'guayabera'],
@@ -268,4 +268,12 @@ export class Wardrobe {
   // poder extra do traje vestido (null = nenhum)
   perk(id) { id = id || (this.G.hero && this.G.hero.id); const L = this.look(id); if (L.mode !== 'suit') return null; const S = SUITS[L.suit]; return S && S.perk || null; }
   speedK() { return this.perk() === 'velocidade' ? 1.45 : 1; }
+}
+// moradores que conversam: um visual Miami sorteado (sempre o mesmo para a mesma pessoa)
+export function npcLook(base, seed) {
+  const r = lcg((seed * 2654435761) >>> 0); const sex = base === 'ele' ? 'm' : 'f'; const eq = {};
+  const pickS = (slot, f) => { const L = Object.values(ITEMS).filter(it => it.slot === slot && (it.sex === 'u' || it.sex === sex) && (!f || f(it))); return L.length ? L[Math.floor(r() * L.length)].id : undefined; };
+  eq.top = pickS('top'); eq.bottom = pickS('bottom'); eq.shoes = pickS('shoes');
+  eq.hat = r() < 0.35 ? pickS('hat') : ''; eq.glasses = r() < 0.45 ? pickS('glasses') : ''; eq.bag = sex === 'f' && r() < 0.5 ? pickS('bag') : '';
+  return { mode: 'civil', eq };
 }

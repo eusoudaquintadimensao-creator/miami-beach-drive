@@ -69,7 +69,7 @@ export class OsmGps {
       <div class="gpsWrap" id="gpsWrap"><canvas id="gpsCv"></canvas><div class="gpsBtns"><button data-z="1" aria-label="Aproximar">＋</button><button data-z="-1" aria-label="Afastar">－</button><button data-z="0" aria-label="Centralizar" class="gpsMe">📍</button></div><div class="gpsLoad" id="gpsLoad">Carregando mapa…</div><div class="gpsAttr" id="gpsAttr">© colaboradores do <b>OpenStreetMap</b> · ODbL</div></div>
       <div class="gpsInfo" id="gpsInfo"></div>
       <div class="gpsHere">📍 No jogo você está em <b>${h.dn || 'Solara'}</b> — área inspirada em <b>${h.real}</b>.</div>
-      <div class="list gpsTabs"><button data-a="gpsmap">🗺️ Abrir o mapa completo da cidade do jogo<span>›</span></button></div>
+      <div class="list gpsTabs"><button data-a="gpsmap">🗺️ Abrir o mapa completo da cidade do jogo<span>›</span></button>${this.G.boutique ? this.G.boutique.gpsLinks() : ''}</div>
       <h4 class="gpsH4">Bairros e ilhas</h4><div class="list" id="gpsList"></div>
       <p class="small">Mapa desenhado a partir de dados do OpenStreetMap (© colaboradores do OpenStreetMap, licença ODbL — openstreetmap.org/copyright). As descrições são do jogo. A cidade do jogo é fictícia e só se inspira nesses lugares.</p>`;
   }

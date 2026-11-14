@@ -68,7 +68,7 @@ export const BLOCKS = [];
 {
   const IX = [60, 180, 300];
   for (let i = 0; i < 2; i++) for (let j = 0; j < 8; j++)
-    BLOCKS.push({ x0: IX[i], x1: IX[i + 1], z0: Z9[j], z1: Z9[j + 1], kind: i === 1 ? 'deco' : 'hotel' });
+    BLOCKS.push({ x0: IX[i], x1: IX[i + 1], z0: Z9[j], z1: Z9[j + 1], kind: i === 1 ? 'deco' : 'hotel', lojas: i === 1 && j === 5 }); // lojas: frente da orla com as duas lojas (src/boutique.js)
   const MX = [-660, -540, -420, -300];
   for (let i = 0; i < 3; i++) for (let j = 0; j < 8; j++) {
     const b = { x0: MX[i], x1: MX[i + 1], z0: Z9[j], z1: Z9[j + 1], kind: 'tower' };
@@ -500,6 +500,8 @@ export function buildWorld(scene, Q) {
     if (o.sign) { const si = Math.floor(R() * 8), sw = Math.min(span * 0.7, 8), sh = sw / 8; const v0 = 1 - (si + 1) / 8, v1 = 1 - si / 8; const y0 = 3.5;
       ch.shopSign.quad(P(-sw / 2, y0, 0.06), P(sw / 2, y0, 0.06), P(sw / 2, y0 + sh, 0.06), P(-sw / 2, y0 + sh, 0.06), [fx, 0, fz], [[0, v0], [1, v0], [1, v1], [0, v1]], W); }
   }
+  // mesmos sorteios que decoBuilding faz (sem desenhar nada)
+  function decoSkip() { pick(R, pastel); pick(R, decoAccent); R(); if (R() < 0.75) R(); R(); R(); if (R() < 0.7) R(); }
   function decoBuilding(cx, cz, w, d, h, ry, front) {
     const ch = chunk(cx, cz); const col = C(pick(R, pastel)), acc = C(pick(R, decoAccent)); const ni = Math.floor(R() * NEON_COLS.length);
     ch.deco.box(cx, h / 2, cz, w, h, d, col, { u: 16, v: 14, ry, v0: 0.02, ao: 0.62 });
@@ -576,6 +578,7 @@ export function buildWorld(scene, Q) {
           const w = Math.min(14 + R() * 16, sd.a1 - 1 - a); if (w < 10) break;
           const h = hmin + R() * (hmax - hmin);
           const cz = a + w / 2;
+          if (b.lojas && sd.ry > 0) { decoSkip(); a += w; continue; } // lugar das lojas da orla: consome o mesmo sorteio para o resto da cidade não mudar
           const r = decoBuilding(sd.fixed, cz, w - 0.6, deep - 2, Math.round(h / 3.5) * 3.5 + 0.5, sd.ry);
           if (b.kind === 'deco' && sd.ry > 0 && !flamingoAt.set && Math.abs(cz + 220) < 25) { flamingoAt.x = sd.fixed + deep / 2; flamingoAt.z = cz; flamingoAt.set = 1; }
           a += w;

@@ -36,9 +36,11 @@ export class Powers {
     this.web = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1, 5, 1, true).translate(0, 0.5, 0).rotateX(Math.PI / 2), wm); this.web.frustumCulled = false; this.web.visible = false; this.fx.add(this.web);
     this.ringGeo = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2);
   }
-  get kind() { const A = AVATARS[this.G.hero.id]; return A && A.power || null; }
+  get kind() { const A = AVATARS[this.G.hero.id]; if (A && A.power) return A.power; const pk = this.G.wardrobe && this.G.wardrobe.perk(); return pk === 'voo' ? 'voo' : pk === 'escudo' ? 'escudo' : pk === 'velocidade' ? 'turbo' : null; } // personagens sem poder ganham o do traje (t410)
+  get perk() { return this.G.wardrobe ? this.G.wardrobe.perk() : null; }
+  bubble(on) { const R = this.G.hero.rig; const b = R && R.model.userData.bubble; if (b) b.visible = on; }
   get def() { return AVATARS[this.G.hero.id]; }
-  reset() { this.fly = this.lev = this.climb = false; this.dash = this.swing = this.slam = 0; this.web.visible = false; if (this.carried) this.drop(); this.jets(false); }
+  reset() { this.bubble(false); this.fly = this.lev = this.climb = false; this.dash = this.swing = this.slam = 0; this.web.visible = false; if (this.carried) this.drop(); this.jets(false); }
   ring(x, y, z, color, max, dur) {
     const m = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
     m.position.set(x, y + 0.08, z); this.fx.add(m); this.rings.push({ m, t: 0, max, dur });
@@ -57,6 +59,7 @@ export class Powers {
     if (k === 'voo') { this.fly = !this.fly; if (this.fly) { p.vy = 4; p.grounded = false; this.hint('voo', '☀️ <b>Voando!</b> Espaço sobe · Ctrl/Q desce · X pousa'); } this.jets(this.fly); this.cool = 0.3; }
     else if (k === 'levitar') { this.lev = !this.lev; if (this.lev) { p.grounded = false; this.hint('lev', '🧙 <b>Levitando</b> · Espaço sobe · Ctrl/Q desce · X desce ao chão'); this.ring(p.x, p.y, p.z, 0x7dff9a, 3, 0.8); } this.cool = 0.3; }
     else if (k === 'teia') { const a = anchorAhead(p.x, p.z, fx, fz); this.anchor = a; this.swing = 1.15; p.vy = 7.5; p.vx = fx * 15; p.vz = fz * 15; p.grounded = false; this.cool = 0.6; this.hint('teia', '🕸️ <b>Fio neon!</b> Ande contra um prédio para escalar'); }
+    else if (k === 'turbo') { this.dash = 1.1; this.turbo = true; p.vx = fx * 17; p.vz = fz * 17; this.cool = 1.4; this.hint('turbo', '⚡ <b>Turbo do traje!</b> arrancada de luz'); this.ring(p.x, p.y + 0.3, p.z, 0xff4f8b, 2.5, 0.4); }
     else if (k === 'escudo') { this.dash = 0.45; p.vx = fx * 19; p.vz = fz * 19; this.cool = 0.8; this.hint('esc', '🛡️ <b>Arrancada!</b> Bata numa parede para o escudo quicar'); }
     else if (k === 'impacto') { if (p.grounded) { p.vy = 6.5; p.grounded = false; } this.slam = 1; this.cool = 1.2; this.hint('imp', '🟣 <b>Pisão de onda</b> · só luz e vento, ninguém se machuca'); }
     else if (k === 'forca') {
@@ -79,6 +82,13 @@ export class Powers {
     // super pulo do Colosso
     if (k === 'forca' && c.jumped) { p.vy = 13.5; this.bigJump = true; }
     if (k === 'forca' && this.bigJump && p.grounded) { this.bigJump = false; this.ring(p.x, gy, p.z, 0xc8ffb0, 6, 0.6); G.shake && G.shake(0.25); this.cheer(p.x, p.z); }
+    // poderes do traje (t410): pulo duplo = voo; escudo mostra a bolha nas batidas; velocidade solta rastro
+    const pk = this.perk; const jp = keys.has('Space') || input.jump; 
+    if (pk === 'voo' && !this.fly && !this.lev && !p.grounded && jp && !this._jp && p.jumpT > 0.2) { this.fly = true; p.vy = 4; this.jets(true); this.hint('voo2', '🚀 <b>Traje voador!</b> pule duas vezes para voar · desça até o chão para pousar'); }
+    this._jp = jp;
+    if (pk === 'escudo') { this.bubT = Math.max(0, (this.bubT || 0) - dt); if (c.wall || this.dash > 0) this.bubT = 0.6; this.bubble(this.bubT > 0); if (c.wall && Math.hypot(p.vx, p.vz) > 4 && !this.dash) { this.ring(p.x, p.y + 0.8, p.z, 0x29f0ff, 2.2, 0.35); } }
+    if (pk === 'velocidade' && c.dl > 0.05 && c.run && Math.random() < dt * 14) this.ring(p.x, p.y + 0.05, p.z, 0xff4f8b, 0.8, 0.35);
+    if (k === 'turbo' && this.dash > 0) { this.dash -= dt; this.airPose = 'dash'; const sp = Math.hypot(p.vx, p.vz); if (p.grounded && sp < 15) { const s = 17 / Math.max(1, sp); p.vx *= s; p.vz *= s; } if (Math.random() < dt * 20) this.ring(p.x, p.y + 0.1, p.z, 0xff4f8b, 1.2, 0.3); if (this.dash <= 0) { p.vx *= 0.5; p.vz *= 0.5; } }
     if (this.fly || this.lev) {
       const fast = this.fly ? (c.run ? 30 : 17) : 6; const tvx = c.dx * fast, tvz = c.dz * fast; const kk = 1 - Math.exp(-dt * (this.fly ? 2.2 : 3));
       p.vx += (tvx - p.vx) * kk; p.vz += (tvz - p.vz) * kk;
