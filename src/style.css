@@ -619,3 +619,21 @@ body.touch:not(.land).stRace #radioSub{top:auto;bottom:calc(var(--sab) + 64px);m
 body.touch #megaCard{bottom:auto;top:calc(var(--sat) + 322px);max-width:calc(100vw - 150px);padding:8px 10px}
 body.touch #megaCard .stAsk button{min-width:0;flex:1}
 body.touch.land #megaCard{top:auto;bottom:calc(var(--sab) + 56px);max-width:min(440px,50vw)}
+/* App GPS (OpenStreetMap) */
+.gpsSub{font-size:11px;font-weight:600;opacity:.7}
+.gpsWrap{position:relative;width:100%;aspect-ratio:1/1;max-height:min(330px,52vh);border-radius:16px;overflow:hidden;background:#cfe8f2;border:1px solid rgba(255,255,255,.25)}
+.gpsWrap canvas{width:100%;height:100%;display:block;touch-action:none}
+.gpsBtns{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;gap:5px}
+.gpsBtns button{width:34px;height:34px;border-radius:10px;border:0;background:rgba(20,20,40,.75);color:#fff;font-size:18px;font-weight:800}
+.gpsLoad{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:#123;font-size:13px;font-weight:700;background:rgba(255,255,255,.6)}
+.gpsLoad[hidden]{display:none}
+.gpsAttr{position:absolute;right:0;bottom:0;font-size:10px;line-height:1.2;color:#223;background:rgba(255,255,255,.82);padding:2px 6px;border-top-left-radius:8px;pointer-events:none}
+.gpsInfo{margin-top:8px}
+@media (max-height:520px){.gpsSub{display:none}}
+.gpsInfo{background:rgba(255,255,255,.95);color:#222;border-radius:14px;padding:9px 11px;font-size:13px;margin-bottom:8px;min-height:20px}
+.gpsInfo:empty{display:none}
+.gpsInfo b{color:#c2187a}.gpsInfo small{color:#777}.gpsInfo em{display:block;color:#0a7a6a;font-style:normal;margin-top:4px;font-weight:600}
+.gpsHere{font-size:12.5px;margin:4px 2px 8px;opacity:.95}
+.gpsTabs{margin-bottom:6px}
+.gpsH4{margin:10px 2px 6px;font-size:13px;opacity:.85}
+.gpsBtns .gpsMe{font-size:15px}

@@ -70,6 +70,29 @@ fs.mkdirSync(SH, { recursive: true });
     ck('mega: app no celular com endereço e GPS', R.m6.app && R.m6.addr && R.m6.coll && R.m6.route && R.m6.closed, R.m6);
   }
 
+  if (want('gps')) {
+    R.g1 = await ev(async () => { const G = window.__G; if (G.phoneOpen) G.ui.closePhone(); MBD.teleport(-480, -300, 0); MBD.sim(3, 1 / 30); G.ui.openPhone(); const app = document.querySelector('#phBody .app[data-p=gps]'); const has = !!app; app && app.click();
+      for (let i = 0; i < 100 && !(G.gps && G.gps.data && G.gps.view); i++) await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 300)); const D = G.gps.data; const cv = document.getElementById('gpsCv'); const r = cv.getBoundingClientRect(); const at = document.getElementById('gpsAttr'); const ar = at.getBoundingClientRect();
+      const px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; const cols = new Set(); for (let i = 0; i < px.length; i += 4 * 97) cols.add((px[i] >> 4) + ',' + (px[i + 1] >> 4) + ',' + (px[i + 2] >> 4));
+      const t = document.getElementById('phBody').textContent;
+      return { app: has, places: D.places.length, roads: D.roads.reduce((a, c) => a + c.length, 0), water: D.water.length, cv: [r.width, r.height].map(Math.round), inView: r.top >= 0 && r.bottom <= Math.min(innerHeight, document.getElementById('phBody').getBoundingClientRect().bottom) + 1 && r.left >= 0 && r.right <= innerWidth + 1, cols: cols.size,
+        attr: /OpenStreetMap/.test(at.textContent) && /ODbL/.test(at.textContent) && ar.height > 4 && ar.bottom <= Math.min(innerHeight, document.getElementById('phBody').getBoundingClientRect().bottom) + 1 && ar.top >= document.getElementById('phBody').getBoundingClientRect().top - 1, here: /inspirada em/.test(t), list: document.querySelectorAll('#gpsList button').length, info: document.getElementById('gpsInfo').textContent.slice(0, 80) }; });
+    await shot('gps-geral');
+    R.g2 = await ev(async () => { const G = window.__G; const b = document.querySelector('#gpsList button[data-place="South Beach"]'); b && b.click(); await new Promise(r => setTimeout(r, 200)); const s1 = G.gps.view.s; document.querySelector('.gpsBtns button[data-z="1"]').click(); await new Promise(r => setTimeout(r, 200));
+      const info = document.getElementById('gpsInfo'); return { sel: info.dataset.place, desc: info.textContent.length > 60 && /art déco/.test(info.textContent), zoomed: G.gps.view.s > s1 * 1.5 }; });
+    await shot('gps-zoom');
+    R.g3 = await ev(async () => { const G = window.__G; const cv = document.getElementById('gpsCv'); const v = G.gps.view; const p = G.gps.data.places.find(q => q.n === 'Brickell'); v.cx = p.x; v.cy = p.y; G.gps.draw(); const r = cv.getBoundingClientRect();
+      const o = { pointerId: 5, bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: 'touch' }; cv.dispatchEvent(new PointerEvent('pointerdown', o)); cv.dispatchEvent(new PointerEvent('pointerup', o)); await new Promise(r => setTimeout(r, 100));
+      const tapped = document.getElementById('gpsInfo').dataset.place; const sw = await (await fetch('sw.js')).text(); const back = document.querySelector('#phBody button[data-a=gpsmap]'); back && back.click(); const big = !document.getElementById('bigmap').hidden; G.ui.closeMap();
+      return { tapped, sw: /assets\/osm\/miami\.json/.test(sw) && /gpsosm\.js/.test(sw), big }; });
+    ck('gps: app com mapa real de Miami (OSM) desenhado', R.g1.app && R.g1.places >= 30 && R.g1.roads > 10000 && R.g1.water > 0 && R.g1.cols >= 4 && R.g1.cv[1] >= 120 && R.g1.inView, R.g1);
+    ck('gps: atribuição OpenStreetMap/ODbL visível', R.g1.attr, R.g1);
+    ck('gps: bairros com nome e informação', R.g1.list >= 30 && R.g1.here && R.g2.sel === 'South Beach' && R.g2.desc, { g1: R.g1.info, g2: R.g2 });
+    ck('gps: zoom e toque no mapa mostram o lugar', R.g2.zoomed && R.g3.tapped === 'Brickell', { g2: R.g2, g3: R.g3 });
+    ck('gps: guardado offline pelo service worker; abre o mapa do jogo', R.g3.sw && R.g3.big, R.g3);
+  }
+
   console.log('errors:', errs.slice(0, 5));
   if (errs.length) fail.push('console errors ' + errs.length);
   console.log(fail.length ? 'FAIL ' + out + ': ' + fail.join(' | ') : 'PASS ' + out);

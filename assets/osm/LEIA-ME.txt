@@ -1,0 +1,5 @@
+miami.json — mapa compacto da região de Miami para o app GPS do jogo.
+Fonte: dados do OpenStreetMap (extrato Geofabrik da Flórida, 2026-11-13).
+© colaboradores do OpenStreetMap — dados disponíveis sob a Open Database License (ODbL) 1.0: https://www.openstreetmap.org/copyright
+Este arquivo é um banco de dados derivado (vias, costa, água, verde, praias e nomes de lugares, simplificados e reprojetados em metros)
+e é distribuído sob a mesma licença ODbL. Gerado por /workspace/osm/extract.py + compact.py (scripts no repositório em tools/osm/).
