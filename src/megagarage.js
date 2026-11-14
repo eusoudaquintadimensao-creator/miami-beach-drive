@@ -165,7 +165,7 @@ export class MegaGarage {
     const p = G.player, pv = p.vehicle, px = pv ? pv.x : p.x, pz = pv ? pv.z : p.z;
     const inside = this.inHall(px, pz, 0.5) || this.inHall(camera.position.x, camera.position.z, 0.5) || !!(G.garageOpen && pv && pv.megaId != null);
     this.roof.visible = !inside; this.lamps.visible = inside || dc < 200;
-    if (inside && !this.inside) { this.visits++; if (this.visits === 1 || !this._welcT || t - this._welcT > 120) { this._welcT = t; G.ui.toast(`${MEGA.icon} <b>${MEGA.name}</b> · 50 carros tunados · chegue perto de um carro para ver preço e comprar · você tem <b>$${G.save.money.toLocaleString('pt-BR')}</b>`, 3600); } }
+    if (inside && !this.inside) { this.visits++; if (this.visits === 1 || !this._welcT || t - this._welcT > 120) { this._welcT = t; G.ui.toast(`${MEGA.icon} <b>${MEGA.name}</b> · 50 carros tunados · chegue perto de um carro para ver preço e comprar · você tem <b>$${G.save.money.toLocaleString('pt-BR')}</b>`, 2400); } }
     this.inside = inside;
     this.t -= dt; if (this.t <= 0) { this.t = 0.25; this.manage(); }
     this.focus = this.nearest(); this.card();
