@@ -99,7 +99,7 @@ fs.mkdirSync(SH, { recursive: true });
       const surf = B.figs.filter(f => f.kind === 'surf'); const sx0 = surf.map(f => f.x); for (let i = 0; i < 60; i++) MBD.sim(1, 1 / 30); const moved = surf.some((f, k) => Math.abs(f.x - sx0[k]) > 0.5);
       const inWater = surf.every(f => f.x > 384) && B.figs.filter(f => f.kind === 'swim').every(f => f.x > 384);
       return { c, vis, near, moved, inWater, peds: MBD.state.peds, q: MBD.state.quality }; });
-    await shot('vida-praia');
+    await sleep(2000); await shot('vida-praia');
     R.v2 = await ev(() => { const G = window.__G, B = MBD.beach(); MBD.setHour(23.5); MBD.sim(3, 1 / 30); const night = B.counts(); MBD.setHour(11); MBD.sim(3, 1 / 30); window.__onFoot(-480, -300); MBD.sim(5, 1 / 30); const away = !B.torso.visible; return { night, away }; });
     R.v3 = await ev(() => { const G = window.__G; const v = G.vehicles.find(x => x.npc && x.type === 'sedan') || G.vehicles.find(x => x.type === 'sedan'); let mir = false; v && v.body.traverse(o => { if (o.geometry && o.geometry.attributes.position && o.material === v.body.children[0].material) { } }); const n = v ? v.body.children.length : 0;
       const cr = G.crowd; return { carParts: n, shoes: !!cr.shoes && cr.shoes.count === cr.n * 2, hairL: !!cr.hairL }; });
@@ -108,7 +108,7 @@ fs.mkdirSync(SH, { recursive: true });
       return { s0, s1, centered: Math.abs(cx - W / 2) < W * 0.3 && Math.abs(cz - H / 2) < H * 0.3, wp: !!G.ui.waypoint, btns: window.__box(['bmBtns', 'bmX', 'bmLeg'], ['bmBtns']) }; });
     await shot('vida-mapa-zoom');
     await ev(() => window.__G.ui.closeMap());
-    const minPeds = { low: 40, medium: 84, high: 124 }[R.v1.q] || 40;
+    const minPeds = Math.round(({ low: 40, medium: 84, high: 124 }[R.v1.q] || 40) * (mobile ? 0.75 : 1)); // celular usa 75% (era 22/45/69)
     ck('vida: praia cheia de dia (banhistas, vôlei, crianças, surfistas, nadadores, vendedores, pipas)', R.v1.vis && R.v1.c.lie >= 20 && R.v1.c.sit >= 10 && R.v1.c.volley === 8 && R.v1.c.kid >= 5 && R.v1.c.surf >= 4 && R.v1.c.swim >= 6 && R.v1.c.vendor >= 2 && R.v1.c.kiter >= 2 && R.v1.near >= 15, R.v1);
     ck('vida: surfistas se movem e ficam no mar', R.v1.moved && R.v1.inWater, R.v1);
     ck('vida: mais pedestres na calçada', R.v1.peds >= minPeds, { peds: R.v1.peds, q: R.v1.q });
