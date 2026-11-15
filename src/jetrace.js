@@ -112,11 +112,12 @@ export class JetRace {
     R.last = s; R.off = loc.d > 60 ? (R.off || 0) + dt : 0; if (R.off > 12) { this.end(false, '🌊 Muito longe do circuito — corrida cancelada'); return; }
     // itens na ordem da volta
     const n = this.items.length, it = this.items[R.idx % n], itS = Math.floor(R.idx / n) * this.L + it.s;
-    if (R.prog >= itS - 1) { const dd = Math.hypot(v.x - it.x, v.z - it.z);
-      if (it.kind === 'gold' && dd < 4.6) { R.rings++; R.pts += THEME.ringPts; G.audio.chime && G.audio.chime('coin'); G.powers && G.powers.ring && G.powers.ring(it.x, WATER_Y + 0.05, it.z, THEME.gold, 5, 0.5); }
-      if (it.kind === 'boost' && dd < 4.2) { R.boosts++; R.boostT = 1.6; G.audio.chime && G.audio.chime('ok'); this.splash(v, 12, true); G.powers && G.powers.ring && G.powers.ring(it.x, WATER_Y + 0.05, it.z, THEME.boost, 6, 0.5); }
-      if (it.kind === 'ramp' && dd < 4.5 && Math.abs(v.vf) > 8) { R.jumps++; R.pts += THEME.jumpPts; v.jvy = 4 + Math.min(6, Math.abs(v.vf) * 0.2); v.jy = 0.05; this.splash(v, 16, true); }
-      R.idx++; }
+    if (R.prog >= itS - 8 && !R.itDone) { const dd = Math.hypot(v.x - it.x, v.z - it.z); let hit = false; // t434: janela de aproximação (vale com FPS baixo)
+      if (it.kind === 'gold' && dd < 4.6) { hit = true; R.rings++; R.pts += THEME.ringPts; G.audio.chime && G.audio.chime('coin'); G.powers && G.powers.ring && G.powers.ring(it.x, WATER_Y + 0.05, it.z, THEME.gold, 5, 0.5); }
+      if (it.kind === 'boost' && dd < 4.2) { hit = true; R.boosts++; R.boostT = 1.6; G.audio.chime && G.audio.chime('ok'); this.splash(v, 12, true); G.powers && G.powers.ring && G.powers.ring(it.x, WATER_Y + 0.05, it.z, THEME.boost, 6, 0.5); }
+      if (it.kind === 'ramp' && dd < 4.5 && Math.abs(v.vf) > 8) { hit = true; R.jumps++; R.pts += THEME.jumpPts; v.jvy = 4 + Math.min(6, Math.abs(v.vf) * 0.2); v.jy = 0.05; this.splash(v, 16, true); }
+      if (hit) R.itDone = true; }
+    if (R.prog >= itS + 3) { R.idx++; R.itDone = false; }
     if (R.boostT > 0) { R.boostT -= dt; const mx = v.spec.max * 1.4; if (v.vf < mx) { v.vf = Math.min(mx, v.vf + 22 * dt); const [fx, fz] = v.fwd(); const sp = Math.hypot(v.vx, v.vz); if (sp < mx) { v.vx += fx * 22 * dt; v.vz += fz * 22 * dt; } } }
     { const nx = this.items[R.idx % n]; this.hot.visible = nx.kind !== 'ramp'; this.hot.position.set(nx.x, WATER_Y + (nx.kind === 'gold' ? 3.3 : 2.9), nx.z); this.hot.rotation.set(0, nx.h, 0); this.hot.scale.setScalar(1 + Math.sin(t * 6) * 0.06); }
     // moedas (renovam a cada volta)
