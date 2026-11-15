@@ -29,9 +29,9 @@ const waitJs = async (p, expr, ms, label) => { const t0 = Date.now(); while (Dat
   R.hi = hi; chk(hi && /arrastar para cima/.test(hi.txt) && hi.name === 'Solara', 'recado da Solara (notificação) não apareceu');
   chk(hi && hi.top >= -2 && hi.bottom < hi.h * 0.3, 'notificação não está no alto da tela');
   await p.screenshot({ path: `/workspace/t435/t436-${tag}-recado.png` });
-  const t2 = Date.now(); while (Date.now() - t2 < 40000) { const l = await p.evaluate(() => (__G.solLog || []).map(x => ({ t: x.t, ms: x.off ? Math.round(x.off - x.on) : null }))); R.notes = l; if (l.length >= 3 && l.every(x => x.ms)) break; await sleep(500); }
+  const t2 = Date.now(); while (Date.now() - t2 < 40000) { const l = await p.evaluate(() => (__G.solLog || []).map(x => ({ t: x.t, ms: x.off ? Math.round(x.off - x.on) : null, vis: x.vis }))); R.notes = l; if (l.length >= 3 && l.every(x => x.ms)) break; await sleep(500); }
   chk(R.notes && R.notes.length >= 3, 'fila de recados (saída + boas-vindas + dica) não passou');
-  chk(R.notes && R.notes.every(x => x.ms && x.ms < ((R.perf0 && R.perf0.fps < 5) ? 9000 : 4600)), 'recado não saiu sozinho em ~2–4 s');
+  chk(R.notes && R.notes.every(x => x.ms && x.vis >= 2 && x.vis <= 3.6 && x.ms < 30000), 'recado não ficou ~2–3,5 s visível e saiu sozinho');
   await sleep(4000); R.perf = await p.evaluate(() => MBD.perf());
   if (q === 'high' && !mobile) chk(R.perf.ao || R.perf.fps < 40, 'GTAO não ligou no PC (alto)');
   if (q !== 'low' && mobile) chk(R.perf.smaa, 'SMAA não ligou no celular médio/alto');

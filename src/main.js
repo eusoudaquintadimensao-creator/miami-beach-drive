@@ -907,7 +907,7 @@ function adapt() { // resolução dinâmica para manter fluido
   const nowS = performance.now() / 1000; adCool = Math.max(0, adCool - 1);
   if (G.recording) { adLo = adHi = 0; return; } // gravando: resolução fixa (trocar o tamanho do canvas quebra o vídeo mp4)
   adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
-  if (adCool > 0) { } else if (adLo >= 2 && FX.ao && FX.ao.enabled) { FX.ao.enabled = false; adCool = 3; adLo = 0; adDropT = nowS; /* t435: o primeiro a sair quando pesa é a oclusão (antes de baixar a resolução) */ }
+  if (adCool > 0) { } else if (adLo >= 2 && FX.ao && FX.ao.enabled && !/fxlock/.test(location.search)) { FX.ao.enabled = false; adCool = 3; adLo = 0; adDropT = nowS; /* t435: o primeiro a sair quando pesa é a oclusão (antes de baixar a resolução) */ }
   else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
   else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
   if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low' && !G.lightened) { slowT++; if (slowT >= 6) { lightenLive(); slowT = 0; } } else slowT = 0; // t433: antes recarregava a página aqui (o jogo "saía" e voltava para a tela inicial)
@@ -1036,7 +1036,8 @@ function solNext() {
   el.addEventListener('pointerup', (e) => { e.stopPropagation(); if (!down) return; down = false; if (e.target.id === 'shFs') { document.documentElement.requestFullscreen().catch(() => { }); } close(); });
   el.addEventListener('pointerenter', () => { hold = true; }); el.addEventListener('pointerleave', () => { hold = false; });
   el.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-  const auto = () => { if (gone) return; if (hold || down) setTimeout(auto, 700); else close(); }; setTimeout(auto, opt.ms || 2400);
+  // conta só o tempo em que a tela está de fato desenhando (travadas de compilação/aba em 2º plano não "comem" o recado)
+  const need = (opt.ms || 2400) / 1000; let vis = 0, tl = performance.now(); const tick = (now) => { if (gone) return; const d = Math.min(0.1, Math.max(0, (now - tl) / 1000)); tl = now; if (!hold && !down) vis += d; lg.vis = +vis.toFixed(2); if (vis >= need) close(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick);
 }
 G.solaraNote = solaraNote;
 function solaraHi() { G.solaraHiShow = solaraHi;
