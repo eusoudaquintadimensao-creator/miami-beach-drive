@@ -211,3 +211,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - live-drive deu timeout de protocolo (box com 2 Chromes, load 24) — refazer depois da varredura.
 - sweep10: t433 S i falhou só por tempo (retomou, mas depois de 15 s) -> espera 40 s; demais t433 PASS.
 - 08:30 sweep10: t433 x8 PASS (S i refeito pendente), t434rec x8 PASS, t434jet S i/il/al PASS, S d falhou (rampa perdida com FPS baixo) -> detecção em janela; refazer t434jet x8 + t433 S i depois do sweep10.
+- 09:16 sweep10 completo: t426 x8, t413 x8 PASS (além de t433/t434rec/t434jet). Pendente só sweep11: t434jet x8 (janela da rampa) + t433 S i.
