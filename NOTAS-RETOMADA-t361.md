@@ -233,3 +233,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Foto da Solara ainda NÃO no box (só o print do Radar em d0d2bd...jpg). Não publicar sem decidir: publicar com ☀️ de reserva e trocar a foto depois.
 - 11:25 foto da Solara: assets/solara/solara.webp 320px 23,6 KB (recorte do rosto de /workspace/t436/solara-foto-original.jpg), no CORE do SW. Notificação pointer-events:none (t413 i falhava: cobria bClean). t423 atualizado (sai sozinho, não bloqueia). sweep12 interrompida p/ refazer.
 - 11:30 sweep12 reiniciada (com t436 d/i/il/al/dm no fim) → /workspace/t367/sweep12.out; parcial antiga em sweep12-parcial.out. Box carregado por outros (podcast).
+- 11:56 Tela cheia → menu de pausa (t405 i: botão no recado cobria qMore). main.js ficou quebrado ~1 min durante a sweep (~11:57): refazer testes desse intervalo + t426 al, t423 d (crash do navegador por carga), t405 i, t413 i.
