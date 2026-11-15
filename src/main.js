@@ -155,6 +155,7 @@ function persist() {
   try {
     const p = G.race && G.race.active && G.race.prev ? G.race.prev : G.player; save.pos = { x: +p.x.toFixed(1), z: +p.z.toFixed(1), h: +p.h.toFixed(2) };
     if (G.env) { save.hour = +G.env.hour.toFixed(2); save.weather = G.env.weather; }
+    if (G.started) save.live = Date.now(); // t433: marca que estava jogando (retoma direto se a página recarregar)
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   } catch (e) { }
 }
@@ -217,6 +218,7 @@ async function boot() {
   $('play').disabled = false; $('play').textContent = '▶  JOGAR'; $('raceBtn').disabled = false;
   if (BOOT && BOOT.handoff) { G.flyT = BOOT.t; BOOT.handoff(); } else document.body.classList.add('ldDone', 'menuIn');
   G.ready = true; window.MBD_READY = true; G.loadMs = Math.round(performance.now());
+  if (canResume()) setTimeout(() => G.resumeGame(), 30);
   // depois de pronto: personagens que conversam (modelo 3D carregado sob demanda)
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
   idle(() => { preloadAvatars(); G.talk.spawnCast(Q.talkers).then(n => { G.castReady = n; }); });
@@ -876,13 +878,19 @@ function loop(now) {
   fpsAcc += (now - realLast) / 1000; realLast = now; fpsN++; if (fpsAcc >= 1) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; fpsHist.push(fps); if (fpsHist.length > 30) fpsHist.shift(); if (G.showFps) $('fps').textContent = `${fps.toFixed(0)} fps · ${Q.level} · ${pr.toFixed(2)}x · ${renderer.info.render.calls} draws`; else $('fps').textContent = ''; if (G.started && !G.paused) adapt(); }
 }
 let adLo = 0, adHi = 0, adCool = 0, adDropT = -1e9; // t391: histerese + espera; não fica subindo/descendo a resolução (cada troca recriava os buffers = pisca)
+function lightenLive() { // t433: aparelho sofrendo — deixa leve NA HORA, sem recarregar a página; a próxima abertura já começa no modo leve
+  G.lightened = true; const nq = Q.level === 'high' ? 'medium' : 'low'; save.autoQ = nq; persist();
+  renderer.shadowMap.enabled = false; if (bloom) bloom.enabled = false;
+  Q.prMin = Math.min(Q.prMin, 0.55); Q.viewHide = Math.min(Q.viewHide, 170); Q.detail = Math.min(Q.detail, 360); Q.animDist = Math.min(Q.animDist, 45);
+  setPR(Math.max(0.55, pr - 0.1)); G.ui.toast('Gráficos mais leves para ficar fluido ⚡', 2500);
+}
 function adapt() { // resolução dinâmica para manter fluido
   const nowS = performance.now() / 1000; adCool = Math.max(0, adCool - 1);
   if (G.recording) { adLo = adHi = 0; return; } // gravando: resolução fixa (trocar o tamanho do canvas quebra o vídeo mp4)
   adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
   if (adCool > 0) { } else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
   else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
-  if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low') { slowT++; if (slowT >= 6 && !sessionStorage.getItem('mbd-down')) { sessionStorage.setItem('mbd-down', '1'); G.ui.toast('Deixando os gráficos mais leves para ficar fluido…'); const nq = Q.level === 'high' ? 'medium' : 'low'; save.autoQ = nq; persist(); setTimeout(() => { location.reload(); }, 900); } } else slowT = 0;
+  if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low' && !G.lightened) { slowT++; if (slowT >= 6) { lightenLive(); slowT = 0; } } else slowT = 0; // t433: antes recarregava a página aqui (o jogo "saía" e voltava para a tela inicial)
   // t432: aparelho forte de verdade (60 s fluido na resolução máxima) volta a poder usar o modo caprichado na próxima abertura
   if (save.autoQ && save.quality === 'auto' && !urlQ && fps > 55 && pr >= Math.min(Q.prMax, devicePixelRatio || 1) - 0.01) { fastT++; if (fastT >= 60 && QORD.indexOf(qDetected) > QORD.indexOf(Q.level)) { save.autoQ = null; persist(); fastT = -1e9; } } else if (fastT > 0) fastT = 0;
 }
@@ -1006,10 +1014,21 @@ function solaraHi() { G.solaraHiShow = solaraHi;
 }
 G.solaraHiShow = solaraHi;
 setupVersions('solara'); // tela inicial: Versões do jogo
+function canResume() { // t433: recarregou (aba descartada por memória, atualização, troca de gráficos) a até 20 min de quando estava jogando
+  const qp = new URLSearchParams(location.search); if (qp.has('menu')) return false;
+  if (navigator.webdriver && !qp.has('resume')) return false; // testes automáticos: só com ?resume
+  return !!save.live && Date.now() - save.live < 20 * 60 * 1000;
+}
+G.resumeGame = () => { if (G.started) return; G.resuming = true; $('play').onclick(); G.resuming = false; G.resumed = true;
+  const wake = () => { G.audio.init(); removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); }; addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
+  G.ui.toast('▶ Continuando de onde você parou', 2600); };
+// t433: botão/gesto "voltar" do Android não sai do jogo — abre a pausa (sair só pelo menu de pausa)
+addEventListener('popstate', () => { if (!G.started) return; history.pushState({ jogo: 1 }, ''); if (G.pauseOpen) G.closePause && G.closePause(); else G.openPause && G.openPause(); });
 $('play').onclick = () => {
+  try { if (!history.state || !history.state.jogo) history.pushState({ jogo: 1 }, ''); } catch (e) { }
   G.audio.init(); $('start').hidden = true; $('hud').hidden = false; G.started = true; G.ui.resize(); resize();
-  solaraHi(); // t423: recado da Solara (substitui o aviso de tela cheia do navegador, que mostrava o endereço do site)
-  G.ui.toast('Bem-vindo(a) a <b>Solara Bay</b>! 🌴<br>Ande até um carro e aperte <b>' + (touch ? '🚗' : 'E') + '</b>', 5000);
+  if (!G.resuming) solaraHi(); // t423: recado da Solara (substitui o aviso de tela cheia do navegador, que mostrava o endereço do site)
+  if (!G.resuming) G.ui.toast('Bem-vindo(a) a <b>Solara Bay</b>! 🌴<br>Ande até um carro e aperte <b>' + (touch ? '🚗' : 'E') + '</b>', 5000);
   if (!save.done) setTimeout(() => G.ui.phoneNote('@solara.oficial', 'Dica: siga os ícones no mapa — 📦 entregas, 🏁 corridas, 📸 fotos e 🚕 táxi. Ninguém se machuca aqui!'), 2500);
   last = performance.now();
 };
@@ -1030,6 +1049,8 @@ $('qPonte').onclick = () => { if (!G.started || G.paused) return; G.audio.init()
 for (const id of ['qRace', 'qJet', 'qHeli', 'qPlane', 'qCar', 'qHome', 'qFlash', 'qSerp', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
 addEventListener('visibilitychange', () => { if (document.hidden) { persist(); if (G.rec && G.rec.recording) G.rec.stop(); } });
 addEventListener('pagehide', persist);
+canvas.addEventListener('webglcontextlost', () => { G.ctxLost = (G.ctxLost || 0) + 1; persist(); }, false); // t433
+canvas.addEventListener('webglcontextrestored', () => { G.ui && G.ui.toast('Imagem recuperada ✓', 1800); resize(); }, false);
 
 // ---------------- API de teste (somente leitura/ações do próprio jogo)
 window.MBD = {
@@ -1049,6 +1070,7 @@ window.MBD = {
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), callPlane: () => G.callPlane(), plane: () => G.plane, race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
   life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, ilhas: () => G.ilhas, boatRace: () => G.boatRace, mega: () => G.mega, gps: () => G.gps, beach: () => G.beach, orla: () => G.orla, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
+  lighten: () => lightenLive(), persist: () => persist(), get flags() { return { started: !!G.started, resumed: !!G.resumed, lightened: !!G.lightened, pauseOpen: !!G.pauseOpen, ctxLost: G.ctxLost || 0 }; }, // t433
   perf: () => ({ q: Q.level, detected: qDetected, autoQ: save.autoQ || null, pr: +pr.toFixed(2), prMax: Q.prMax, fps: +fps.toFixed(1), shadows: renderer.shadowMap.enabled, bloom: !!bloom, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null }), // t432
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
