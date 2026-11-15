@@ -207,3 +207,6 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 
 ### 07:36 release E (t434) mesclado em main, SW v29/v21 jetski — Solara 64d194b, Neon 68e812d (não publicado)
 - Varredura curta sweep10 (t433, t434rec, t434jet, t426, t413 em d/i/il/al, 2 jogos): /workspace/t367/sweep10.out. Depois: push, site, conferir SW.
+- 08:05 ao vivo (release D, Pages, Slow 4G + CPU 4x, sem cache): Solara 816 KB, 1º quadro 1,74 s, pronto 11,0 s, FPS 4,6 (swiftshader), heap 98 MB, 56 texturas; Neon 818 KB, 1,75 s, 9,7 s, 5,0 fps, 98 MB, 63 texturas. t432 PASS nos dois. (Local sem gzip: ~2,3 MB, 4,8 s, 17,4 s.)
+- live-drive deu timeout de protocolo (box com 2 Chromes, load 24) — refazer depois da varredura.
+- sweep10: t433 S i falhou só por tempo (retomou, mas depois de 15 s) -> espera 40 s; demais t433 PASS.
