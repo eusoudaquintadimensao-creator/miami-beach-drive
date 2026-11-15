@@ -186,3 +186,8 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - CORREÇÃO: lightenLive() deixa leve ao vivo (sem sombras/bloom, resolução e distância menores) e lembra save.autoQ; save.live marca "estava jogando" -> recarregar em até 20 min retoma direto no jogo, na posição salva (?menu força a tela inicial; testes só com ?resume); history.pushState + popstate abre a pausa; webglcontextlost salva progresso (three.js recupera).
 - SW não chama reload (só skipWaiting/claim, sem controllerchange) — descartado. Sem handler de erro que volte ao menu.
 - test/t433.js PASS nos dois. Solara 4b9121a; Neon commit t433.
+
+### 06:40 — varredura 7 concluída (exceto sig neon rodando) + t434 rascunhado
+- sweep7: t422 x2, t426 S d/i/al + N al, t423 x4, t413 x8, t408 x8, t405 x8, t402/t400/t393/t394/t396/t383 d+i x2, S t387, N t361 i, heroes x4 (sem erros), t431 x4, sig S PASS.
+  Falhas por box sobrecarregado (job de áudio de outro agente a 300% CPU + restauração 04:4x): S t426 il, N t426 d/i/il, t418 x2 (Chrome caiu), N t387 d/i, S t361 d/i, N t361 d -> refazendo em sweep8 (/workspace/t367/sweep8.out) com t433.
+- t434 RASCUNHO (não aplicado ainda, vai no release E depois de publicar D): /workspace/t434/recorder.js (10 min, 2–2,5 Mbps 720p, pedaços em disco OPFS, Salvar = share files no celular / download), /workspace/t434/jetrace.js (Copa Jet Maré), /workspace/t434/patch_vehicles.py (tipo 'jetski' + salto). Falta: main.js recCap 1280 no computador, ligar JetRace no main.js (import, G.jetRace, update), CSS #jetTip/#jetHud, Neon THEME, testes t434rec/t434jet.

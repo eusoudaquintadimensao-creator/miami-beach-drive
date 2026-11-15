@@ -4,7 +4,7 @@
 const puppeteer = require('puppeteer-core');
 const PORT = process.env.PORT || 8765, BASE = process.env.BASE || `http://localhost:${PORT}/`;
 const [,, tag = 'x'] = process.argv;
-const BUDGET = { kb: 2600, firstFrameMs: 7000, readyMs: 22000, fpsMin: 2 }; // fpsMin baixo: aqui a GPU é emulada (swiftshader) e a CPU está 4x mais lenta
+const BUDGET = { kb: 2600, firstFrameMs: 7000, readyMs: 22000, fpsMin: 2, heapMB: 400, textures: 400 }; // fpsMin baixo: aqui a GPU é emulada (swiftshader) e a CPU está 4x mais lenta
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
   const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader'] });
@@ -28,8 +28,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(4000); const fs = []; for (let i = 0; i < 12; i++) { await sleep(1000); fs.push((await page.evaluate(() => MBD.perf().fps))); }
   const fpsAvg = +(fs.reduce((a, b) => a + b, 0) / fs.length).toFixed(1);
   const perf1 = await page.evaluate(() => MBD.perf());
-  const R = { tag, kb, firstFrameMs: firstFrame, readyMs, fpsAvg, fpsMin: Math.min(...fs), kbAfterPlay: Math.round(kbAfter / 1024), perf0, perf1, errs };
-  const ok = kb <= BUDGET.kb && firstFrame && firstFrame <= BUDGET.firstFrameMs && readyMs <= BUDGET.readyMs && fpsAvg >= BUDGET.fpsMin && perf0.q === 'low' && perf0.pr <= 1 && !errs.length;
+  const mem = await page.evaluate(() => ({ heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, geometries: __G.renderer.info.memory.geometries, textures: __G.renderer.info.memory.textures }));
+  const R = { tag, kb, firstFrameMs: firstFrame, readyMs, fpsAvg, fpsMin: Math.min(...fs), kbAfterPlay: Math.round(kbAfter / 1024), mem, perf0, perf1, errs };
+  const ok = kb <= BUDGET.kb && firstFrame && firstFrame <= BUDGET.firstFrameMs && readyMs <= BUDGET.readyMs && fpsAvg >= BUDGET.fpsMin && (!mem.heapMB || mem.heapMB <= BUDGET.heapMB) && mem.textures <= BUDGET.textures && perf0.q === 'low' && perf0.pr <= 1 && !errs.length;
   console.log(JSON.stringify(R)); console.log(`BUDGET ${JSON.stringify(BUDGET)}`); console.log((ok ? 'PASS' : 'FAIL') + ' t432 ' + tag);
   await browser.close(); process.exit(ok ? 0 : 1);
 })().catch(e => { console.log('FAIL t432', e.message); process.exit(1); });
