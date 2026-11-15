@@ -24,13 +24,28 @@ body.flyOn #c{opacity:1}
 body.menuIn #loader .ldTop,body.menuIn #ldSkip{opacity:0;transform:translateX(-50%) translateY(-12px);pointer-events:none}
 body.menuIn #ldSkip{transform:none}
 body.ldDone.menuIn #loader{display:none}
+/* t436: Solara apresenta o jogo na abertura (toque = ouvir; PT/EN/ES; áudio só baixa no toque) */
+#ldSol{position:absolute;left:calc(env(safe-area-inset-left,0px) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);max-width:min(400px,calc(100vw - 150px));display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:18px;background:rgba(14,18,22,.58);border:1.5px solid rgba(226,193,120,.75);box-shadow:0 6px 22px rgba(0,0,0,.4);pointer-events:auto;cursor:pointer;transition:opacity .6s ease,transform .6s ease;animation:lsIn .7s ease both .4s;-webkit-tap-highlight-color:transparent}
+@keyframes lsIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#ldSol .lsAv{position:relative;flex:none;width:58px;height:58px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-size:30px;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffb13b 55%,#ff5f8f);border:2px solid #e2c178}
+#ldSol .lsAv img,#solaraHi .shAv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ldSol .lsAv i{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:#e2c178;color:#14181c;font:700 11px/22px system-ui;text-align:center;font-style:normal}
+#ldSol.play .lsAv{box-shadow:0 0 0 3px rgba(226,193,120,.5);animation:lsPulse 1.2s ease-in-out infinite}
+@keyframes lsPulse{50%{box-shadow:0 0 0 7px rgba(226,193,120,.15)}}
+#ldSol .lsTx{display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.3;color:#f1ead9;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+#ldSol .lsTx b{color:#e2c178;font-size:13px;letter-spacing:.04em}
+#ldSol .lsTx small{color:#e2c178;font-size:12px;font-weight:600}
+#ldSol .lsLang{display:flex;gap:6px;margin-top:3px}
+#ldSol .lsLang button{min-width:38px;min-height:30px;padding:0 8px;border-radius:9px;border:1px solid rgba(226,193,120,.6);background:rgba(255,255,255,.08);color:#f1ead9;font:700 12px system-ui;letter-spacing:.06em}
+#ldSol .lsLang button.on{background:#e2c178;color:#14181c}
+body.menuIn #ldSol{animation:none;opacity:0;transform:translateY(12px);pointer-events:none}
 </style>
 <link rel="stylesheet" href="src/style.css">
 <link rel="modulepreload" href="vendor/three/three.module.min.js">
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head><body>
 <canvas id="c"></canvas>
-<div id="loader"><div class="ldTop"><div class="ldTitle">SOLARA BAY</div><div class="ldBar"><i id="ldFill"></i></div><div class="ldRow"><span id="ldStage">carregando a cidade</span><span id="ldPct">0%</span></div></div><button id="ldSkip" type="button">Pular ⏭</button></div>
+<div id="loader"><div class="ldTop"><div class="ldTitle">SOLARA BAY</div><div class="ldBar"><i id="ldFill"></i></div><div class="ldRow"><span id="ldStage">carregando a cidade</span><span id="ldPct">0%</span></div></div><div id="ldSol" role="button" tabindex="0" aria-label="Ouvir a Solara"><div class="lsAv"><img src="assets/solara/solara.webp" alt="" onerror="this.remove()">☀️<i>▶</i></div><div class="lsTx"><b id="lsHi">Oi! Eu sou a Solara</b><span id="lsMsg">Bem-vindo(a) a Solara Bay! Ande pela cidade, entre nos carros, barcos e jet skis, e siga o mapa para entregas, fotos e corridas. Sem violência.</span><small id="lsTap">🔊 Toque para ouvir como jogar</small><div class="lsLang"><button type="button" data-l="pt">PT</button><button type="button" data-l="en">EN</button><button type="button" data-l="es">ES</button></div></div></div><button id="ldSkip" type="button">Pular ⏭</button></div>
 <div id="hud" hidden>
   <div id="topR"><div id="clock">17:00 <span id="wx">☀️</span></div><div id="money">$0</div><div id="fol">♥ 0</div></div>
   <div id="mapw"><canvas id="mini" width="220" height="220"></canvas><div id="spd"></div></div>
@@ -120,6 +135,7 @@ body.ldDone.menuIn #loader{display:none}
   </div>
 </div>
 <noscript><p style="color:#fff;padding:20px">Ative o JavaScript para jogar.</p></noscript>
+<script src="src/ldsolara.js" defer></script>
 <script type="module" src="src/flyover.js"></script>
   <div id="ponteEnd" hidden><div class="gCard"><div id="peBody"></div><div class="gBtns"><button id="peMore">🔁 Mais voltas</button><button id="peExit">⬇️ Sair pela saída</button></div></div></div>
   <div id="giftScreen" hidden><div class="gCard"><div class="gIco">🎁🏎️</div><h2>PRESENTES DA PONTE!</h2><p>Você completou uma volta inteira. A garagem de prêmios da sua casa abriu: 3 carros tunados são seus!</p><div id="giftInfo"></div><div class="gBtns"><button id="giftLater">Continuar</button><button id="giftDrive">🚗 Dirigir agora</button></div></div></div>

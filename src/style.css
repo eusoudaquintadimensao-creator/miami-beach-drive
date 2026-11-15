@@ -1001,3 +1001,17 @@ body.touch #jetTip{bottom:auto;top:calc(var(--sat) + 58px)}
 #jetHud{position:absolute;left:50%;top:calc(var(--sat) + 12px);transform:translateX(-50%);background:rgba(4,24,30,.78);border:1px solid rgba(46,230,214,.7);border-radius:12px;padding:5px 14px;font-weight:800;font-size:13px;text-align:center;color:#e6fffb;pointer-events:none;z-index:8;max-width:90vw}
 #jetHud b{color:#7ff3e8;margin-right:6px}#jetHud .pos{color:#ffd23f}#jetHud .turbo{color:#2ee6d6;text-shadow:0 0 8px #2ee6d6}body.touch #jetHud{top:calc(var(--sat) + 58px)}
 #jetHud .pbar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:3px;overflow:hidden}#jetHud .pbar i{display:block;height:100%;background:linear-gradient(90deg,#2ee6d6,#d9b45a)}
+
+/* t436/t437: recado da Solara = notificação de celular chegando (foto redonda, nome, texto); desliza do alto, ~2 s, sai sozinho; fica no alto (não cobre o carro) */
+#solaraHi,.solNote{position:fixed;z-index:40;top:calc(var(--sat,0px) + 8px);left:50%;right:auto;width:min(420px,calc(100vw - 20px));max-width:none;transform:translateX(-50%);box-sizing:border-box;display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:20px;background:rgba(24,26,36,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 26px rgba(0,0,0,.35);color:#fff;text-shadow:none;animation:solIn .42s cubic-bezier(.2,.9,.3,1.15) both;transition:opacity .45s ease,transform .45s ease}
+@keyframes solIn{from{opacity:0;transform:translateX(-50%) translateY(-120%)}to{opacity:1;transform:translateX(-50%)}}
+#solaraHi.out,.solNote.out{animation:none;opacity:0;transform:translateX(-50%) translateY(-120%)}
+body.touch:not(.land) #solaraHi,body.touch:not(.land) .solNote{top:calc(var(--sat,0px) + 6px);left:50%;right:auto;width:calc(100vw - 16px);transform:translateX(-50%)}
+body.touch:not(.land) #solaraHi.out,body.touch:not(.land) .solNote.out{transform:translateX(-50%) translateY(-120%)}
+#solaraHi .shAv,.solNote .shAv{position:relative;overflow:hidden;flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffb13b 55%,#ff5f8f);border:2px solid #fff;box-shadow:none}
+.solNote .shAv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.solNote .shTx{display:flex;flex-direction:column;gap:2px;font-size:13.5px;line-height:1.3;min-width:0}
+.solNote .shHd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.solNote .shHd b{font-size:13px;letter-spacing:.02em;color:#ffe9a8}
+.solNote .shHd em{font-style:normal;font-size:11px;opacity:.6}
+.solNote button{align-self:flex-start;margin-top:3px;min-height:32px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.9);background:rgba(255,255,255,.16);color:#fff;font-weight:800;white-space:nowrap}

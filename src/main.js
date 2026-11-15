@@ -83,15 +83,15 @@ function detectQuality() {
   return 'medium';
 }
 const PRESETS = {
-  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 40, traffic: 10, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
-  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 84, traffic: 17, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
-  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 124, traffic: 24, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
+  low: { level: 'low', prMin: 0.55, prMax: 1, shadows: false, shadowSize: 512, bloom: false, clouds: false, env: true, peds: 40, traffic: 10, fog: 0.0019, aniso: 2, expo: 1.05, msaa: 0, ao: false, smaa: false, viewHide: 170, detail: 360, helis: 1, talkers: 4, animDist: 45 },
+  medium: { level: 'medium', prMin: 0.7, prMax: 1.5, shadows: true, shadowSize: 1024, bloom: true, clouds: true, env: true, peds: 84, traffic: 17, fog: 0.0013, aniso: 4, expo: 1, msaa: 2, ao: false, smaa: true, viewHide: 220, detail: 620, helis: 2, talkers: 7, animDist: 70 },
+  high: { level: 'high', prMin: 0.9, prMax: 2, shadows: true, shadowSize: 2048, bloom: true, clouds: true, env: true, peds: 124, traffic: 24, fog: 0.0011, aniso: 8, expo: 1, msaa: 4, ao: true, smaa: true, viewHide: 280, detail: 1e9, helis: 3, talkers: 9, animDist: 110 },
 };
 // celular/tablet: menos pixels, sombras menores, menos gente e carros, menos distância de desenho
 function forDevice(P) {
   const q = Object.assign({}, P, { device: DEVICE.label });
   if (DEVICE.mobile) {
-    q.prMax = Math.min(q.prMax, q.level === 'low' ? 1 : DEVICE.ios ? 1.4 : 1.3); q.shadowSize = Math.min(q.shadowSize, 1024); q.msaa = 0;
+    q.prMax = Math.min(q.prMax, q.level === 'low' ? 1 : DEVICE.ios ? 1.4 : 1.3); q.shadowSize = Math.min(q.shadowSize, 1024); q.msaa = 0; q.ao = false; /* t435: oclusão de ambiente (GTAO) só no PC forte; celular usa SMAA barato no lugar do MSAA */
     q.peds = Math.round(q.peds * 0.75); q.traffic = Math.round(q.traffic * 0.8); q.viewHide = Math.min(q.viewHide, 200);
     q.detail = Math.min(q.detail, q.level === 'low' ? 320 : 480); q.helis = Math.min(q.helis, 2); q.talkers = Math.min(q.talkers, 6); q.animDist = Math.min(q.animDist, 55);
   }
@@ -115,7 +115,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 renderer.info.autoReset = false; renderer.shadowMap.enabled = Q.shadows; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.32, 6000); // t391: near maior = profundidade precisa (sem z-fighting/pisca no chão e na água) G.camera = camera;
-let composer = null, bloom = null, grade = null, zoomBlur = null;
+let composer = null, bloom = null, grade = null, zoomBlur = null; const FX = { ao: null, smaa: null, err: null };
 function setupComposer() {
   if (!Q.bloom) return;
   const rt = new THREE.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, { type: THREE.HalfFloatType, samples: Q.msaa });
@@ -144,6 +144,24 @@ function setupComposer() {
         gl_FragColor = acc / w; }`,
   }); zoomBlur.enabled = false; composer.addPass(zoomBlur);
   composer.addPass(new OutputPass());
+  loadFx();
+}
+// t435: realismo extra carregado SOB DEMANDA (import dinâmico = não pesa no download inicial nem no modo leve)
+async function loadFx() {
+  try {
+    if (Q.ao && !G.lightened) {
+      const { GTAOPass } = await import('three/addons/postprocessing/GTAOPass.js');
+      const ao = new GTAOPass(scene, camera, innerWidth, innerHeight); ao.output = GTAOPass.OUTPUT.Default; ao.blendIntensity = 0.85;
+      ao.updateGtaoMaterial({ radius: 1.6, distanceExponent: 1.6, thickness: 2.5, scale: 1.0, samples: 12, distanceFallOff: 1.0, screenSpaceRadius: false });
+      ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+      if (composer && !G.lightened) { composer.insertPass(ao, 1); FX.ao = ao; resize(); }
+    }
+    if (Q.smaa && !Q.msaa && !G.lightened) {
+      const { SMAAPass } = await import('three/addons/postprocessing/SMAAPass.js');
+      const sm = new SMAAPass(innerWidth * pr, innerHeight * pr);
+      if (composer && !G.lightened) { composer.insertPass(sm, composer.passes.length - 1); FX.smaa = sm; resize(); }
+    }
+  } catch (e) { FX.err = String(e && e.message || e); console.warn('fx', FX.err); }
 }
 
 // ---------------- jogo
@@ -881,7 +899,7 @@ function loop(now) {
 let adLo = 0, adHi = 0, adCool = 0, adDropT = -1e9; // t391: histerese + espera; não fica subindo/descendo a resolução (cada troca recriava os buffers = pisca)
 function lightenLive() { // t433: aparelho sofrendo — deixa leve NA HORA, sem recarregar a página; a próxima abertura já começa no modo leve
   G.lightened = true; const nq = Q.level === 'high' ? 'medium' : 'low'; save.autoQ = nq; persist();
-  renderer.shadowMap.enabled = false; if (bloom) bloom.enabled = false;
+  renderer.shadowMap.enabled = false; if (bloom) bloom.enabled = false; if (FX.ao) FX.ao.enabled = false; if (FX.smaa) FX.smaa.enabled = false;
   Q.prMin = Math.min(Q.prMin, 0.55); Q.viewHide = Math.min(Q.viewHide, 170); Q.detail = Math.min(Q.detail, 360); Q.animDist = Math.min(Q.animDist, 45);
   setPR(Math.max(0.55, pr - 0.1)); G.ui.toast('Gráficos mais leves para ficar fluido ⚡', 2500);
 }
@@ -889,7 +907,8 @@ function adapt() { // resolução dinâmica para manter fluido
   const nowS = performance.now() / 1000; adCool = Math.max(0, adCool - 1);
   if (G.recording) { adLo = adHi = 0; return; } // gravando: resolução fixa (trocar o tamanho do canvas quebra o vídeo mp4)
   adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
-  if (adCool > 0) { } else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
+  if (adCool > 0) { } else if (adLo >= 2 && FX.ao && FX.ao.enabled) { FX.ao.enabled = false; adCool = 3; adLo = 0; adDropT = nowS; /* t435: o primeiro a sair quando pesa é a oclusão (antes de baixar a resolução) */ }
+  else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
   else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
   if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low' && !G.lightened) { slowT++; if (slowT >= 6) { lightenLive(); slowT = 0; } } else slowT = 0; // t433: antes recarregava a página aqui (o jogo "saía" e voltava para a tela inicial)
   // t432: aparelho forte de verdade (60 s fluido na resolução máxima) volta a poder usar o modo caprichado na próxima abertura
@@ -1000,18 +1019,30 @@ function render() {
   }
 }
 
-// t423: recado de boas-vindas da Solara — some com toque ou deslizando em qualquer direção; tela cheia só se o jogador pedir
-function solaraHi() { G.solaraHiShow = solaraHi;
-  if (document.getElementById('solaraHi')) return; const el = document.createElement('div'); el.id = 'solaraHi';
-  const fs = touch && document.documentElement.requestFullscreen && !(window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
-  el.innerHTML = `<div class="shAv">☀️</div><div class="shTx"><b>Solara</b><span>Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.</span>${fs ? '<button id="shFs">⛶ Tela cheia</button>' : ''}<small>toque ou deslize para fechar</small></div>`;
-  document.body.appendChild(el); G.solaraHi = el; let x0 = 0, y0 = 0, down = false;
-  const close = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 260); G.solaraHi = null; };
+// t423/t436/t437: recados da Solara no estilo NOTIFICAÇÃO DE CELULAR (foto redonda + nome + texto): desliza do alto, fica ~2 s e sai sozinho.
+// Fica lá em cima (nunca cobre o carro). Toque/deslize também fecha. Vários recados entram em fila, um de cada vez.
+const solQ = []; let solCur = null;
+function solaraNote(text, opt = {}) {
+  solQ.push({ text, opt }); if (!solCur) solNext();
+}
+function solNext() {
+  const it = solQ.shift(); if (!it) { solCur = null; return; }
+  const { text, opt } = it; const el = document.createElement('div'); el.id = opt.id || 'solaraHi'; el.className = 'solNote'; el.setAttribute('role', 'status');
+  el.innerHTML = `<div class="shAv"><img src="assets/solara/solara.webp" alt="" onerror="this.remove()">☀️</div><div class="shTx"><div class="shHd"><b>Solara</b><em>agora</em></div><span>${text}</span>${opt.fs ? '<button id="shFs">⛶ Tela cheia</button>' : ''}</div>`;
+  document.body.appendChild(el); solCur = el; G.solaraHi = el; const lg = { t: text.replace(/<[^>]+>/g, '').slice(0, 40), on: performance.now(), off: 0 }; (G.solLog = G.solLog || []).push(lg); let x0 = 0, y0 = 0, down = false, hold = false, gone = false;
+  const close = () => { if (gone) return; gone = true; lg.off = performance.now(); el.classList.add('out'); setTimeout(() => { el.remove(); if (G.solaraHi === el) G.solaraHi = null; setTimeout(solNext, 250); }, 480); };
   el.addEventListener('pointerdown', (e) => { e.stopPropagation(); down = true; x0 = e.clientX; y0 = e.clientY; });
   el.addEventListener('pointermove', (e) => { if (down && Math.hypot(e.clientX - x0, e.clientY - y0) > 24) { down = false; close(); } });
   el.addEventListener('pointerup', (e) => { e.stopPropagation(); if (!down) return; down = false; if (e.target.id === 'shFs') { document.documentElement.requestFullscreen().catch(() => { }); } close(); });
+  el.addEventListener('pointerenter', () => { hold = true; }); el.addEventListener('pointerleave', () => { hold = false; });
   el.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-  setTimeout(close, 9000);
+  const auto = () => { if (gone) return; if (hold || down) setTimeout(auto, 700); else close(); }; setTimeout(auto, opt.ms || 2400);
+}
+G.solaraNote = solaraNote;
+function solaraHi() { G.solaraHiShow = solaraHi;
+  if (document.getElementById('solaraHi')) return;
+  const fs = touch && document.documentElement.requestFullscreen && !(window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
+  solaraNote('Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.', { fs, ms: fs ? 3400 : 2400 });
 }
 G.solaraHiShow = solaraHi;
 setupVersions('solara'); // tela inicial: Versões do jogo
@@ -1029,8 +1060,8 @@ $('play').onclick = () => {
   try { if (!history.state || !history.state.jogo) history.pushState({ jogo: 1 }, ''); } catch (e) { }
   G.audio.init(); $('start').hidden = true; $('hud').hidden = false; G.started = true; G.ui.resize(); resize();
   if (!G.resuming) solaraHi(); // t423: recado da Solara (substitui o aviso de tela cheia do navegador, que mostrava o endereço do site)
-  if (!G.resuming) G.ui.toast('Bem-vindo(a) a <b>Solara Bay</b>! 🌴<br>Ande até um carro e aperte <b>' + (touch ? '🚗' : 'E') + '</b>', 5000);
-  if (!save.done) setTimeout(() => G.ui.phoneNote('@solara.oficial', 'Dica: siga os ícones no mapa — 📦 entregas, 🏁 corridas, 📸 fotos e 🚕 táxi. Ninguém se machuca aqui!'), 2500);
+  if (!G.resuming) solaraNote('Bem-vindo(a) a <b>Solara Bay</b>! 🌴 Ande até um carro e aperte <b>' + (touch ? '🚗' : 'E') + '</b>.'); // t437: era um aviso solto no meio da tela
+  if (!save.done && !G.resuming) solaraNote('Dica: siga os ícones no mapa — 📦 entregas, 🏁 corridas, 📸 fotos e 🚕 táxi. Ninguém se machuca aqui!');
   last = performance.now();
 };
 { const cb = $('ctlBtn'), ch = $('ctlHelp'); if (cb && ch) cb.onclick = () => { ch.hidden = !ch.hidden; cb.setAttribute('aria-expanded', String(!ch.hidden)); }; } // t426: comandos recolhidos no botão Controles
@@ -1072,7 +1103,7 @@ window.MBD = {
   life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, ilhas: () => G.ilhas, boatRace: () => G.boatRace, mega: () => G.mega, gps: () => G.gps, beach: () => G.beach, orla: () => G.orla, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
   jetRace: () => G.jetRace, rec: () => G.rec, lighten: () => lightenLive(), persist: () => persist(), get flags() { return { started: !!G.started, resumed: !!G.resumed, lightened: !!G.lightened, pauseOpen: !!G.pauseOpen, ctxLost: G.ctxLost || 0 }; }, // t433
-  perf: () => ({ q: Q.level, detected: qDetected, autoQ: save.autoQ || null, pr: +pr.toFixed(2), prMax: Q.prMax, fps: +fps.toFixed(1), shadows: renderer.shadowMap.enabled, bloom: !!bloom, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null }), // t432
+  perf: () => ({ q: Q.level, detected: qDetected, autoQ: save.autoQ || null, pr: +pr.toFixed(2), prMax: Q.prMax, fps: +fps.toFixed(1), shadows: renderer.shadowMap.enabled, bloom: !!bloom, ao: !!(FX.ao && FX.ao.enabled), smaa: !!(FX.smaa && FX.smaa.enabled), fxErr: FX.err, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null }), // t432
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
 

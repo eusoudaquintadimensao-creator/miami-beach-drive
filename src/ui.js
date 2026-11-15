@@ -57,7 +57,7 @@ export class UI {
   }
   prompt(html) { const p = $('prompt'); if (!html) { p.hidden = true; this._ph = ''; return; } if (this._ph !== html) { p.innerHTML = html; this._ph = html; } p.hidden = false; }
   radio(st) { const r = $('radio'); r.innerHTML = `${st.name}<small>${st.tag || ''}</small>`; r.classList.add('on'); clearTimeout(this._rt); this._rt = setTimeout(() => r.classList.remove('on'), 2600); }
-  phoneNote(user, text) { const n = $('note'); $('noteU').textContent = user + ' · Vibez'; $('noteT').textContent = text; n.hidden = false; clearTimeout(this._nt); this._nt = setTimeout(() => n.hidden = true, 5200); this.G.audio.chime('coin'); this.G.feed.unshift([user, text, 'agora']); }
+  phoneNote(user, text) { if (/^@solara/.test(user) && this.G.solaraNote) { this.G.solaraNote(text); return; } /* t437: recados da Solara = notificação com a foto dela */ const n = $('note'); $('noteU').textContent = user + ' · Vibez'; $('noteT').textContent = text; n.hidden = false; clearTimeout(this._nt); this._nt = setTimeout(() => n.hidden = true, 5200); this.G.audio.chime('coin'); this.G.feed.unshift([user, text, 'agora']); }
   bubbleText(who, text) { const s = $('say'); s.className = 'top'; s.textContent = `${who}: ${text}`; s.hidden = false; this._sayP = null; clearTimeout(this._st); this._st = setTimeout(() => s.hidden = true, 4200); }
   talkBubble(p, text) { if (this.G.voice) this.G.voice.say(text, p); const s = $('say'); s.className = 'talk'; s.textContent = text; s.hidden = false; this._sayP = p; clearTimeout(this._st); }
   hideBubble(p) { if (this._sayP === p || !p) { $('say').hidden = true; this._sayP = null; } }

@@ -142,6 +142,11 @@ export function createEnv(scene, renderer, Q) {
         vec3 col = mix(water, sky, fres);
         float sp = pow(max(dot(r, normalize(uSun)),0.), 380.) * 8.0 + pow(max(dot(r, normalize(uSun)),0.), 40.)*0.25;
         col += uSunCol*sp*(1.-uRain*0.8);
+        if (uDetail > 0.5) { // t435: luz atravessando a crista das ondas (subsurface) + cáusticas no raso — só médio/alto
+          float day = max(uSun.y, 0.)*(1.-uNight); float crest = clamp(length(g)*1.3, 0., 1.);
+          col += vec3(0.02,0.42,0.36)*crest*crest*day*0.22*(1.-fres)*(0.4+0.6*(1.-depth));
+          if (depth < 0.7) { vec2 cp = mod(vW.xz, 1000.)*0.42; float c1 = nz(cp + vec2(uTn*0.55, uTn*0.2)), c2 = nz(cp*1.6 - vec2(uTn*0.3, uTn*0.5));
+            float ca = pow(1. - abs(c1 - c2), 9.); col += vec3(0.55,0.95,0.85)*ca*0.2*(1. - depth/0.7)*day*(1.-fres)*(1.-uRain); } }
         // espuma na arrebentação
         if (vW.x > 330.) { float d = vW.x - uShore; float f = smoothstep(14.,0.,d)*smoothstep(-6.,2.,d); float lines = smoothstep(0.55,1.,sin(d*0.55 - uTf + nz(mod(vW.xz, 1000.)*0.1)*3.)*0.5+0.5);
           float fo = clamp(f*(0.55+lines*0.8)*nz(mod(vW.xz, 1000.)*0.8+uTn*0.3)*1.6,0.,1.); col = mix(col, vec3(0.95)*(0.4+0.6*max(uSun.y+0.2,0.25)), fo); }

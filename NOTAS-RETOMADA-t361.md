@@ -220,3 +220,10 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Worktrees /workspace/wt-solara e /workspace/wt-neon (branch t434, já mesclado) e servidores 8785/8786 podem ser removidos.
 
 ### t435 INÍCIO (10:15) — pesquisa gráfico ultra-realista + leveza (Radar Águia Solar) e aplicar SÓ no Solara; publicar só Pages Solara (Neon e site NÃO).
+
+## t435/t436/t437 progresso (10:45)
+- t435 aplicado (sem push): GTAO (PC alto, import dinâmico, desliga 1º quando FPS<40), SMAA (celular médio/alto sem MSAA, import dinâmico), água médio/alto: subsurface nas cristas + cáusticas no raso. Addons r170 MIT copiados p/ vendor (GTAOPass, SMAAPass, shaders, math/SimplexNoise). SW v30 'solara-v30-2026-11-15-realismo-solara'.
+- t436/t437: cartão Solara no carregamento (#ldSol, src/ldsolara.js; PT/EN/ES por idioma do aparelho ou toque; áudio Kokoro pf_dora/af_heart/ef_dora em assets/solara/intro-*.mp3 ~100 KB, baixa só no toque; gerador /workspace/t436/gen.py). Recados da Solara = notificação de celular (G.solaraNote, fila, ~2,4 s, no alto); boas-vindas e @solara.oficial passam por ela.
+- FOTO da Solara: arquivo do anexo (72ad969f...) NÃO chegou no box; código usa assets/solara/solara.webp com fallback ☀️. Falta: recortar rosto, ~20–40 KB, pôr no CORE do SW.
+- Antes: /workspace/t435/antes-d-*.png (ok). antes-i-* contaminado (novo código) — refazer da worktree /workspace/wt-antes porta 8795.
+- test/t436.js PASS d (high). Falta: t436 i/il/al, prints depois, t432 orçamento, varredura 4 setups, relatório PESQUISA, push só Solara.
