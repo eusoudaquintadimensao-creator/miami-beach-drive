@@ -10,9 +10,19 @@ export const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); r
 export const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
 export const pick = (r, arr) => arr[Math.floor(r() * arr.length) % arr.length];
 
+// t426: ruído de textura direto nos pixels (antes: milhares de fillRect com cor em texto = segundos no celular)
+export function noiseFast(g, w, h, base, amp, n, r) {
+  g.fillStyle = base; g.fillRect(0, 0, w, h); const W = Math.round(w), H = Math.round(h); const im = g.getImageData(0, 0, W, H), d = im.data;
+  for (let i = 0; i < n; i++) {
+    const v = (r() - 0.5) * amp, x0 = (r() * W) | 0, y0 = (r() * H) | 0, sw = 1 + ((r() * 2.6) | 0), sh = 1 + ((r() * 2.6) | 0);
+    for (let y = y0; y < Math.min(H, y0 + sh); y++) for (let x = x0; x < Math.min(W, x0 + sw); x++) { const j = (y * W + x) * 4;
+      if (v > 0) { d[j] += (255 - d[j]) * v; d[j + 1] += (255 - d[j + 1]) * v; d[j + 2] += (255 - d[j + 2]) * v; } else { const f = 1 + v; d[j] *= f; d[j + 1] *= f; d[j + 2] *= f; } }
+  }
+  g.putImageData(im, 0, 0);
+}
 export function canvasTex(w, h, draw, opts = {}) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d'); draw(g, w, h);
+  const g = c.getContext('2d', { willReadFrequently: true }); draw(g, w, h); // t426: canvas na CPU (sem ida-e-volta à GPU ao ler pixels)
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = opts.clamp ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
   if (opts.srgb !== false) t.colorSpace = THREE.SRGBColorSpace;

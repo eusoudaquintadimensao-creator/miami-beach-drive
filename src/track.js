@@ -1,7 +1,7 @@
 // Autódromo Neon de Solara: circuito fechado no norte dos Glades (asfalto, zebras, muros com neon, arcos de checkpoint,
 // pórtico de largada com luzes, arquibancada, torres de luz e cones que voam quando você encosta). Tudo procedural e original.
 import * as THREE from 'three';
-import { canvasTex, C, clamp, angDiff, rng } from './util.js';
+import { canvasTex, noiseFast, C, clamp, angDiff, rng } from './util.js';
 import { addCircle, HOOKS, inTrackZone } from './world.js';
 
 export const TRACK = {
@@ -83,8 +83,7 @@ export class Track {
     const R = rng(4242);
     // asfalto
     const asph = canvasTex(256, 512, (g, w, h) => {
-      g.fillStyle = '#2f3138'; g.fillRect(0, 0, w, h); const r = rng(5);
-      for (let i = 0; i < 9000; i++) { const v = (r() - 0.5) * 0.16; g.fillStyle = v > 0 ? `rgba(255,255,255,${v})` : `rgba(0,0,0,${-v})`; g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); }
+      noiseFast(g, w, h, '#2f3138', 0.16, 9000, rng(5));
       const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0.25, 'rgba(0,0,0,0)'); gr.addColorStop(0.42, 'rgba(0,0,0,.18)'); gr.addColorStop(0.58, 'rgba(0,0,0,.18)'); gr.addColorStop(0.75, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); // linha de borracha
       g.fillStyle = '#f2f2f2'; g.fillRect(4, 0, 7, h); g.fillRect(w - 11, 0, 7, h);
     }, { aniso });

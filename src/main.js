@@ -162,18 +162,19 @@ G.addFollowers = (n) => { save.followers += n; G.ui.stats(save.money, save.follo
 
 async function boot() {
   const status = (t) => { $('play').textContent = t; };
+  const BT = G.bootT = []; let bt0 = performance.now(); const mark = (n) => { const t = performance.now(); BT.push([n, Math.round(t - bt0)]); bt0 = t; };
   status('Construindo a cidade…'); await nextFrame();
-  G.renderer = renderer; G.world = buildWorld(scene, Q); G.palms = new PalmBreak(G, scene, G.world); G.helipad = buildHelipad(scene, Q); G.breaks = new Breakables(G, scene, G.world); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
-  G.life = buildLife(G); G.birds = new Birds(G); G.gifts = new Gifts(G);
-  status('Acendendo o neon…'); await nextFrame();
-  G.env = createEnv(scene, renderer, Q); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
-  setupComposer();
+  G.renderer = renderer; G.world = buildWorld(scene, Q); mark('world'); G.palms = new PalmBreak(G, scene, G.world); G.helipad = buildHelipad(scene, Q); G.breaks = new Breakables(G, scene, G.world); G.track = new Track(scene, Q); mark('palms/heli/breaks/track'); G.Q = G.Q || Q; G.home = new Home(G);
+  G.life = buildLife(G); G.birds = new Birds(G); G.gifts = new Gifts(G); mark('home/life/birds/gifts');
+  status('Acendendo o neon…'); await nextFrame(); mark('frame2');
+  G.env = createEnv(scene, renderer, Q); mark('createEnv'); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
+  mark('env'); setupComposer(); mark('composer');
   status('Chamando os moradores…'); await nextFrame();
   G.wardrobe = new Wardrobe(G); setLookSource((id) => G.wardrobe.look(id)); // roupas e trajes salvos por personagem (t408/t410)
-  G.hero = new Avatar(scene, Q, save.avatar || 'ela');
-  G.crowd = new Crowd(scene, Q, Q.peds);
+  G.hero = new Avatar(scene, Q, save.avatar || 'ela'); mark('wardrobe/hero');
+  G.crowd = new Crowd(scene, Q, Q.peds); mark('crowd');
   G.traffic = new Traffic(scene, Q, Q.traffic);
-  for (const c of G.traffic.cars) if (c.type === 'moto') addRider(c);
+  for (const c of G.traffic.cars) if (c.type === 'moto') addRider(c); mark('traffic');
   G.vehicles = [];
   SPAWNS.parked.forEach((s, k) => {
     const mine = k === 0 && save.tune && SPECS[save.tune.type];
@@ -181,18 +182,18 @@ async function boot() {
   });
   for (const s of SPAWNS.taxiStands) { const v = new Vehicle('taxi', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
   for (const s of SPAWNS.boats) { const v = new Vehicle('boat', scene, Q); v.place(s.x, s.z, s.h); v.parked = true; G.vehicles.push(v); }
-  G.fleet = new Fleet(G, SPECS); // t391: 3 lanchas de luxo, 1 iate e 3 jet skis
+  mark('vehicles'); G.fleet = new Fleet(G, SPECS); // t391: 3 lanchas de luxo, 1 iate e 3 jet skis
   G.heli = new Heli(scene, Q, { color: 0xff2d55, stripe: 0xffffff }); G.heli.place(HELIPAD.x, HELIPAD.z, -Math.PI / 2); G.vehicles.push(G.heli);
   G.seabase = buildSeaplaneBase(scene, Q); G.plane = new Plane(scene, Q); G.plane.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h); G.vehicles.push(G.plane);
-  G.helis = new HeliFleet(G, Q.helis);
+  G.helis = new HeliFleet(G, Q.helis); mark('fleet/heli/plane');
   G.audio = new AudioSys(); G.audio.muted = !!save.muted; G.audio.station = save.station || 0;
-  G.ui = new UI(G);
+  G.ui = new UI(G); mark('audio/ui');
   G.rivals = new Rivals(G);
   G.missions = new Missions(G);
   G.garage = new Garage(G);
-  G.talk = new Talk(G); G.powers = new Powers(G);
-  G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track);
-  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); G.boatRace = new BoatRace(G); G.mar = new SeaRaces(G); G.ads = new Outdoor(G, scene, Q); G.gauchos = new Gauchos(G); G.mega = new MegaGarage(G); G.boutique = new Boutique(G); G.paint = new PaintShop(G); G.beach = new BeachLife(G, scene, Q); G.bail = new Bailout(G, scene); G.orla = new Orla(G, scene, Q); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G);
+  G.talk = new Talk(G); G.powers = new Powers(G); mark('rivals/missions/garage/talk');
+  G.fx = new DriftFX(scene, Q, renderer); G.drift = new DriftScore(G); G.race = new Race(G, G.track); mark('fx/race');
+  G.jet = new Jetpack(G); G.voice = new Voices(G); G.street = new Street(G); G.serp = new Serpentina(G); G.ponte = new SeaBridge(G); mark('jet/voice/street/serp/ponte'); G.ponte.fun = new BridgeFun(G, G.ponte); G.ilhas = new Islands(G, G.ponte); mark('bridgefun/ilhas'); G.boatRace = new BoatRace(G); G.mar = new SeaRaces(G); mark('boatRace/mar'); G.ads = new Outdoor(G, scene, Q); mark('ads'); G.gauchos = new Gauchos(G); G.mega = new MegaGarage(G); G.boutique = new Boutique(G); G.paint = new PaintShop(G); mark('gauchos/mega/boutique/paint'); G.beach = new BeachLife(G, scene, Q); G.bail = new Bailout(G, scene); G.orla = new Orla(G, scene, Q); mark('beach/bail/orla'); G.gps = new OsmGps(G, { theme: 'day', inspired: { 'Praia de Solara': 'South Beach', 'Solara Beach': 'Miami Beach', 'Ponta Sul': 'South Beach', 'Baía de Solara': 'Venetian Islands', 'Centro (Downtown)': 'Downtown Miami', 'Glades': 'Little Havana', 'Autódromo Neon': 'Hialeah', 'Circuito Serpentina': 'Coconut Grove' } }); G.ui.refreshMap(); G.drive = DriveUI.setup(G); mark('gps/map/drive');
   G.rec = new Recorder(G, canvas, { touch, onState: (on) => { G.recording = on; setPR(on ? Math.max(pr, 0.9) : pr); } });
   G.makeNPCModel = () => Hero.random(scene, Q);
   G.feed = [['@solara.oficial', 'Bem-vindo(a) a Solara Bay! Explore, trabalhe e poste as melhores vistas 🌴', 'agora'], ...[
@@ -205,8 +206,8 @@ async function boot() {
   G.ui.stats(save.money, save.followers);
   // pré-aquecimento
   G.env.update(0.016, 0, camera.position); G.env.updateEnv();
-  updateCamera(0.016, true);
-  renderer.compile(scene, camera);
+  updateCamera(0.016, true); mark('warm');
+  renderer.compile(scene, camera); mark('compile');
   $('play').disabled = false; status('▶  JOGAR'); $('raceBtn').disabled = false;
   G.ready = true; window.MBD_READY = true; G.loadMs = Math.round(performance.now());
   // depois de pronto: personagens que conversam (modelo 3D carregado sob demanda)

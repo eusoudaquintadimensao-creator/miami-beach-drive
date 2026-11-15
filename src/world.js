@@ -1,6 +1,6 @@
 // Solara Bay — geração da cidade (inspirada em Miami / costa neon), colisões e mapa
 import * as THREE from 'three';
-import { rng, MeshBuilder, canvasTex, C, clamp, pick } from './util.js';
+import { rng, MeshBuilder, canvasTex, noiseFast, C, clamp, pick } from './util.js';
 
 export const WATER_Y = -0.6;
 // vida na praia (beachlife.js): quadras de vôlei ficam livres de guarda-sóis; guarda-sóis/toalhas exportados para banhistas
@@ -224,17 +224,15 @@ export function rayBlock(ax, az, ay, bx, bz, by) {
 }
 
 // ---------------------------------------------------------------- texturas
-function noiseFill(g, w, h, base, amp, n = 4000, seed = 1) {
-  g.fillStyle = base; g.fillRect(0, 0, w, h); const r = rng(seed);
-  for (let i = 0; i < n; i++) { const v = (r() - 0.5) * amp; g.fillStyle = v > 0 ? `rgba(255,255,255,${v})` : `rgba(0,0,0,${-v})`; g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); }
-}
-function normalFrom(n, draw, k) { // mapa de normais a partir de um mapa de altura desenhado
-  const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'); draw(g);
-  const src = g.getImageData(0, 0, n, n).data; const out = g.createImageData(n, n); const H = (x, y) => src[(((y + n) % n) * n + ((x + n) % n)) * 4] / 255;
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const dx = (H(x + 1, y) - H(x - 1, y)) * k, dy = (H(x, y + 1) - H(x, y - 1)) * k; const l = Math.hypot(dx, dy, 1);
-    const i = (y * n + x) * 4; out.data[i] = (-dx / l * 0.5 + 0.5) * 255; out.data[i + 1] = (dy / l * 0.5 + 0.5) * 255; out.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; out.data[i + 3] = 255;
-  }
+function noiseFill(g, w, h, base, amp, n = 4000, seed = 1) { noiseFast(g, w, h, base, amp, n, rng(seed)); }
+function normalFrom(n, draw, k) { // mapa de normais a partir de um mapa de altura desenhado (t426: sem Math.hypot/módulo por pixel = ~50x mais rápido)
+  const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d', { willReadFrequently: true }); draw(g);
+  const src = g.getImageData(0, 0, n, n).data; const out = g.createImageData(n, n); const od = out.data; const m = n - 1; const s = k / 255;
+  for (let y = 0; y < n; y++) { const r0 = ((y + m) & m) * n, r1 = y * n, r2 = ((y + 1) & m) * n;
+    for (let x = 0; x < n; x++) {
+      const dx = (src[(r1 + ((x + 1) & m)) * 4] - src[(r1 + ((x + m) & m)) * 4]) * s, dy = (src[(r2 + x) * 4] - src[(r0 + x) * 4]) * s; const il = 0.5 / Math.sqrt(dx * dx + dy * dy + 1);
+      const i = (r1 + x) * 4; od[i] = (0.5 - dx * il) * 255; od[i + 1] = (dy * il + 0.5) * 255; od[i + 2] = (il + 0.5) * 255; od[i + 3] = 255;
+    } }
   g.putImageData(out, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; return t;
 }
 function makeTextures(aniso) {
