@@ -96,3 +96,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
     + TODAS as mensagens/toasts/falas/corrida/drift/dicas/cartões ao dirigir ficam no alto (faixa abaixo da barra), nunca sobre o carro/estrada. Testar com carro à vista nos 4 setups.
   · progresso: src/wardrobe.js escrito (catálogo, applyLook, trajes, classe Wardrobe); heroes.js exporta attach.
   · commit 68aa7a0: lojas+guarda-roupa+Marisol funcionando no Solara (falta: teste t408, t412, t413, porte Neon)
+  · d232c3c t412 feito no Solara (píer alto x324-386 vão livre; mar: andar/nadar ok)
