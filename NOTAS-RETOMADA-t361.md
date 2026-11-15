@@ -174,3 +174,9 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Colosso: titanSuit (marinho/prata, sol dourado 12 raios, ombreiras prata, energia dourada nos punhos), altura 2.35. Atlas Índigo: pele azul, mandíbula quadrada, olhos prata, cicatriz na sobrancelha, poder 'onda' (pulo + pisão, anel dourado, derruba postes/guarda-sóis/tábuas/palmeiras em 14 m). Cartão no menu + trajes atlas-cobalto/atlas-lunar na loja + Caminhonete Atlas.
 - test/t431.js PASS nos dois (prints /workspace/t361-prints/t431-*-{menu,onda,colosso}.png).
 - PRÓXIMO: t432 (modo leve automático + testes de orçamento), rodar t426/heroes/t408/sig + varredura, publicar release D.
+
+### t432 FEITO (04:45) — Solara 271f051, Neon efc1c1c
+- Já existia: detecção de aparelho fraco (GPU/núcleos/memória), limite de pixel ratio, resolução dinâmica por FPS, áudio sob demanda (rádio/voz via fetch), culling por distância (viewHide/detail), prédios/palmeiras instanciados.
+- Novo: <=2 GB ou <=2 núcleos = leve; queda por FPS agora fica lembrada (save.autoQ) e volta ao caprichado após 60 s fluido em aparelho forte; MBD.perf(); test/t432.js (Slow 4G 1,6 Mbps/150 ms + CPU 4x, 390x844 dpr3, mem 2).
+- Números locais: Solara 2306 KB, 1º quadro 4,8 s, pronto 17,4 s, FPS 3,5 (swiftshader+CPU4x, pr caiu p/ 0,55 sozinho); Neon 2311 KB, 5,1 s, 17,5 s, 3,2 fps. Orçamento: <=2600 KB, 1º quadro <=7 s, pronto <=22 s.
+- Varredura sweep7 (= sweep5 + t431 + sig) rodando: /workspace/t367/sweep7.out
