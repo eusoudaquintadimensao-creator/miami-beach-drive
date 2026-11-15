@@ -268,3 +268,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - t439.js PASS i/il/d/al (antes da correção do recado×menu na fileira); corrigido: recado da Solara desce para baixo do menu (body.eyeRow --eyeB). Rodando de novo.
 - 20:12 t439.js PASS i/il/al/d (d com fila de recados destravada: mouse em cima conta 1/4). Próximo: bump SW v32 + sweep14.
 - 20:15 commits 89cd7bb + README (NÃO enviados). SW v32 solara-v32-2026-11-15-olhos-nitro2. sweep14 rodando (/workspace/t367/sweep14.out). Neon: mesmo bug do paraquedas (bailout.js:116 p.h += mx), SW navegação rede-primeiro, sem recados com foto.
+- t439 sweep14: t413/t405/t426/t390/t386 PASS 4 setups; serp d/i ok, il/al draw calls 925/922 (pré-existente 919, +6 das mesinhas); t433 d/i PASS; mech d FAIL farol (PRÉ-EXISTENTE: wt-antes igual i=80<120).
+- t439 sweep14 FIM: t388 d/i, t401 d/i, t436 i, t423 i PASS; t432 local PASS (2392 KB sem gzip, 1º quadro 4,8 s, pronto 16 s, heap 87 MB). Push agora.
