@@ -68,6 +68,9 @@ fs.mkdirSync(SH, { recursive: true });
   await shot('limpa-pe', 400);
   r = await ev(() => { document.getElementById('bClean').click(); return { on: document.body.classList.contains('clean'), saved: localStorage.getItem('clean-v1') }; });
   ck('1 👁 de novo traz tudo de volta', !r.on && r.saved === '0', r);
+  r = await ev(() => { window.__G.ui.phoneNote('@teste', 'Aviso comprido do celular para ver se ele passa por cima dos botões da borda ou não, tchê'); return null; }); await sleep(400);
+  r = await ev(() => { const R = (id) => { const e = document.getElementById(id); if (!e || e.hidden || getComputedStyle(e).display === 'none') return null; const q = e.getBoundingClientRect(); return q.width > 2 ? q : null; }; const n = R('note'); const bad = []; for (const id of ['edgeCol', 'bClean', 'qMore', 'topR', 'mapw']) { const q = R(id); if (n && q && Math.min(n.right, q.right) - Math.max(n.left, q.left) > 2 && Math.min(n.bottom, q.bottom) - Math.max(n.top, q.top) > 2) bad.push(id); } document.getElementById('note').hidden = true; return { bad }; });
+  ck('2 aviso do celular não cobre ⏸ ↩ 👁 ▦, relógio nem mapa', !r.bad.length, r);
   // 2) a pé: botões tocáveis e sem sobreposição; ⏸ abre a pausa; ↩ (com voltar) e 👁 tocáveis
   await sleep(300); r = await ev(() => { const o = __chk('pe'); o.tapP = __tap('bPause'); document.getElementById('bPause').click(); o.pause = !!window.__G.paused; window.__G.closePause(); o.col = !!document.getElementById('bPause').closest('#edgeCol') && !!document.getElementById('bBack').closest('#edgeCol'); return o; });
   ck('2 a pé: sem sobreposição; ⏸ na coluna da borda abre a pausa', ok(r) && r.tapP && r.pause && r.col, r);

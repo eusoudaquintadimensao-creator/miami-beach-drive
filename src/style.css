@@ -905,3 +905,7 @@ body.touch.driving:not(.land) #toast{right:calc(var(--sar) + 58px)}
 #bNeutral.deskN small{font-size:8px;font-weight:800}
 #bNeutral.deskN.on{background:rgba(255,79,184,.55)}
 #bNeutral.deskN[hidden]{display:none}
+/* t415: aviso do celular e card da loja nunca por cima da coluna ⏸ ↩ nem do relógio */
+body.touch:not(.land):not(.driving) #note{width:calc(100vw - 66px - var(--sal) - var(--sar))!important}
+body.touch.driving:not(.land) #note{right:calc(var(--sar) + 58px)}
+body.touch:not(.land) #lojaCard{top:calc(var(--sat) + 178px)}
