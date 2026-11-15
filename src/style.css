@@ -911,3 +911,25 @@ body.touch.driving:not(.land) #note{right:calc(var(--sar) + 58px)}
 body.touch:not(.land) #lojaCard{top:calc(var(--sat) + 178px)}
 /* t419/t416: barra do NITRO embaixo, entre N e Alto/Ré (nunca sobre o carro, mesmo com o carro perto da câmera) */
 body.driving.touch:not(.land) #nitroW{left:50%!important;right:auto!important;transform:translateX(-50%)!important;bottom:calc(var(--edgeB) + 4px)!important;width:min(118px,30vw)!important;height:26px!important}
+/* t418: cabine de pintura */
+#pintCard{position:absolute;left:50%;top:calc(var(--sat) + 64px);transform:translateX(-50%);pointer-events:auto;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,.9);border-radius:16px;padding:8px 14px;text-align:center;color:#fff;text-shadow:0 1px 3px #000;z-index:7}
+body.touch:not(.land) #pintCard{top:calc(var(--sat) + 178px)}
+#pintCard .stAsk{display:flex;gap:8px;justify-content:center;margin-top:6px}
+#pintCard button,#pintPanel .pnAct button{min-height:40px;min-width:130px;border-radius:12px;border:1.5px solid rgba(255,255,255,.92);font-weight:800;font-size:14px;color:#fff;background:rgba(255,255,255,.14);text-shadow:0 1px 3px rgba(0,0,0,.9);cursor:pointer}
+#pintCard button.hot,#pintPanel .pnAct button.hot{background:linear-gradient(90deg,rgba(255,111,143,.8),rgba(41,211,196,.75))}
+#pintPanel .pnAct button.off{opacity:.45}
+#pintPanel{position:fixed;right:calc(var(--sar) + 10px);top:calc(var(--sat) + 10px);bottom:calc(var(--sab) + 10px);width:min(420px,46vw);overflow:auto;z-index:9;background:rgba(20,22,30,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,.85);border-radius:20px;padding:12px 14px;color:#fff;pointer-events:auto}
+#pintPanel[hidden],#pintCard[hidden]{display:none}
+body.touch:not(.land) #pintPanel{left:calc(var(--sal) + 8px);right:calc(var(--sar) + 8px);top:auto;width:auto;max-height:58vh}
+#pintPanel .pnHead{display:flex;align-items:center;justify-content:space-between;font-size:18px}
+#pintPanel .pnX{width:40px;height:40px;border-radius:12px;border:1.5px solid rgba(255,255,255,.9);background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer}
+#pintPanel .pnFin{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
+#pintPanel .pnFin button{border-radius:12px;border:1.5px solid rgba(255,255,255,.6);background:rgba(255,255,255,.1);color:#fff;font-weight:800;font-size:12px;padding:6px 2px;cursor:pointer}
+#pintPanel .pnFin button small{display:block;font-weight:600;opacity:.85}
+#pintPanel .pnFin button.on{background:linear-gradient(160deg,rgba(255,111,143,.7),rgba(41,211,196,.6));border-color:#fff}
+#pintPanel .pnSw{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+#pintPanel .pnSw button{aspect-ratio:1;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),var(--c);cursor:pointer;min-width:28px}
+#pintPanel .pnSw button.on{border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 12px #fff}
+#pintPanel .pnAct{display:flex;gap:8px;justify-content:space-between;margin-top:10px}
+body.pintOpen #topBar,body.pintOpen #btns,body.pintOpen #stick,body.pintOpen #pintCard,body.pintOpen #note,body.pintOpen #toast,body.pintOpen .drvRight,body.pintOpen #drvCruise,body.pintOpen #drvGear,body.pintOpen #bNeutral,body.pintOpen #nitroW,body.pintOpen #mapw,body.pintOpen #bClean,body.pintOpen #edgeCol{display:none!important}
+body.pintBusy #topBar,body.pintBusy #btns,body.pintBusy .drvRight,body.pintBusy #drvCruise,body.pintBusy #drvGear,body.pintBusy #nitroW,body.pintBusy #prompt{display:none!important}

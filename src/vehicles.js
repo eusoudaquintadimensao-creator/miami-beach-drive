@@ -56,6 +56,7 @@ function shared(Q) {
   };
   return SH;
 }
+export function bodyPaintMat(v) { const hex = v.tune ? v.tune.paint : v.color; return SH && SH.paints.get(hex); } // t418: material da lataria (cabine de pintura)
 export function setVehicleLights(night) { lastNight = night; const mats = [...GLOW_MATS]; for (let i = 0; i < mats.length; i += 2) setGlow(mats[i], mats[i + 1], night); if (!SH) return; SH.head.color.set(0xfff6e0).multiplyScalar(0.6 + night * 3); SH.tail.color.set(0xff1a1a).multiplyScalar(0.9 + night * 2.2); }
 
 function extrude(pts, width, bevel) {

@@ -2,7 +2,7 @@
 // A cada 100 ms (dentro de um veículo) projeta o carro + a área à frente (até ~40 m, faixa de ±3 m) na tela e, se algum texto
 // visível cruza essa zona, desliza o texto (propriedade CSS `translate`) para cima, para o lado ou para baixo do carro — o menor
 // deslocamento que caiba na tela. Sem lugar livre, o texto some até a zona liberar. G.msgGuard.zone() expõe a zona para os testes.
-export const MSG_IDS = ['toast', 'big', 'note', 'say', 'prompt', 'radioSub', 'radio', 'drift', 'turnCue', 'bfPop', 'stTip', 'boatTip', 'marTip', 'adCard', 'orlaCard', 'giftHud', 'mis', 'raceHud', 'ponteHud', 'serpHud', 'stHud', 'boatHud', 'marHud', 'megaCard', 'lojaCard', 'driftW', 'nitroW', 'heliHud', 'bfZone', 'area', 'lojaReact', 'misTime', 'gymGame', 'dsHint'];
+export const MSG_IDS = ['toast', 'big', 'note', 'say', 'prompt', 'radioSub', 'radio', 'drift', 'turnCue', 'bfPop', 'stTip', 'boatTip', 'marTip', 'adCard', 'orlaCard', 'giftHud', 'mis', 'raceHud', 'ponteHud', 'serpHud', 'stHud', 'boatHud', 'marHud', 'megaCard', 'lojaCard', 'pintCard', 'driftW', 'nitroW', 'heliHud', 'bfZone', 'area', 'lojaReact', 'misTime', 'gymGame', 'dsHint'];
 export function setupMsgGuard(G) {
   const els = () => MSG_IDS.map(id => document.getElementById(id)).filter(Boolean);
   const proj = (x, y, z) => { const p = G.tmpV.set(x, y, z).project(G.camera); return p.z < 1 ? [(p.x + 1) / 2 * innerWidth, (1 - p.y) / 2 * innerHeight] : null; };

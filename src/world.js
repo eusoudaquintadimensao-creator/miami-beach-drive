@@ -621,8 +621,7 @@ export function buildWorld(scene, Q) {
   {
     const ch = chunk(-220, 0); const wood = C(0x9a7652);
     for (const p of PIERS.slice(0, 4)) { ch.misc.box((p.x0 + p.x1) / 2, 0.15, (p.z0 + p.z1) / 2, p.x1 - p.x0, 0.3, p.z1 - p.z0, wood); for (let x = p.x0 + 4; x < p.x1; x += 8) { ch.misc.box(x, -1, p.z0, 0.35, 2.4, 0.35, C(0x6b513a)); ch.misc.box(x, -1, p.z1, 0.35, 2.4, 0.35, C(0x6b513a)); } addBox(p.x0, p.z0, p.x1, p.z1, 100, true); }
-    ch.misc.box(-282, 4, -130, 22, 8, 14, C(0xffffff)); ch.neon[1].box(-282, 8.2, -122.9, 22, 0.25, 0.25, W);
-    addBox(-293, -137, -271, -123, 9);
+    // t418: o antigo bloco branco liso da marina virou a cabine de pintura drive-through (src/paintshop.js)
     LANDMARKS.push({ id: 'marina', name: 'Marina Solara', x: -264, z: 10, r: 26, look: [-200, 2, 10] });
     SPAWNS.boats.push({ x: -215, z: -50, h: Math.PI / 2 }, { x: -215, z: 70, h: Math.PI / 2 });
   }
