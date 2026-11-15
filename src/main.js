@@ -442,8 +442,9 @@ G.backInfo = backInfo;
   const pm = document.createElement('div'); pm.id = 'pauseMenu'; pm.hidden = true;
   pm.innerHTML = '<div class="pmBox"><b>⏸ Pausado</b><button data-k="go">▶ Continuar</button><button data-k="back" hidden></button><button data-k="cfg">⚙️ Configurações</button><button data-k="ctl">🎮 Controles</button></div>';
   document.body.appendChild(pm);
-  G.openPause = () => { if (!G.started || G.phoneOpen || G.garageOpen) return; const bi = backInfo(); const bb = pm.querySelector('[data-k=back]'); bb.hidden = !bi; if (bi) bb.textContent = bi.label; pm.hidden = false; G.paused = true; G.pauseOpen = true; if (document.pointerLockElement) document.exitPointerLock(); };
-  G.closePause = () => { if (pm.hidden) return; pm.hidden = true; G.pauseOpen = false; G.paused = false; };
+  G.openPause = () => { if (!G.started || G.phoneOpen || G.garageOpen) return; const bi = backInfo(); const bb = pm.querySelector('[data-k=back]'); bb.hidden = !bi; if (bi) bb.textContent = bi.label; pm.hidden = false; G.paused = true; G.pauseOpen = true; G.audio.setHold(true); if (document.pointerLockElement) document.exitPointerLock(); };
+  G.closePause = () => { if (pm.hidden) return; pm.hidden = true; G.pauseOpen = false; G.paused = false; G.audio.setHold(document.hidden); };
+  document.addEventListener('visibilitychange', () => G.audio.setHold(document.hidden || G.pauseOpen)); // aba escondida também fica em silêncio
   pm.addEventListener('pointerdown', e => e.stopPropagation());
   pm.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) { if (e.target === pm) G.closePause(); return; } e.stopPropagation(); const k = b.dataset.k; G.closePause();
     if (k === 'back') { const bi = backInfo(); if (bi) bi.go(); } else if (k === 'cfg') G.ui.openPhone('ajustes'); else if (k === 'ctl') G.drive && G.drive.openSettings(); });
@@ -980,10 +981,24 @@ function render() {
   }
 }
 
+// t423: recado de boas-vindas da Solara — some com toque ou deslizando em qualquer direção; tela cheia só se o jogador pedir
+function solaraHi() { G.solaraHiShow = solaraHi;
+  if (document.getElementById('solaraHi')) return; const el = document.createElement('div'); el.id = 'solaraHi';
+  const fs = touch && document.documentElement.requestFullscreen && !(window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
+  el.innerHTML = `<div class="shAv">☀️</div><div class="shTx"><b>Solara</b><span>Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.</span>${fs ? '<button id="shFs">⛶ Tela cheia</button>' : ''}<small>toque ou deslize para fechar</small></div>`;
+  document.body.appendChild(el); G.solaraHi = el; let x0 = 0, y0 = 0, down = false;
+  const close = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 260); G.solaraHi = null; };
+  el.addEventListener('pointerdown', (e) => { e.stopPropagation(); down = true; x0 = e.clientX; y0 = e.clientY; });
+  el.addEventListener('pointermove', (e) => { if (down && Math.hypot(e.clientX - x0, e.clientY - y0) > 24) { down = false; close(); } });
+  el.addEventListener('pointerup', (e) => { e.stopPropagation(); if (!down) return; down = false; if (e.target.id === 'shFs') { document.documentElement.requestFullscreen().catch(() => { }); } close(); });
+  el.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+  setTimeout(close, 9000);
+}
+G.solaraHiShow = solaraHi;
 setupVersions('solara'); // tela inicial: Versões do jogo
 $('play').onclick = () => {
   G.audio.init(); $('start').hidden = true; $('hud').hidden = false; G.started = true; G.ui.resize(); resize();
-  if (touch && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
+  solaraHi(); // t423: recado da Solara (substitui o aviso de tela cheia do navegador, que mostrava o endereço do site)
   G.ui.toast('Bem-vindo(a) a <b>Solara Bay</b>! 🌴<br>Ande até um carro e aperte <b>' + (touch ? '🚗' : 'E') + '</b>', 5000);
   if (!save.done) setTimeout(() => G.ui.phoneNote('@solara.oficial', 'Dica: siga os ícones no mapa — 📦 entregas, 🏁 corridas, 📸 fotos e 🚕 táxi. Ninguém se machuca aqui!'), 2500);
   last = performance.now();

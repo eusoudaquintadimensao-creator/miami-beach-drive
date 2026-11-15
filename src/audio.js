@@ -11,8 +11,10 @@ const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
 export class AudioSys {
   constructor() { this.ok = false; this.station = 0; this.radioOn = false; this.vol = 0.8; this.muted = false; }
+  // t423: pausa = silêncio total (suspende o AudioContext inteiro: motor, rádio, vozes, ambiente, música, loops e bipes)
+  setHold(on) { this.hold = !!on; if (!this.ok || !this.ctx) return; if (on && this.ctx.state === 'running') this.ctx.suspend(); else if (!on && this.ctx.state === 'suspended') this.ctx.resume(); }
   init() {
-    if (this.ok) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ok) { if (this.ctx.state === 'suspended' && !this.hold) this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const c = this.ctx = new AC(); this.ok = true;
     this.master = c.createGain(); this.master.gain.value = this.muted ? 0 : this.vol; this.master.connect(c.destination);

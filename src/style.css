@@ -933,3 +933,11 @@ body.touch:not(.land) #pintPanel{left:calc(var(--sal) + 8px);right:calc(var(--sa
 #pintPanel .pnAct{display:flex;gap:8px;justify-content:space-between;margin-top:10px}
 body.pintOpen #topBar,body.pintOpen #btns,body.pintOpen #stick,body.pintOpen #pintCard,body.pintOpen #note,body.pintOpen #toast,body.pintOpen .drvRight,body.pintOpen #drvCruise,body.pintOpen #drvGear,body.pintOpen #bNeutral,body.pintOpen #nitroW,body.pintOpen #mapw,body.pintOpen #bClean,body.pintOpen #edgeCol{display:none!important}
 body.pintBusy #topBar,body.pintBusy #btns,body.pintBusy .drvRight,body.pintBusy #drvCruise,body.pintBusy #drvGear,body.pintBusy #nitroW,body.pintBusy #prompt{display:none!important}
+/* t423: recado da Solara */
+#solaraHi{position:fixed;left:50%;top:calc(var(--sat,0px) + 64px);transform:translateX(-50%);z-index:30;display:flex;gap:10px;align-items:center;max-width:min(440px,calc(100vw - 24px));padding:10px 14px;border-radius:18px;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.9);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);touch-action:none;pointer-events:auto;transition:opacity .25s,transform .25s}
+#solaraHi.out{opacity:0;transform:translateX(-50%) translateY(-12px)}
+#solaraHi .shAv{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:26px;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffb13b 55%,#ff5f8f);border:2px solid #fff;box-shadow:0 0 14px rgba(255,177,59,.7)}
+#solaraHi .shTx{display:flex;flex-direction:column;gap:3px;font-size:14px;line-height:1.3}
+#solaraHi .shTx b{font-size:13px;letter-spacing:.06em;color:#ffe9a8}
+#solaraHi small{opacity:.75;font-size:11px}
+#solaraHi button{align-self:flex-start;margin-top:2px;min-height:34px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.9);background:rgba(255,255,255,.16);color:#fff;font-weight:800}
