@@ -58,7 +58,7 @@ fs.mkdirSync(SH, { recursive: true });
   // 3) Marisol (personagem original) com roupa própria
   r = await ev(async () => { const G = window.__G; G.setAvatar('marisol'); MBD.sim(10, 1 / 30); const m = await import('/src/wardrobe.js'); const L = G.wardrobe.look('marisol'); const eq = Object.assign({}, m.CIVIL.marisol.eq, L.eq); return { id: G.hero.id, mode: L.mode, sex: m.sexOf('marisol'), top: eq.top, kind: eq.top && m.ITEMS[eq.top].kind }; });
   await sleep(1800); await ev(() => { window.__G.boutique.open(true); MBD.sim(15, 1 / 30); });
-  ck('3 Marisol existe e veste roupa feminina', r.id === 'marisol' && r.sex === 'f' && r.kind === 'vestido', r);
+  ck('3 Marisol existe e veste roupa feminina (t426: blusa + pantalona)', r.id === 'marisol' && r.sex === 'f' && /^f-/.test(r.top) && r.kind !== 'vestido', r);
   await shot('marisol-espelho', 400);
   // 4) Arsenal Aurora: traje com poder (voo), outro com escudo e velocidade
   r = await ev(() => { const G = window.__G; G.boutique.close(); G.setAvatar('solar'); __onFoot(280, 258); MBD.sim(20, 1 / 30); return { here: G.boutique.here && G.boutique.here.id }; });
