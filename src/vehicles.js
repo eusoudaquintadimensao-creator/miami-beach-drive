@@ -1,7 +1,7 @@
 // Veículos: modelos próprios (procedurais) e física arcade
 import * as THREE from 'three';
 import { clamp, lerp, angDiff, MeshBuilder, C, canvasTex } from './util.js';
-import { groundY, surfaceY, drivable, boatable, collide, WATER_Y, inSwamp, roadAt, HOOKS } from './world.js';
+import { groundY, surfaceY, drivable, boatable, collide, WATER_Y, inSwamp, roadAt, HOOKS, wadeable, WADE_FLOOR } from './world.js';
 import { waveH } from './env.js';
 import { toCreasedNormals, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -554,7 +554,7 @@ export class Vehicle {
     const px = this.x, pz = this.z;
     this.x += this.vx * dt; this.z += this.vz * dt;
     // limites de terreno
-    const ok = sp.boat ? (x, z) => boatable(x, z) : (x, z) => drivable(x, z);
+    const ok = sp.boat ? (x, z) => boatable(x, z) : (x, z) => drivable(x, z) || wadeable(x, z); // t420: mar raso também
     let impact = 0;
     const cs = this.circles();
     if (!ok(this.x, this.z) || !ok(cs[0][0], cs[0][1]) || !ok(cs[1][0], cs[1][1])) {
@@ -589,14 +589,14 @@ export class Vehicle {
       this.y = WATER_Y + y0 + 0.15; this.pitch = lerp(this.pitch, -(yF - y0) / 2.5 - Math.min(Math.abs(vf), 20) * 0.006, dt * 4); this.roll = lerp(this.roll, (yS - y0) / 1.1 + this.steer * Math.min(Math.abs(vf), 15) * 0.012, dt * 4);
     } else {
       const yc = surfaceY(this.x, this.z), yf = surfaceY(this.x + ffx * sp2.wb / 2, this.z + ffz * sp2.wb / 2), yr = surfaceY(this.x - ffx * sp2.wb / 2, this.z - ffz * sp2.wb / 2);
-      this.y = lerp(this.y, Math.max(yc, -0.4), Math.min(1, dt * 12));
+      const yMin = yc < -0.3 && wadeable(this.x, this.z) ? WADE_FLOOR : -0.4; this.y = lerp(this.y, Math.max(yc, yMin), Math.min(1, dt * 12));
       const acc = (vf - (this._pvf ?? vf)) / Math.max(dt, 1e-3); this._pvf = vf;
       this.wt = lerp(this.wt || 0, clamp(-acc / sp.brake, -1, 1), Math.min(1, dt * 5));
       // suspensão com mola e amortecedor: mergulha na freada, agacha na arrancada, inclina nas curvas e balança nas guias
       const yfS = Math.abs(yf - yc) > 1.2 ? yc : yf, yrS = Math.abs(yr - yc) > 1.2 ? yc : yr; // borda da ponte/mar: ignora a amostra
       const pitchT = clamp(Math.atan2(yrS - yfS, sp2.wb) + clamp(acc, -24, 20) * sp2.susp * 0.024, -0.32, 0.32);
       const latA = yaw * vf; const rollT = this.type === 'moto' ? 0 : clamp(latA, -25, 25) * sp2.susp * 0.014;
-      const yN = Math.max(yc, -0.4); if (this._py !== undefined && Math.abs(yN - this._py) > 0.08 && Math.abs(yN - this._py) < 0.6 && Math.abs(vf) > 3) { const dy = clamp(yN - this._py, -0.3, 0.3); this.pv = (this.pv || 0) + dy * Math.sign(vf) * -4; this.bv = (this.bv || 0) + Math.abs(dy) * 1.5; } this._py = yN;
+      const yN = Math.max(yc, yMin); if (this._py !== undefined && Math.abs(yN - this._py) > 0.08 && Math.abs(yN - this._py) < 0.6 && Math.abs(vf) > 3) { const dy = clamp(yN - this._py, -0.3, 0.3); this.pv = (this.pv || 0) + dy * Math.sign(vf) * -4; this.bv = (this.bv || 0) + Math.abs(dy) * 1.5; } this._py = yN;
       const Kp = 140, Cp = 13; this.pv = (this.pv || 0) + ((pitchT - this.pitch) * Kp - (this.pv || 0) * Cp) * dt; this.pitch += this.pv * dt;
       if (this.type !== 'moto') { this.rv = (this.rv || 0) + ((rollT - this.roll) * Kp - (this.rv || 0) * Cp) * dt; this.roll += this.rv * dt; }
       if (this.type === 'moto') this.roll = lerp(this.roll, clamp(-yaw * Math.abs(vf) * 0.03, -0.6, 0.6), Math.min(1, dt * 5));

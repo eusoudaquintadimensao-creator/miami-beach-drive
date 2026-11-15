@@ -909,3 +909,5 @@ body.touch.driving:not(.land) #toast{right:calc(var(--sar) + 58px)}
 body.touch:not(.land):not(.driving) #note{width:calc(100vw - 66px - var(--sal) - var(--sar))!important}
 body.touch.driving:not(.land) #note{right:calc(var(--sar) + 58px)}
 body.touch:not(.land) #lojaCard{top:calc(var(--sat) + 178px)}
+/* t419/t416: barra do NITRO embaixo, entre N e Alto/Ré (nunca sobre o carro, mesmo com o carro perto da câmera) */
+body.driving.touch:not(.land) #nitroW{left:50%!important;right:auto!important;transform:translateX(-50%)!important;bottom:calc(var(--edgeB) + 4px)!important;width:min(118px,30vw)!important;height:26px!important}

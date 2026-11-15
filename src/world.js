@@ -77,14 +77,14 @@ export const BLOCKS = [];
     BLOCKS.push(b);
   }
 }
-// t412: o píer da praia passa alto por cima da areia (vão livre para carros) — rampa no calçadão + degraus + tabuleiro como "telhado" andável
-export const PIER_Y = 3.4, PIER_RAMP_Y = 2.2, PIER_SAND = [324, 386];
+// t419: o píer da praia é baixo; o trecho sobre a areia é de tábuas que QUEBRAM quando o carro passa (src/breakables.js)
+export const PIER_Y = 0.9, PIER_SAND = [322, 444]; // t420: até onde o carro alcança no mar raso
+export const SAND_DECKS = []; // trechos de passarela de madeira sobre a areia (quebráveis): { x0, x1, z0, z1, y, pier, rails }
 export const PIERS = [ // retângulos de píer (andáveis, bloqueiam barcos)
   { x0: -262, x1: -170, z0: -82, z1: -78 }, { x0: -262, x1: -170, z0: -22, z1: -18 }, { x0: -262, x1: -170, z0: 38, z1: 42 },
   { x0: -262, x1: -200, z0: 98, z1: 102 },
-  { x0: 386, x1: 540, z0: -302, z1: -296, y: PIER_Y }, // píer da praia (parte sobre o mar; t412: alto, carros passam por baixo na areia)
+  { x0: 322, x1: 540, z0: -302, z1: -296, y: PIER_Y }, // píer da praia (t419: baixo; o trecho na areia quebra)
   { x0: -960, x1: -900, z0: -152, z1: -148, y: 0.4 }, // passarela dos glades
-  { x0: 308, x1: 324, z0: -302, z1: -296, ramp: [308, 0.3, 324, PIER_RAMP_Y] }, // rampa do píer saindo do calçadão
 ];
 // Autódromo Neon (pista de corrida) no norte dos Glades: sem árvores nem poças nessa área
 export const TRACK_ZONE = { x0: -1088, x1: -698, z0: -716, z1: -443 };
@@ -102,7 +102,7 @@ export function onBridge(x, z) {
   for (const zz of [-450, 450]) if (Math.abs(z - zz) < RW + 2.2 && x > -262 && x < 32) return true;
   return false;
 }
-export function onPier(x, z) { for (const p of PIERS) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) return p; return null; }
+export function onPier(x, z) { for (const p of PIERS) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) { if (p.holes && p.holes.length && p.holes.some(h => x > h.x0 && x < h.x1 && z > h.z0 && z < h.z1)) continue; return p; } return null; } // t419: tábuas quebradas abrem buraco (o carro passa)
 function landBase(x, z) {
   if (x >= ISL.x0 && x < SHORE_X + 200 && z >= ISL.z0 && z <= ISL.z1) return true;
   if (x >= MAIN.x0 && x <= MAIN.x1 && z >= MAIN.z0 && z <= MAIN.z1) return true;
@@ -121,6 +121,9 @@ export function baseGroundY(x, z) {
   return -6;
 }
 export function isWaterDeep(x, z) { return groundY(x, z) < -1.2 && !onPier(x, z); }
+// t420: carro entra no mar raso pela praia (água até ~metade do carro); mais fundo que isso o carro para com suavidade
+export const CAR_WADE = 0.72, WADE_FLOOR = WATER_Y - CAR_WADE;
+export function wadeable(x, z) { if (!(x > BOUNDS.x0 + 5 && x < BOUNDS.x1 && z > BOUNDS.z0 && z < BOUNDS.z1)) return false; const g = groundY(x, z); return g <= -0.3 && g >= WADE_FLOOR && !onPier(x, z) && !onBridge(x, z); }
 export function walkable(x, z) { return x > BOUNDS.x0 + 5 && x < BOUNDS.x1 && z > BOUNDS.z0 && z < BOUNDS.z1 && groundY(x, z) > -0.45; }
 export function drivable(x, z) { return walkable(x, z) && groundY(x, z) > -0.3 && !onPier(x, z); }
 export function boatable(x, z) { return x > BOUNDS.x0 && x < BOUNDS.x1 + 300 && z > BOUNDS.z0 - 200 && z < BOUNDS.z1 + 200 && isWaterDeep(x, z) && !onBridge(x, z); }
@@ -626,25 +629,15 @@ export function buildWorld(scene, Q) {
   // iates decorativos (colisão só para barcos)
   const yachts = [];
   for (const [x, z] of [[-200, -95], [-190, -8], [-230, 25], [-180, 55], [-235, -62], [-150, 120]]) { yachts.push([x, z]); addBox(x - 9, z - 3, x + 9, z + 3, 100, true); }
-  // ---- píer da praia
+  // ---- píer da praia (t419: baixo; o trecho sobre a areia é desenhado/quebrado por breakables.js)
   {
-    const ch = chunk(420, -300); const p = PIERS[4]; const Y = PIER_Y, wood = C(0xa88560), post = C(0x6b513a), rail = C(0xeeeeee); const xs = PIER_SAND[0], xw = PIER_SAND[1];
-    // rampa no calçadão (chão inclinado) + degraus baixos + tabuleiro alto até o fim do píer
-    { const r = PIERS.find(q => q.ramp); const L = r.x1 - r.x0, dy = r.ramp[3] - r.ramp[1], ang = Math.atan2(dy, L);
-      const rm = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L, dy), 0.3, 6), new THREE.MeshStandardMaterial({ color: 0xa88560, roughness: 0.8 })); rm.position.set((r.x0 + r.x1) / 2, (r.ramp[1] + r.ramp[3]) / 2 - 0.13, -299); rm.rotation.z = ang; rm.receiveShadow = true; scene.add(rm);
-      for (const sd of [-1, 1]) { const rl = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L, dy), 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); rl.position.set(rm.position.x, rm.position.y + 1.1, -299 + sd * 2.9); rl.rotation.z = ang; scene.add(rl); } }
-    const NS = 8, sw = 6 / NS; for (let k = 0; k < NS; k++) { const h = PIER_RAMP_Y + (Y - PIER_RAMP_Y) * (k + 1) / NS, x0 = xs + k * sw; ch.misc.box(x0 + sw / 2, h - 0.15, -299, sw, 0.3, 6, wood); addBox(x0, -302, x0 + sw, -296, h, false, h - 0.45); }
-    ch.misc.box((xs + 6 + p.x1) / 2, Y - 0.15, -299, p.x1 - xs - 6, 0.3, 6, wood);
-    addBox(xs + 6, -302, xw, -296, Y, false, Y - 0.45); // tabuleiro sobre a areia: andável por cima, carros passam por baixo
-    // pilares: só nas pontas do vão da areia, depois a cada 12 m sobre o mar
-    const pil = [xs - 0.3, xw - 16, xw]; for (let x = xw + 12; x < p.x1; x += 12) pil.push(x);
-    for (const x of pil) for (const sd of [-1, 1]) { ch.misc.box(x, (Y - 2.5) / 2, -299 + sd * 2.6, 0.55, Y + 2.5, 0.55, post); if (x < xw + 1) addBox(x - 0.3, -299 + sd * 2.6 - 0.3, x + 0.3, -299 + sd * 2.6 + 0.3, Y - 0.4); }
-    for (const sd of [-1, 1]) ch.misc.box((xs + p.x1) / 2, Y + 1.05, -299 + sd * 2.9, p.x1 - xs, 0.1, 0.1, rail);
-    for (let x = xs + 2; x < p.x1; x += 6) for (const sd of [-1, 1]) ch.misc.box(x, Y + 0.55, -299 + sd * 2.9, 0.08, 1.0, 0.08, rail);
+    const ch = chunk(420, -300); const p = PIERS[4]; const Y = PIER_Y, xw = PIER_SAND[1];
+    ch.misc.box((xw + p.x1) / 2, Y - 0.15, -299, p.x1 - xw, 0.3, 6, C(0xa88560));
+    for (let x = xw; x < p.x1; x += 9) for (const sd of [-1, 1]) ch.misc.box(x, -1.5, -299 + sd * 2.6, 0.45, 4.5, 0.45, C(0x6b513a));
+    for (const sd of [-1, 1]) ch.misc.box((xw + p.x1) / 2, Y + 0.55, -299 + sd * 2.9, p.x1 - xw, 0.1, 0.1, C(0xeeeeee));
     ch.misc.box(535, Y + 1.6, -299, 10, 3.5, 8, C(0x3fa8c8)); ch.misc.box(535, Y + 3.6, -299, 11, 0.5, 9, C(0xffffff));
-    // guarda-corpo: só vale para quem está em cima (base elevada); boia de barcos em todo o comprimento
-    for (const [za, zb] of [[-302.6, -302.2], [-295.8, -295.4]]) { addBox(xs, za, xw, zb, Y + 1.2, false, Y - 0.6); addBox(xw, za, p.x1, zb, Y + 1.2); addBox(PIERS.find(q => q.ramp).x0, za, xs, zb, PIER_RAMP_Y + 1.2, false, 0.5); }
-    addBox(xw, -303, p.x1 + 2, -295, 100, true);
+    addBox(xw, -302.6, p.x1, -302.2, 1.8); addBox(xw, -295.8, p.x1, -295.4, 1.8); addBox(xw, -303, p.x1 + 2, -295, 100, true);
+    SAND_DECKS.push({ x0: PIER_SAND[0], x1: xw, z0: -302, z1: -296, y: Y, pier: p, rails: true });
     LANDMARKS.push({ id: 'pier', name: 'Píer da Praia', x: 500, z: -299, r: 16, look: [540, 3, -299] });
   }
   // ---- farol na ponta sul
@@ -831,6 +824,7 @@ export function buildWorld(scene, Q) {
     const mtx = new THREE.Matrix4();
     lampPos.forEach(([x, z, ry], i) => { mtx.makeRotationY(ry).setPosition(x, onBridge(x, z) ? 0.5 : 0.16, z); m.setMatrixAt(i, mtx); lampGlow.push(x + Math.sin(ry) * 2, (onBridge(x, z) ? 0.5 : 0.16) + 6.65, z + Math.cos(ry) * 2); });
     m.castShadow = true; scene.add(m);
+    S0.lampPoles = { mesh: m, geo: pb.geometry(), list: lampPos.map(([x, z, ry], i) => ({ i, x, z, ry, y: onBridge(x, z) ? 0.5 : 0.16, kind: 'poste' })) }; // t418: postes que tombam
   }
   // ---- guarda-sóis e toalhas
   {
@@ -843,6 +837,7 @@ export function buildWorld(scene, Q) {
     umbrellas.forEach(([x, z, r], i) => { mtx.makeRotationZ((r - 0.5) * 0.2).setPosition(x, groundY(x, z), z); um.setMatrixAt(i, mtx); um.setColorAt(i, C(uc[Math.floor(r * 7)])); });
     towels.forEach(([x, z, r], i) => { mtx.makeRotationY(r * 0.6).setPosition(x, groundY(x, z) + 0.02, z); tw.setMatrixAt(i, mtx); tw.setColorAt(i, C(uc[Math.floor(r * 13) % 7])); });
     um.castShadow = true; tw.receiveShadow = true; scene.add(um, tw);
+    S0.umb = { mesh: um, list: umbrellas.map(([x, z], i) => ({ i, x, z, kind: 'guarda-sol' })) }; // t419: guarda-sóis tombam
   }
   // iates
   {
@@ -878,6 +873,7 @@ export function buildWorld(scene, Q) {
       for (const f of [-1, 1]) for (let k = 0; k < 3; k++) { lampInfo.push({ n, axis: 'z', k }); lamps.setMatrixAt(lampInfo.length - 1, W2(0, 3.85 - k * 0.45, 0.1 + f * 0.27)); }
     });
     m.castShadow = true; scene.add(m, lamps);
+    S0.tlPoles = { mesh: m, bulbs: lamps, geo: pb.geometry(), list: poles.map(([x, z, ry], i) => ({ i, x, z, ry, y: 0.16, kind: 'sinal', bulbs: Array.from({ length: 12 }, (_, k) => i * 12 + k) })) }; // t418: sinaleiras que tombam
     for (let i = 0; i < lampInfo.length; i++) lamps.setColorAt(i, C(0x222222));
     tl.lamps = lamps; tl.info = lampInfo;
     const cols = { r: [C(0xff2a2a).multiplyScalar(3), C(0x331a00), C(0x002a10)], y: [C(0x330808), C(0xffb000).multiplyScalar(3), C(0x002a10)], g: [C(0x330808), C(0x331a00), C(0x1aff6a).multiplyScalar(2.5)] };
@@ -891,7 +887,7 @@ export function buildWorld(scene, Q) {
   // cabeças dos postes (emissivas)
   const lampHeads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.4, 0.05, 0.6), M.lampHead, lampGlow.length / 3);
   for (let i = 0; i < lampGlow.length / 3; i++) lampHeads.setMatrixAt(i, new THREE.Matrix4().makeTranslation(lampGlow[i * 3], lampGlow[i * 3 + 1] + 0.04, lampGlow[i * 3 + 2]));
-  scene.add(lampHeads);
+  scene.add(lampHeads); if (S0.lampPoles) Object.assign(S0.lampPoles, { heads: lampHeads, glowGeo });
 
   // vagas de carros estacionados
   {
@@ -910,7 +906,7 @@ export function buildWorld(scene, Q) {
     SPAWNS.taxiStands.push({ x: 293.7, z: -60, h: Math.PI }, { x: -306.3, z: -230, h: 0 }, { x: 173.7, z: 220, h: Math.PI });
   }
 
-  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed, palms: S0.palms };
+  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed, palms: S0.palms, lampPoles: S0.lampPoles, tlPoles: S0.tlPoles, umb: S0.umb };
   S.setNight = (night, wet) => {
     M.deco.emissiveIntensity = night * 0.9; M.tower.emissiveIntensity = night * 0.85;
     const k = 0.55 + night * 2.4;

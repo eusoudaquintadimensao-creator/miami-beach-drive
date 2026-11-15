@@ -141,6 +141,12 @@ export class AudioSys {
   // gaivotas: dois "quiá" curtos descendo de tom
   gull() { if (!this.ok || this._gullT > this.ctx.currentTime) return; const c = this.ctx, t = c.currentTime; this._gullT = t + 1.2;
     for (let k = 0; k < 2 + (Math.random() < 0.5 ? 1 : 0); k++) { const t0 = t + k * 0.22, o = c.createOscillator(), g = c.createGain(), f = 1500 + Math.random() * 400; o.type = 'triangle'; o.frequency.setValueAtTime(f, t0); o.frequency.exponentialRampToValueAtTime(f * 0.55, t0 + 0.17); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.035, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.19); o.connect(g); g.connect(this.bus); o.start(t0); o.stop(t0 + 0.21); } }
+  // t418/t419: sons sintetizados — madeira estalando, metal tombando, spray da cabine de pintura
+  crack(v = 10) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.55, 0.15 + v * 0.025); for (let k = 0; k < 6; k++) { const tt = t + k * (0.018 + Math.random() * 0.03); this.noise(tt, 0.03 + Math.random() * 0.03, g * (1 - k * 0.12), 'bandpass', 1200 + Math.random() * 2400, this.bus); } this.noise(t, 0.18, g * 0.7, 'lowpass', 300, this.bus); this.tone(t, 140, 0.12, 'triangle', g * 0.25, this.bus, 0.002, 0.08); }
+  clang(v = 10) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.4, 0.1 + v * 0.02); for (const [f, k] of [[420, 1], [1130, 0.6], [1870, 0.4], [2650, 0.25]]) this.tone(t, f * (0.95 + Math.random() * 0.1), 0.6, 'triangle', g * k, this.bus, 0.002, 0.5); this.noise(t, 0.12, g, 'highpass', 2000, this.bus); this.noise(t + 0.35, 0.2, g * 0.6, 'lowpass', 500, this.bus); }
+  splash(v = 4) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.4, 0.08 + v * 0.02); this.noise(t, 0.35, g, 'lowpass', 900, this.bus); this.noise(t + 0.03, 0.25, g * 0.6, 'bandpass', 2600, this.bus); }
+  water(g = 0.1) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.4, g, 'bandpass', 1400 + Math.random() * 900, this.bus); }
+  spray(d = 1) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, d, 0.12, 'bandpass', 5200, this.bus); }
   thud(v) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.25, Math.min(0.6, v * 0.04), 'lowpass', 400, this.bus); }
   chime(kind = 'coin') {
     if (!this.ok) return; const t = this.ctx.currentTime;

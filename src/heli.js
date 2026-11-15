@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { clamp, lerp, angDiff, canvasTex } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { groundY, baseGroundY, surfaceY, BOXES, PIERS, WATER_Y, BOUNDS } from './world.js';
+import { groundY, baseGroundY, surfaceY, BOXES, PIERS, WATER_Y, BOUNDS, SAND_DECKS } from './world.js';
 
 // colisão do helicóptero só com prédios (caixas) abaixo da altitude; palmeiras e postes ficam de fora
 export function heliCollide(pos, r, y) {
@@ -332,12 +332,12 @@ export function buildHelipad(scene, Q) {
   const deck = new THREE.MeshStandardMaterial({ color: 0x3b4048, roughness: 0.75, metalness: 0.1 });
   const wood = new THREE.MeshStandardMaterial({ color: 0x9a7652, roughness: 0.8 });
   const paint = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 }); const yellow = new THREE.MeshBasicMaterial({ color: 0xffd23f });
-  PIERS.push({ x0: 368, x1: 404, z0: -202.2, z1: -197.8, y: P.y }, { x0: P.x - 13, x1: P.x + 13, z0: P.z - 13, z1: P.z + 13, y: P.y });
+  const walk = { x0: 368, x1: 404, z0: -202.2, z1: -197.8, y: P.y }; PIERS.push(walk, { x0: P.x - 13, x1: P.x + 13, z0: P.z - 13, z1: P.z + 13, y: P.y });
+  SAND_DECKS.push({ x0: 368, x1: 403, z0: -202.2, z1: -197.8, y: P.y, pier: walk, rails: false }); // t419/t420: passarela inteira (areia + mar raso) quebra
   const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.receiveShadow = true; g.add(m); return m; };
-  box(36, 0.3, 4.4, wood, 386, P.y - 0.15, -200);
   box(26, 0.4, 26, deck, P.x, P.y - 0.2, P.z);
   for (const [x, z] of [[P.x - 12, P.z - 12], [P.x + 12, P.z - 12], [P.x - 12, P.z + 12], [P.x + 12, P.z + 12], [P.x, P.z - 12], [P.x, P.z + 12], [P.x - 12, P.z], [P.x + 12, P.z]]) box(0.6, 3, 0.6, deck, x, -1.3, z);
-  for (let x = 372; x < 404; x += 6) for (const z of [-202, -198]) box(0.3, 2.4, 0.3, wood, x, -1, z);
+  
   const ring = new THREE.Mesh(new THREE.RingGeometry(8.6, 9.4, 48).rotateX(-Math.PI / 2), yellow); ring.position.set(P.x, P.y + 0.02, P.z); g.add(ring);
   // "H" (de lado para quem chega pela passarela)
   box(1.1, 0.02, 7, paint, P.x - 2.4, P.y + 0.025, P.z); box(1.1, 0.02, 7, paint, P.x + 2.4, P.y + 0.025, P.z); box(3.8, 0.02, 1.1, paint, P.x, P.y + 0.025, P.z);

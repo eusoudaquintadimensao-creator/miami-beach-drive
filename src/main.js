@@ -10,6 +10,7 @@ import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlo
 import { createEnv } from './env.js';
 import { Fleet } from './frota.js';
 import { PalmBreak } from './palmbreak.js';
+import { Breakables } from './breakables.js';
 import { SeaRaces } from './marraces.js';
 import { Outdoor } from './outdoor.js';
 import { Gauchos } from './gauchos.js';
@@ -161,7 +162,7 @@ G.addFollowers = (n) => { save.followers += n; G.ui.stats(save.money, save.follo
 async function boot() {
   const status = (t) => { $('play').textContent = t; };
   status('Construindo a cidade…'); await nextFrame();
-  G.world = buildWorld(scene, Q); G.palms = new PalmBreak(G, scene, G.world); G.helipad = buildHelipad(scene, Q); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
+  G.world = buildWorld(scene, Q); G.palms = new PalmBreak(G, scene, G.world); G.helipad = buildHelipad(scene, Q); G.breaks = new Breakables(G, scene, G.world); G.track = new Track(scene, Q); G.Q = G.Q || Q; G.home = new Home(G);
   G.life = buildLife(G); G.birds = new Birds(G); G.gifts = new Gifts(G);
   status('Acendendo o neon…'); await nextFrame();
   G.env = createEnv(scene, renderer, Q); G.env.setTime(save.hour); G.env.weather = save.weather; G.env.cloud = save.weather === 'chuva' ? 0.85 : 0.25; G.env.rain = save.weather === 'chuva' ? 1 : 0;
@@ -641,6 +642,17 @@ function updatePlayer(dt) {
     const F = 1 / 60; v._acc = (v._acc || 0) + dt; let impact = 0, n = 0;
     const others = G.vehicles.concat(G.traffic.cars.filter(c => c.active), G.rivals.cars, G.race.cars, G.street.cars);
     if (G.palms) G.palms.check(v, dt); // t393: palmeira quebra antes da batida
+    if (!v.spec.boat && !v.spec.air) { // t420: carro no mar raso — mais lento, borrifos, rastro e som de água; perto do limite freia com suavidade
+      const gy0 = groundY(v.x, v.z), dep = WATER_Y - gy0, spd0 = Math.hypot(v.vx, v.vz);
+      if (dep > 0.02 && v.y < WATER_Y + 0.2) { const deep = clamp((dep - 0.45) / 0.27, 0, 1); const k = Math.max(0, 1 - dt * (0.25 + dep * 0.9 + deep * 2.5));
+        const [fx0, fz0] = [Math.sin(v.h), Math.cos(v.h)]; const out = Math.sign(fx0 * v.vx + fz0 * v.vz) * (WATER_Y - groundY(v.x + fx0 * 3, v.z + fz0 * 3) - dep);
+        const kk = out > 0 ? k : Math.max(k, 1 - dt * 0.6); v.vx *= kk; v.vz *= kk; if (v.vf !== undefined) v.vf *= kk;
+        if (!v._inSea) { v._inSea = true; if (spd0 > 2) { G.audio.splash && G.audio.splash(spd0); if (G.breaks) G.breaks.splash(v.x, WATER_Y, v.z, v.vx, v.vz, 26); } if (!G._carSeaTip) { G._carSeaTip = true; G.ui.toast('🌊 Mar raso! O carro anda devagar na água — mais fundo ele para. É só voltar para a areia.', 4200); } }
+        v._spl = (v._spl || 0) - dt; if (spd0 > 1.5 && v._spl <= 0) { v._spl = 0.12; if (G.breaks) G.breaks.splash(v.x + fx0 * 1.9, WATER_Y, v.z + fz0 * 1.9, v.vx, v.vz, Math.min(10, 2 + spd0 * 0.5)); if (G.powers) G.powers.ring(v.x - fx0 * 2.2, WATER_Y + 0.03, v.z - fz0 * 2.2, 0xe8fbff, 2.2 + spd0 * 0.12, 0.9); G.audio.water && Math.random() < 0.4 && G.audio.water(Math.min(0.16, 0.04 + spd0 * 0.006)); }
+        if (deep > 0.6 && out > 0) { G._deepT = (G._deepT || 0) - dt; if (G._deepT <= 0) { G._deepT = 6; G.ui.toast('🛑 Fundo demais para o carro — dê ré ou vire para a areia.', 3000); } }
+      } else v._inSea = false;
+    }
+    if (G.breaks) G.breaks.check(v, dt); // t418/t419: postes, sinaleiras, guarda-sóis e passarelas de madeira quebram
     while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, hardBrake, limit, kick: kick && n === 0, neutral: !!input.neutral }, others, G.t)); v._acc -= F; n++; }
     if (n >= 3) v._acc = 0;
     if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
@@ -871,7 +883,7 @@ function step(dt) {
   if (honk) G.audio.far_horn(clamp(1 - Math.hypot(honk.x - G.player.x, honk.z - G.player.z) / 60, 0.2, 1));
   const movers = [G.player.vehicle, G.bail && G.bail.coast, ...G.traffic.cars.filter(c => c.active), ...G.rivals.cars, ...G.street.cars].filter(Boolean);
   G.crowd.update(dt, t, G.player, movers, camera, (p, txt) => G.ui.pedBubble(p, txt), G.env.hour);
-  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mar.update(dt, t); G.fleet.update(dt); G.palms.update(dt, camera.position); G.ads.update(dt, t, camera); G.gauchos.update(dt); G.mega.update(dt, t, camera, G.env.night); G.boutique.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
+  G.life.update(dt, t, G.env.night, G.env.hour); G.birds.update(dt, t, camera); G.gifts.update(dt, t, camera); G.street.update(dt, t, camera); G.serp.update(dt, t, camera); G.ponte.update(dt, t, camera); G.ilhas.update(dt, t, camera); G.boatRace.update(dt, t); G.mar.update(dt, t); G.fleet.update(dt); G.palms.update(dt, camera.position); if (G.breaks) G.breaks.update(dt, camera.position); G.ads.update(dt, t, camera); G.gauchos.update(dt); G.mega.update(dt, t, camera, G.env.night); G.boutique.update(dt, t, camera, G.env.night); G.beach.update(dt, t, camera, G.env.hour); G.orla.update(dt, t, camera, G.env.hour); G.bail.update(dt, camera);
   G._hudT = (G._hudT || 0) - dt; if (G._hudT <= 0) { G._hudT = 0.5; const h = $('hud'); if (G.started && !G.paused && !G.garageOpen && !G.raceMenu && !G.homeIntro && h) { let fixed = 0; if (h.classList.contains('ghide')) { h.classList.remove('ghide'); fixed++; } if (h.hidden) { h.hidden = false; fixed++; } if (document.body.classList.contains('cine')) { document.body.classList.remove('cine'); fixed++; } if (fixed) G.hudFixes = (G.hudFixes || 0) + fixed; } }
   G.rivals.update(dt, t, G.missions.active && G.missions.active.race && G.missions.active.race.rivals ? G.missions.active : null);
   G.crowd.quiet = !!G.talk.cur; G.talk.update(dt, t, camera); G.powers.update(dt, t); G.jet.update(dt, t); G.home.update(dt, t, G.env.night, camera);
