@@ -109,3 +109,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Testes: test/t413.js (PASS d/i/il/al), test/t408.js (PASS d; 4 cfgs passavam antes do fix do salva-vidas), t405 atualizado (PASS 4).
 - Pendente: portar tudo ao Neon (diff 02f283a..HEAD do Solara a partir do commit antes de FASE 7), thumbs Neon, SW Neon v17, varredura, push, deploy MIAMI DRIVE.
 - Bloqueio conhecido: cerca do clube de tênis (x 336–370, z 446/482) — faixa livre na areia x 324–335.
+- 21:55 restauração do box: git intacto (Solara 7e23f75, Neon a0c8711, nada publicado). Neon t413 PASS d/i/il. Decisão: publicar FASE 7 inteira numa vez (HUD t413–t417 e lojas já estão misturados nos commits; separar arriscaria regressões) após varredura.
