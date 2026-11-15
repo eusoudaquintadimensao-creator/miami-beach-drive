@@ -198,3 +198,9 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - t434jet PASS d+i (Solara), d (Neon): circuito em x≈400 z≈-900 (todo navegável), píer com 2 jet skis, moedas, anéis, turbo, rampas, prêmio.
 - sweep8 (refazer falhas por carga + t433): t433 x4, t426 S il + N x4, t418 S, N t387 x2, S t361 d PASS até agora.
 - PLANO: publicar release D (main, inclui t433) assim que sweep8 terminar; depois merge t434 em main, varredura, release E.
+
+### 07:25 RELEASE D PUBLICADO (t426+t428+t431+t432+t433)
+- GitHub: Solara 8d3572b (run 43703737808 ok), Neon d010e9e (run 43703740066 ok). Site MIAMI DRIVE redeploy (build.sh + session + upload + put, sem migrations, contadores intactos).
+- SW no ar (Pages e site): solara-v28-2026-11-15-sobrevoo / neon-dist-v20-2026-11-15-sobrevoo.
+- Testes ao vivo rodando: /tmp/live-{solara,neon}.txt, /tmp/t432-{solara,neon}-live.txt (fim = /tmp/live-done.txt).
+- PRÓXIMO: merge t434 em main nos dois, varredura, release E (SW v29/v21).
