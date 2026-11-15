@@ -22,6 +22,7 @@ export const SPECS = {
     body: { nose: 2.2, tail: -2.2, ride: 0.12, belt: 0.86, hoodF: 0.64, deck: 0.92, cabF: 0.85, cabR: -1.5, roofF: 0.1, roofR: -1.0, roof: 1.3, wing: 'gt', vents: true, exh: 'single' } },
   rc_hyper: { name: 'Aurora X1', race: true, len: 4.75, w: 2.02, max: 72, acc: 18.5, brake: 34, grip: 8.0, steer: 0.52, wb: 2.75, wr: 0.36, cam: 6.8, susp: 0.018, drift: 0.6, seat: [0.4, -0.4, -0.2], colors: [0x0a84ff],
     body: { nose: 2.4, tail: -2.35, ride: 0.11, belt: 0.74, hoodF: 0.48, deck: 0.82, cabF: 1.25, cabR: -0.95, roofF: 0.35, roofR: -0.55, roof: 1.13, wing: 'active', vents: true, exh: 'center' } },
+  jetski: { name: 'Jet Maré', len: 3.2, w: 1.25, max: 30, acc: 12, brake: 8, grip: 1.7, steer: 1.55, wb: 1.6, wr: 0, cam: 6.5, susp: 0, colors: [0xff5a7a, 0x2ee6d6, 0xffd23f], boat: true, seat: [0, 0.62, -0.25], sit: true }, // t434
   boat: { name: 'Lancha Maré Alta', len: 6.2, w: 2.3, max: 30, acc: 7, brake: 6, grip: 1.3, steer: 0.9, wb: 3, wr: 0, cam: 10, susp: 0, colors: [0xffffff], boat: true },
 };
 const PROFILES = {
@@ -415,6 +416,16 @@ export class Vehicle {
       const tl = new THREE.Mesh(cached('mtl', () => new THREE.BoxGeometry(0.16, 0.06, 0.04).translate(0, 0.95, -1.01)), S.tail); g.add(tl); this.tailMesh = tl;
       if (this.tune) tuneMoto(this, S, sp, this.tune);
       for (const sz of [1, -1]) { const pivot = new THREE.Group(); pivot.position.set(0, sp.wr, sz * sp.wb / 2 * 0.95); const wh = this.tune ? tunedWheel(S, sp.wr, 0.18, this.tune.rim) : wheel(S, sp.wr, 0.16); pivot.add(wh); g.add(pivot); this.wheels.push(wh); if (sz > 0) this.front.push(pivot); }
+    } else if (type === 'jetski') { // t434: jet ski original (casco em cunha, assento, guidão, faixa)
+      const hg = cached('jsHull', () => { const sh = new THREE.Shape(); sh.moveTo(-1.5, -0.55); sh.lineTo(0.6, -0.6); sh.quadraticCurveTo(1.55, -0.35, 1.7, 0); sh.quadraticCurveTo(1.55, 0.35, 0.6, 0.6); sh.lineTo(-1.5, 0.55); sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 2 }); g.rotateX(-Math.PI / 2); g.rotateY(-Math.PI / 2); g.translate(0, -0.2, 0); return g; });
+      this.body.add(new THREE.Mesh(hg, paint));
+      this.body.add(new THREE.Mesh(cached('jsStripe', () => new THREE.BoxGeometry(1.2, 0.08, 2.4).translate(0, 0.18, -0.1)), S.paint(0xf4f6f8)));
+      this.body.add(new THREE.Mesh(cached('jsSeat', () => new THREE.BoxGeometry(0.5, 0.22, 1.2).translate(0, 0.5, -0.45)), S.seat));
+      this.body.add(new THREE.Mesh(cached('jsCowl', () => new THREE.BoxGeometry(0.75, 0.3, 0.7).rotateX(-0.35).translate(0, 0.5, 0.55)), S.trim));
+      this.body.add(new THREE.Mesh(cached('jsBar', () => new THREE.CylinderGeometry(0.03, 0.03, 0.8, 6).rotateZ(Math.PI / 2).translate(0, 0.86, 0.38)), S.trim));
+      this.body.add(new THREE.Mesh(cached('jsWs', () => new THREE.BoxGeometry(0.6, 0.18, 0.04).rotateX(-0.7).translate(0, 0.75, 0.8)), S.glass));
+      const tl = new THREE.Mesh(cached('jsTl', () => new THREE.BoxGeometry(0.3, 0.06, 0.04).translate(0, 0.3, -1.62)), S.tail); this.body.add(tl); this.tailMesh = tl;
+      this.body.add(new THREE.Mesh(cached('jsHl', () => new THREE.BoxGeometry(0.22, 0.07, 0.04).translate(0, 0.42, 1.12)), S.head));
     } else if (type === 'boat') {
       const hull = new THREE.Shape(); hull.moveTo(-3, -1.15); hull.lineTo(1.2, -1.15); hull.quadraticCurveTo(3, -0.7, 3.2, 0); hull.quadraticCurveTo(3, 0.7, 1.2, 1.15); hull.lineTo(-3, 1.15); hull.closePath();
       const hg = cached('hull', () => { const g = new THREE.ExtrudeGeometry(hull, { depth: 1.1, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 2 }); g.rotateX(-Math.PI / 2); g.rotateY(-Math.PI / 2); g.translate(0, -0.35, 0); return g; });
@@ -587,7 +598,8 @@ export class Vehicle {
     const [ffx, ffz] = this.fwd(); const sp2 = this.spec;
     if (sp.boat) {
       const y0 = waveH(this.x, this.z, t), yF = waveH(this.x + ffx * 2.5, this.z + ffz * 2.5, t), yS = waveH(this.x - ffz * 1.1, this.z + ffx * 1.1, t);
-      this.y = WATER_Y + y0 + 0.15; this.pitch = lerp(this.pitch, -(yF - y0) / 2.5 - Math.min(Math.abs(vf), 20) * 0.006, dt * 4); this.roll = lerp(this.roll, (yS - y0) / 1.1 + this.steer * Math.min(Math.abs(vf), 15) * 0.012, dt * 4);
+      this.y = WATER_Y + y0 + 0.15; this.pitch = lerp(this.pitch, -(yF - y0) / 2.5 - Math.min(Math.abs(vf), 20) * 0.006, dt * 4);
+      if (this.jvy || this.jy > 0) { this.jvy = (this.jvy || 0) - 17 * dt; this.jy = Math.max(0, (this.jy || 0) + this.jvy * dt); if (this.jy <= 0 && this.jvy < 0) { this.jvy = 0; this._landed = true; } this.y += this.jy; this.pitch -= clamp(this.jvy * 0.03, -0.25, 0.25); } // t434: salto na rampa de onda this.roll = lerp(this.roll, (yS - y0) / 1.1 + this.steer * Math.min(Math.abs(vf), 15) * 0.012, dt * 4);
     } else {
       const yc = surfaceY(this.x, this.z), yf = surfaceY(this.x + ffx * sp2.wb / 2, this.z + ffz * sp2.wb / 2), yr = surfaceY(this.x - ffx * sp2.wb / 2, this.z - ffz * sp2.wb / 2);
       const yMin = yc < -0.3 && wadeable(this.x, this.z) ? WADE_FLOOR : -0.4; this.y = lerp(this.y, Math.max(yc, yMin), Math.min(1, dt * 12));
