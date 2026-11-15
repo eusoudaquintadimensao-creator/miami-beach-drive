@@ -234,3 +234,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 11:25 foto da Solara: assets/solara/solara.webp 320px 23,6 KB (recorte do rosto de /workspace/t436/solara-foto-original.jpg), no CORE do SW. Notificação pointer-events:none (t413 i falhava: cobria bClean). t423 atualizado (sai sozinho, não bloqueia). sweep12 interrompida p/ refazer.
 - 11:30 sweep12 reiniciada (com t436 d/i/il/al/dm no fim) → /workspace/t367/sweep12.out; parcial antiga em sweep12-parcial.out. Box carregado por outros (podcast).
 - 11:56 Tela cheia → menu de pausa (t405 i: botão no recado cobria qMore). main.js ficou quebrado ~1 min durante a sweep (~11:57): refazer testes desse intervalo + t426 al, t423 d (crash do navegador por carga), t405 i, t413 i.
+- 12:09 refazer depois da sweep: t426 al, t423 d, t405 i, t402 i, t400 i, t387 i
+- 12:12 retomado. sweep12 ainda rodando (t361 i). Box com carga 20 (podcast/wav2lip de outro agente). t361 d timeout → refazer. Pendentes: t426 al, t423 d, t405 i, t402 i, t400 i, t387 i, t361 d + o que falhar no resto.
