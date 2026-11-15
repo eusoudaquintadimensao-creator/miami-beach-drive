@@ -100,6 +100,16 @@ fs.mkdirSync(SH, { recursive: true });
     const n = document.getElementById('nitroW'); const nr = n ? n.getBoundingClientRect() : null; return { bad, car: Z.car, nitro: nr && [nr.left | 0, nr.top | 0, nr.right | 0, nr.bottom | 0] }; });
   ck('9 NITRO e mensagens não cobrem o carro', !r.noZone && r.bad.length === 0, r);
   await shot('nitro-carro', 200);
+  // 10) t423: praia inteira livre — dirigir ao longo da areia passando pelo clube de tênis (cerca tomba, jogadores desviam)
+  r = await ev(() => { const G = window.__G; const v = G.player.vehicle; MBD.setHour(11); const O = G.orla; const b0 = O.fenceBroken || 0; const out = [];
+    for (const x of [326, 340, 352, 364]) { v.place(x, 380, 0); v.vx = v.vz = 0; MBD.sim(3, 1 / 30); let st = 0, lz = v.z, minP = 99;
+      for (let i = 0; i < 900 && v.z < 540; i++) { v.h = 0; v.vz = Math.max(v.vz, 13); v.vx = 0; MBD.sim(1, 1 / 30); if (v.z - lz < 0.02) st++; lz = v.z; for (const c of O.courts) for (const p of c.pl) minP = Math.min(minP, Math.hypot(p.x - v.x, p.z - v.z)); }
+      out.push([x, +v.z.toFixed(0), st, +minP.toFixed(1)]); }
+    return { out, broke: (O.fenceBroken || 0) - b0 }; });
+  ck('10 dirige pela praia toda passando pelo clube de tênis (x 326/340/352/364) sem travar; cerca tomba', r.out.every(o => o[1] >= 539 && o[2] < 5) && r.broke >= 2, r);
+  ck('10 jogadores de tênis desviam do carro', r.out.every(o => o[3] > 1.2), r.out.map(o => o[3]));
+  await ev(() => { const G = window.__G; const v = G.player.vehicle; v.place(352, 470, Math.PI); v.vx = v.vz = 0; G.orla.fence.forEach(f => { if (Math.abs(f.z - 446) < 1 && Math.abs(f.x - 352) < 6) { f.down = true; f.t = 0; f.dir = -1; } }); MBD.sim(20, 1 / 30); G.snapCam(); MBD.sim(5, 1 / 30); });
+  await shot('tenis-cerca', 300);
   ck('sem erros no console', errs.length === 0, errs.slice(0, 5));
   console.log(fail.length ? 'FAIL ' + fail.join(' | ') : 'PASS ' + out); await browser.close(); process.exit(fail.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
