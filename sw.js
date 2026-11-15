@@ -1,9 +1,9 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v27-2026-11-15-praia-livre';
+const VERSION = 'solara-v28-2026-11-15-sobrevoo';
 const FAM = VERSION.replace(/v\d.*$/, ''); // só apaga caches antigos DESTE jogo (o domínio é dividido com outros apps/jogos)
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
-  'src/style.css', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',
+  'src/style.css', 'src/flyover.js', 'src/loadman.js', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',
   'src/missions.js', 'src/ui.js', 'src/recorder.js', 'src/install.js', 'src/garage.js', 'src/rivals.js',
   'src/avatar.js', 'src/device.js', 'src/heli.js', 'src/plane.js', 'src/talk.js', 'src/phrases.js', 'src/heroes.js', 'src/powers.js', 'src/track.js', 'src/race.js', 'src/fx.js', 'src/home.js', 'src/jetpack.js', 'src/signature.js', 'src/life.js', 'src/birds.js', 'src/gifts.js', 'src/street.js', 'src/serpentina.js', 'src/seabridge.js', 'src/bridgefun.js', 'src/islands.js', 'src/boatrace.js', 'src/megagarage.js', 'src/gpsosm.js', 'src/beachlife.js', 'src/orla.js', 'src/bailout.js', 'src/versions.js', 'assets/osm/miami.json', 'src/radio.js', 'src/radiolines.js', 'src/driveui.js', 'src/frota.js', 'src/marraces.js', 'src/palmbreak.js', 'src/outdoor.js', 'src/gauchos.js', 'src/topbar.js', 'src/wardrobe.js', 'src/boutique.js', 'src/msgguard.js', 'src/breakables.js', 'src/paintshop.js', 'src/voice.js', 'assets/voz/index.json',
   'assets/avatars/ela.glb', 'assets/avatars/ele.glb', 'assets/avatars/ela.webp', 'assets/avatars/ele.webp',
