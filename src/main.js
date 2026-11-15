@@ -469,14 +469,14 @@ G.backInfo = backInfo;
   const mk = (id, txt, title) => { const b = document.createElement('button'); b.id = id; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); return b; };
   const bP = mk('bPause', '⏸', 'Pausar (Esc)'), bB = mk('bBack', '↩', 'Voltar ao modo anterior'); bB.hidden = true; ic.prepend(bP, bB);
   const pm = document.createElement('div'); pm.id = 'pauseMenu'; pm.hidden = true;
-  pm.innerHTML = '<div class="pmBox"><b>⏸ Pausado</b><button data-k="go">▶ Continuar</button><button data-k="back" hidden></button><button data-k="cfg">⚙️ Configurações</button><button data-k="ctl">🎮 Controles</button></div>';
+  pm.innerHTML = '<div class="pmBox"><b>⏸ Pausado</b><button data-k="go">▶ Continuar</button><button data-k="back" hidden></button><button data-k="cfg">⚙️ Configurações</button><button data-k="ctl">🎮 Controles</button><button data-k="fs" hidden>⛶ Tela cheia</button></div>'; /* t437: tela cheia saiu do recado (2 s é pouco p/ tocar) e veio para a pausa */
   document.body.appendChild(pm);
-  G.openPause = () => { if (!G.started || G.phoneOpen || G.garageOpen) return; const bi = backInfo(); const bb = pm.querySelector('[data-k=back]'); bb.hidden = !bi; if (bi) bb.textContent = bi.label; pm.hidden = false; G.paused = true; G.pauseOpen = true; G.audio.setHold(true); if (document.pointerLockElement) document.exitPointerLock(); };
+  G.openPause = () => { if (!G.started || G.phoneOpen || G.garageOpen) return; const bi = backInfo(); const bb = pm.querySelector('[data-k=back]'); bb.hidden = !bi; pm.querySelector('[data-k=fs]').hidden = !(touch && document.documentElement.requestFullscreen && !document.fullscreenElement && !(window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches))); if (bi) bb.textContent = bi.label; pm.hidden = false; G.paused = true; G.pauseOpen = true; G.audio.setHold(true); if (document.pointerLockElement) document.exitPointerLock(); };
   G.closePause = () => { if (pm.hidden) return; pm.hidden = true; G.pauseOpen = false; G.paused = false; G.audio.setHold(document.hidden); };
   document.addEventListener('visibilitychange', () => G.audio.setHold(document.hidden || G.pauseOpen)); // aba escondida também fica em silêncio
   pm.addEventListener('pointerdown', e => e.stopPropagation());
   pm.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) { if (e.target === pm) G.closePause(); return; } e.stopPropagation(); const k = b.dataset.k; G.closePause();
-    if (k === 'back') { const bi = backInfo(); if (bi) bi.go(); } else if (k === 'cfg') G.ui.openPhone('ajustes'); else if (k === 'ctl') G.drive && G.drive.openSettings(); });
+    if (k === 'back') { const bi = backInfo(); if (bi) bi.go(); } else if (k === 'cfg') G.ui.openPhone('ajustes'); else if (k === 'ctl') G.drive && G.drive.openSettings(); else if (k === 'fs') document.documentElement.requestFullscreen().catch(() => { }); });
   bP.addEventListener('pointerdown', e => e.stopPropagation()); bB.addEventListener('pointerdown', e => e.stopPropagation());
   bP.onclick = (e) => { e.stopPropagation(); G.audio.init(); G.pauseOpen ? G.closePause() : G.openPause(); };
   bB.onclick = (e) => { e.stopPropagation(); G.audio.init(); const bi = backInfo(); if (bi) bi.go(); };
@@ -1042,8 +1042,7 @@ function solNext() {
 G.solaraNote = solaraNote;
 function solaraHi() { G.solaraHiShow = solaraHi;
   if (document.getElementById('solaraHi')) return;
-  const fs = touch && document.documentElement.requestFullscreen && !(window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
-  solaraNote('Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.', { fs, ms: fs ? 3400 : 2400 });
+  solaraNote('Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.' + (touch ? ' Tela cheia fica na pausa ⏸.' : ''));
 }
 G.solaraHiShow = solaraHi;
 setupVersions('solara'); // tela inicial: Versões do jogo
