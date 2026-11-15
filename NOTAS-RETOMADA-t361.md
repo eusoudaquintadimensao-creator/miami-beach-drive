@@ -165,3 +165,7 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   sweep5 (interrompido): t422/t426x8/t423x4/t418 d x2/t413 (7 de 8) PASS; t408 FAIL só no item "Marisol veste roupa feminina" (teste esperava vestido -> ajustar p/ pantalona); t405 timeouts (investigar).
 - 02:42 t408 ajustado (Marisol pantalona), t405 PASS isolado (timeouts eram da interrupção). sweep6 (resto) -> /tmp/sweep6.txt
 - 03:30 sweep6: t413 d, t408 x8, t405 x8, t402/t400/t393/t387/t361/t394/t396/t383 d+i x2 PASS, exceto solara t402 i 'placar de drift à direita' (refazer isolado). Falta heroes.js. Release C já no ar; próximo: publicar D.
+- 04:00 sweep6 completo PASS (t402 solara i refeito isolado PASS; heroes.js sem erros; ferreoLev só falha em d por fps 0,5 do software). Fix: menuOn (menu visível mesmo com quadros lentos) 21e0f2f / b8cdb86.
+  NOVO na release D: t431 Colosso no estilo do conceito (gigante musculoso, armadura marinho/grafite com placas prata, emblema sol dourado, energia nos punhos; rosto próprio)
+  + herói NOVO 'Atlas Índigo' (gigante de pele azul, queixo quadrado, olhos prata, cicatriz na sobrancelha, mesma armadura; poder: onda de choque dourada/pisão que derruba objetos, sem violência; no menu e na loja de trajes).
+  t432 (regra fixa): orçamento p/ celular fraco a cada release: modo leve automático (deviceMemory/hardwareConcurrency/GPU + FPS), texturas comprimidas, LOD/instancing, carga preguiçosa de áudio/bairros, teto de pixel ratio, testes de orçamento (download inicial, 1º quadro, FPS com CPU 4x + slow-4G), relatar números.
