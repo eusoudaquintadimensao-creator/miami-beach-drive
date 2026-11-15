@@ -194,8 +194,14 @@ export class Orla {
       this.courts.push({ z, pl: [], ball: { from: 0, u: 0, dur: 1.2, tz: z, fz: z, hits: 0, len: 6, pause: 0 }, pts: [0, 0], games: [0, 0] }); }
     // cerca baixa e torres de luz
     const fence = new THREE.MeshStandardMaterial({ color: THEME.fence, transparent: true, opacity: 0.28, side: THREE.DoubleSide, roughness: 0.9, depthWrite: false });
-    for (const [w, x, z, ry] of [[34, cx, cz - 18, 0], [34, cx, cz + 18, 0], [36, cx - 17, cz, Math.PI / 2], [36, cx + 17, cz, Math.PI / 2]]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(w, 1.4), fence); f.position.set(x, groundY(x, z) + 0.7, z); f.rotation.y = ry; R.add(f); }
-    addBox(cx - 17.2, cz - 18.2, cx + 17.2, cz - 17.8, 1.4); addBox(cx - 17.2, cz + 17.8, cx + 17.2, cz + 18.2, 1.4); addBox(cx + 16.8, cz - 18, cx + 17.2, cz + 18, 1.4);
+    // t423: cerca em painéis de ~3 m que tombam quando um carro passa (som de madeira/tela), o carro segue e a faixa da praia fica livre; voltam depois
+    const fRail = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }); this.fence = [];
+    for (const [w, x, z, ax] of [[34, cx, cz - 18, 'x'], [34, cx, cz + 18, 'x'], [36, cx - 17, cz, 'z'], [36, cx + 17, cz, 'z']]) { const n = Math.round(w / 3), L = w / n;
+      for (let k = 0; k < n; k++) { const o = -w / 2 + L * (k + 0.5); const px = ax === 'x' ? x + o : x, pz = ax === 'z' ? z + o : z; const g = new THREE.Group(); const y0 = groundY(px, pz);
+        const pl = new THREE.Mesh(new THREE.PlaneGeometry(L, 1.4), fence); pl.position.y = 0.7; g.add(pl); const top = new THREE.Mesh(new THREE.BoxGeometry(L, 0.06, 0.06), fRail); top.position.y = 1.4; g.add(top);
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.45, 0.07), fRail); post.position.set(-L / 2, 0.72, 0); g.add(post);
+        g.position.set(px, y0, pz); g.rotation.y = ax === 'x' ? 0 : Math.PI / 2; R.add(g); this.fence.push({ g, x: px, z: pz, ax, hl: L / 2, ry: g.rotation.y, down: false, t: 0, tilt: 0, dir: 1 }); } }
+    this.fenceBroken = 0;
     this.lampM = new THREE.MeshStandardMaterial({ color: THEME.lamp, emissive: C(THEME.lamp), emissiveIntensity: 0 });
     for (const [x, z] of [[cx - 16.5, cz - 17.5], [cx + 16.5, cz - 17.5], [cx - 16.5, cz + 17.5], [cx + 16.5, cz + 17.5], [SOC.x - SOC.hw - 1, SOC.z - 17], [SOC.x - SOC.hw - 1, SOC.z + 17]]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 8, 6), white); p.position.set(x, groundY(x, z) + 4, z); R.add(p); const hd = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 1.2), this.lampM); hd.position.set(x, groundY(x, z) + 8.1, z); R.add(hd); }
     const sg = sign(label(THEME.N.tennis.toUpperCase(), { size: 44, w: 640 }), 5.2, 0.85); sg.position.set(cx - 17.1, groundY(cx - 17, cz) + 2.0, cz); sg.rotation.y = -Math.PI / 2; R.add(sg);
@@ -356,6 +362,7 @@ body.touch #gymGame #ggGo{min-height:52px;font-size:17px}`; document.head.append
     if (this._lastH != null && hour < this._lastH - 12) this.day++; this._lastH = hour;
     if (near !== this.visible) { this.visible = near; this.root.visible = near; if (!near) { this.focus = null; this.card(); } }
     for (const q of this.quests) if (q.cd > 0) q.cd -= dt; for (const f of this.musos) if (f.cd > 0) f.cd -= dt;
+    this.updFence(dt, cam);
     if (!near) { if (this.game) this.finish(true); return; }
     this.t += dt; const T = this.t, P = this.G.player;
     this.focus = this.nearest(); this.card();
@@ -408,6 +415,20 @@ body.touch #gymGame #ggGo{min-height:52px;font-size:17px}`; document.head.append
       }
     }
   }
+  updFence(dt, cam) {
+    if (!this.fence) return; const G = this.G, v = G.player.vehicle;
+    const sp = v && !(v.spec && (v.spec.boat || v.spec.air)) && v.type !== 'heli' && v.type !== 'plane' ? Math.hypot(v.vx || 0, v.vz || 0) : 0;
+    const r = v ? ((v.spec && v.spec.w) || 1.8) * 0.5 + 0.3 : 0; const circ = sp > 1 ? (v.circles ? v.circles() : [[v.x, v.z]]) : [];
+    for (const f of this.fence) {
+      if (!f.down && sp > 1 && Math.abs(v.x - f.x) < 8 && Math.abs(v.z - f.z) < 8) {
+        for (const c of circ) { const cx0 = c[0], cz0 = c[1]; const along = f.ax === 'x' ? cx0 - f.x : cz0 - f.z, across = f.ax === 'x' ? cz0 - f.z : cx0 - f.x;
+          if (Math.abs(along) < f.hl + r && Math.abs(across) < r) { f.down = true; f.t = 0; const vn = f.ax === 'x' ? v.vz : v.vx; f.dir = vn >= 0 ? 1 : -1; this.fenceBroken++; v.vx *= 0.985; v.vz *= 0.985;
+            if (G.audio && G.audio.crack) G.audio.crack(Math.min(14, sp * 0.6)); break; } } }
+      if (f.down) { f.t += dt; f.tilt = Math.min(1.45, f.tilt + dt * (2.5 + f.tilt * 3)); f.g.rotation.set(0, 0, 0); f.g.rotation.y = f.ry; f.g.rotateX(f.dir * f.tilt);
+        const far = !cam || Math.hypot(cam.position.x - f.x, cam.position.z - f.z) > 60; const busy = v && Math.hypot(v.x - f.x, v.z - f.z) < 6;
+        if (!busy && (f.t > 45 || (f.t > 10 && far))) { f.down = false; f.tilt = 0; f.g.rotation.set(0, f.ry, 0); } }
+    }
+  }
   updTennis(dt, hour, far, lights) {
     const open = inH(hour, THEME.tennisOpen); this.tenOpen = open; const cx = TEN.x; const r = this.r;
     this.courts.forEach((c, ci) => { const m = this.tballs[ci]; m.visible = open && !far; if (!open || far) return; const B = c.ball;
@@ -417,7 +438,7 @@ body.touch #gymGame #ggGo{min-height:52px;font-size:17px}`; document.head.append
       const a = c.pl[B.from], b = c.pl[1 - B.from]; const ax = cx + a.side * 11.6, bx = cx + b.side * 11.6; const u = B.u;
       const x = ax + (bx - ax) * u, z = B.fz + (B.tz - B.fz) * u; let y; if (B.pause > 0) { y = 0.1 + Math.abs(Math.sin(B.pause * 6)) * 0.4 * B.pause; } else if (u < 0.72) { const k = u / 0.72; y = 1.0 + (0.05 - 1.0) * k + Math.sin(k * Math.PI) * 1.4; } else { const k = (u - 0.72) / 0.28; y = 0.05 + (1.0 - 0.05) * k + Math.sin(k * Math.PI) * 0.7; }
       m.position.set(B.pause > 0 ? ax : x, groundY(x, z) + 0.07 + y, B.pause > 0 ? a.z : z);
-      for (const p of c.pl) { const tz = p === b && B.pause <= 0 ? B.tz : p === a ? p.z : c.z; const d = tz - p.z; const v = clamp(d * 3, -4.5, 4.5); p.z += v * dt; p.x = cx + p.side * (12.3 + Math.sin(this.t * 0.7 + p.i) * 0.4); p.mode = Math.abs(v) > 0.4 ? 'walk' : 'idle'; p.amt = Math.min(0.9, Math.abs(v) / 4); p.ph += dt * (2 + Math.abs(v) * 2); if (p.swing > 0) p.swing -= dt; }
+      for (const p of c.pl) { const tz = p === b && B.pause <= 0 ? B.tz : p === a ? p.z : c.z; const d = tz - p.z; const v = clamp(d * 3, -4.5, 4.5); p.z += v * dt; p.x = cx + p.side * (12.3 + Math.sin(this.t * 0.7 + p.i) * 0.4); { const V = this.G.player.vehicle; let ox = 0, oz = 0; if (V && !(V.spec && (V.spec.boat || V.spec.air))) { const ex = p.x - V.x, ez = p.z - V.z, dd = Math.hypot(ex, ez); if (dd < 8) { const k = (8 - dd) * 0.9; ox = (ex >= 0 ? 1 : -1) * k; oz = (ez >= 0 ? 1 : -1) * k * 0.4; } } p.ox = (p.ox || 0) + (ox - (p.ox || 0)) * Math.min(1, dt * 7); p.oz2 = (p.oz2 || 0) + (oz - (p.oz2 || 0)) * Math.min(1, dt * 7); p.x += p.ox; if (Math.abs(p.ox) > 0.3) p.mode = 'walk'; } p.mode = Math.abs(v) > 0.4 ? 'walk' : 'idle'; p.amt = Math.min(0.9, Math.abs(v) / 4); p.ph += dt * (2 + Math.abs(v) * 2); if (p.swing > 0) p.swing -= dt; }
     });
   }
   write(dt, T, hour, far, roda, mOn) {
