@@ -97,3 +97,6 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   · progresso: src/wardrobe.js escrito (catálogo, applyLook, trajes, classe Wardrobe); heroes.js exporta attach.
   · commit 68aa7a0: lojas+guarda-roupa+Marisol funcionando no Solara (falta: teste t408, t412, t413, porte Neon)
   · d232c3c t412 feito no Solara (píer alto x324-386 vão livre; mar: andar/nadar ok)
+  · t414-t416 (21:03): no carro Alto e Ré ABAIXO do Freio (Freio mais alto; Alto+Ré embaixo perto da borda, longe da barra de gestos); Pausa e Voltar empilhados na borda, visíveis no carro; botões contornando cantos; botão tela limpa em todas as versões.
+    t415: testar que cada botão dispara a ação e nada sobrepõe (retrato+paisagem+desktop/Android; carro, a pé, barco, heli). t416: teste automático: caixas de texto não cruzam carro projetado + área à frente.
+  · em andamento: probe /workspace/f7/p6.js mede mensagens x carro (t413/t416)
