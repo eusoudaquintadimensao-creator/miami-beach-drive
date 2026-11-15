@@ -204,3 +204,6 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - SW no ar (Pages e site): solara-v28-2026-11-15-sobrevoo / neon-dist-v20-2026-11-15-sobrevoo.
 - Testes ao vivo rodando: /tmp/live-{solara,neon}.txt, /tmp/t432-{solara,neon}-live.txt (fim = /tmp/live-done.txt).
 - PRÓXIMO: merge t434 em main nos dois, varredura, release E (SW v29/v21).
+
+### 07:36 release E (t434) mesclado em main, SW v29/v21 jetski — Solara 64d194b, Neon 68e812d (não publicado)
+- Varredura curta sweep10 (t433, t434rec, t434jet, t426, t413 em d/i/il/al, 2 jogos): /workspace/t367/sweep10.out. Depois: push, site, conferir SW.
