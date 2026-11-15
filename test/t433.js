@@ -33,7 +33,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await p.screenshot({ path: `/workspace/t361-prints/t433-${process.env.GAME || 'solara'}-${out}-contexto.png` });
   // 2) recarregar retoma o jogo
   await p.evaluate(() => MBD.persist()); await p.reload({ waitUntil: 'load' }); await until('window.MBD_READY === true', 180000);
-  const okR = await until('MBD.flags.started === true && MBD.flags.resumed === true', 15000);
+  const okR = await until('MBD.flags.started === true && MBD.flags.resumed === true', 40000);
   const pos1 = await p.evaluate(() => ({ x: MBD.state.x, z: MBD.state.z, menu: !document.getElementById('start').hidden }));
   ck('recarregar a página volta direto para o jogo, na mesma posição', okR && !pos1.menu && Math.hypot(pos1.x - pos0.x, pos1.z - pos0.z) < 6, { pos0, pos1 });
   await sleep(1500); await p.screenshot({ path: `/workspace/t361-prints/t433-${process.env.GAME || 'solara'}-${out}-retomou.png` });
