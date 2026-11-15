@@ -138,3 +138,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 00:12 push ok: Solara ad8ae2e, Neon 09536e1. Deploy MIAMI DRIVE...
 - 00:16 MIAMI DRIVE publicado (put ok). Falta conferir sw.js no ar + live-drive.
 - 00:25 RELEASE FASE7 NO AR: 4 sw.js = solara-v26-2026-11-14-pintura / neon-dist-v18-2026-11-14-pintura; live-drive Pages iPhone + site desktop PASS nos 2 jogos. Contadores NÃO zerados. Próximas releases: menores.
+- 00:30 t423 (release pequena): cerca do tênis quebrável commit nos 2 jogos; falta teste (t418 etapa 10) + checar outdoors (t422 imagens) + SW v27/v19 + publicar.
