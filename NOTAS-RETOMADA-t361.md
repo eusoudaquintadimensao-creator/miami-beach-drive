@@ -114,3 +114,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 
 ## 22:30 t418 cabine de pintura ligada (commit 41e4c57); test/t418.js escrito; t408 etapa 8 reescrita (píer baixo). NOVO t422: auditoria de duplo sentido em TODAS as falas (ambos jogos) -> /workspace/t422-falas-revisadas.md, regenerar mp3 com as mesmas vozes.
 - 22:45 t422 feito: 31 trocas de texto (ver T422-FALAS-REVISADAS.md), 23 falas regeneradas (Kokoro, mesmas vozes), test/t422.mjs PASS nos 2 jogos; site 'feito com dedicação'.
+- 22:50 Neon com t418-t420 + Cabine Cromo Neon (045b798..), SW solara-v26-2026-11-14-pintura / neon-dist-v18-2026-11-14-pintura; t418 PASS Solara d/i, Neon d. Varredura completa /workspace/t367/sweep2.sh -> /tmp/sweep2.txt. Depois: push + deploy MIAMI DRIVE.
