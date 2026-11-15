@@ -38,7 +38,7 @@ fs.mkdirSync(SH, { recursive: true });
 
 
   let r;
-  const NAME = process.env.PINTNAME || 'Pintura';
+  const NAME = process.env.PINTNAME || (KEY === 'nd' ? 'Cabine Cromo' : 'Pintura');
   // 1) GPS e celular
   r = await ev((N) => { const G = window.__G; let gps = ''; try { const d = document.createElement('div'); G.gps.mount(d); gps = d.innerHTML; } catch (e) { gps = 'ERR ' + e.message; } return { gps: gps.includes(N) || G.paint.gpsLinks().includes(N), inMount: gps.includes(N), phone: G.paint.phoneHtml().length > 50 }; }, NAME);
   ck('1 GPS do celular lista a cabine de pintura', r.gps && r.phone, r);
