@@ -163,3 +163,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - RELEASE D — t426 (menu/heróis maduros, neutros, cinematográficos, designs próprios; Marisol de calça; carregamento mais rápido + barra real)
   + t428 (sobrevoo de drone no carregamento; conceito /workspace/ideias-inicio/conceito-01-sobrevoo-carregamento.jpg). Commits locais até 47f6916 (Solara) / d84229b (Neon), SW v28/v20.
   sweep5 (interrompido): t422/t426x8/t423x4/t418 d x2/t413 (7 de 8) PASS; t408 FAIL só no item "Marisol veste roupa feminina" (teste esperava vestido -> ajustar p/ pantalona); t405 timeouts (investigar).
+- 02:42 t408 ajustado (Marisol pantalona), t405 PASS isolado (timeouts eram da interrupção). sweep6 (resto) -> /tmp/sweep6.txt
