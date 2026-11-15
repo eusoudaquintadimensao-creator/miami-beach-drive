@@ -979,3 +979,14 @@ body.menuIn #start{opacity:1}
 #start .avCard.sel:after{background:var(--gold);color:#17130b}
 @media (orientation:portrait){#start{justify-content:flex-end}#start .logo{margin-bottom:auto;margin-top:calc(var(--sat) + 9vh)}}
 @media (max-height:760px){#start .t2{font-size:clamp(30px,7vw,48px)}#start .menu{padding:10px}}
+/* t426: menu compacto — JOGAR largo, ações secundárias em grade de 2 colunas (o sobrevoo aparece mais) */
+#start .menu{flex-direction:row;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8px}
+#start .menu>*{flex:0 0 100%}
+#start .menu>#play{flex:0 0 100%;margin:4px 0 2px}
+#start .menu>.install{flex:1 1 calc(50% - 8px);min-width:0;padding:9px 8px;font-size:13px;line-height:1.2}
+#start .menu>.install[hidden]{display:none}
+#start .menu>label{flex:0 0 auto;margin-top:2px}
+#start .avPick{max-width:100%}
+#start .avCard{width:100px}
+#start .avCard img{width:76px;height:100px}
+@media (orientation:landscape) and (max-height:500px){#start{flex-direction:row;align-items:center;justify-content:space-between;padding-left:calc(var(--sal) + 24px);padding-right:calc(var(--sar) + 16px)}#start .logo{text-align:left;margin:0}#start .menu{width:min(60vw,560px);max-height:calc(100vh - 24px);overflow-y:auto}#start .avCard{width:84px}#start .avCard img{width:60px;height:78px}}

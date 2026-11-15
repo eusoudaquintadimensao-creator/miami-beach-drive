@@ -44,11 +44,12 @@ function ui(dt) {
 
 // ---- cena mínima
 function pal() {
-  const h = hour, night = h < 5.8 || h > 19.6, gold = (h > 16.2 && h <= 19.6) || (h >= 5.8 && h < 8);
-  if (CFG.neon || night) return { top: 0x070b16, hor: 0x1b2a44, sun: 0x6a86c8, sea: 0x0a2230, sea2: 0x10414a, sand: 0x6b6250, ground: 0x1b1f24, fac: [0x2a2f38, 0x323843, 0x1f242c], win: 0xffd38a, winOn: 0.85, fog: 0x14203a, sunDir: [0.3, 0.25, -0.9] };
-  if (gold) return { top: 0x3b4a66, hor: 0xf2b46a, sun: 0xffd08a, sea: 0x0d4a5a, sea2: 0x2f9a9a, sand: 0xe0c48e, ground: 0x6f7a62, fac: [0xe9dcc6, 0xd9cdb8, 0xb8c4cc, 0xf2ece0], win: 0xffcf8a, winOn: 0.25, fog: 0xe0a970, sunDir: [-0.85, 0.12, 0.2] };
-  return { top: 0x2f6fb4, hor: 0xbfe0f2, sun: 0xfff6dc, sea: 0x0b5d74, sea2: 0x37c2c0, sand: 0xeedcb0, ground: 0x7d9a62, fac: [0xf4efe6, 0xe6e0d4, 0xbcd0dc, 0xffffff], win: 0xffe9b0, winOn: 0.0, fog: 0xbfd8e8, sunDir: [-0.5, 0.6, 0.3] };
+  const h = hour, night = h < 5.8 || h > 19.6, gold = (h > 17.6 && h <= 19.6) || (h >= 5.8 && h < 7.2);
+  if (CFG.neon || night) return { top: 0x070b16, mid: 0x111c33, hor: 0x24365a, sun: 0x6a86c8, sea: 0x0a2230, sea2: 0x10414a, sand: 0x6b6250, ground: 0x1b1f24, fac: [0x2a2f38, 0x323843, 0x1f242c], win: 0xffd38a, winOn: 0.85, fog: 0x14203a, sunDir: [0.3, 0.25, -0.9] };
+  if (gold) return { top: 0x24344f, mid: 0xc98a6a, hor: 0xffc27a, sun: 0xffd08a, sea: 0x125e6c, sea2: 0x3fb3ad, sand: 0xe0c48e, ground: 0x6f7a62, fac: [0xe9dcc6, 0xd9cdb8, 0xb8c4cc, 0xf2ece0], win: 0xffcf8a, winOn: 0.25, fog: 0xe0a970, sunDir: [-0.85, 0.12, 0.2] };
+  return { top: 0x2f6fb4, mid: 0x7fb0d8, hor: 0xd6ecf6, sun: 0xfff6dc, sea: 0x0b5d74, sea2: 0x37c2c0, sand: 0xeedcb0, ground: 0x7d9a62, fac: [0xf4efe6, 0xe6e0d4, 0xbcd0dc, 0xffffff], win: 0xffe9b0, winOn: 0.0, fog: 0xbfd8e8, sunDir: [-0.5, 0.6, 0.3] };
 }
+const LC = (h) => new THREE.Color(h); // cores em espaço linear; os shaders convertem para a tela no fim (colorspace_fragment)
 function rng(s) { return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
 function build() {
   const P = pal(); scene = new THREE.Scene(); scene.fog = new THREE.Fog(P.fog, 260, 2600);
@@ -56,24 +57,24 @@ function build() {
   const sd = new THREE.Vector3(...P.sunDir).normalize();
   // céu
   const sky = new THREE.Mesh(new THREE.SphereGeometry(5000, 24, 12), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(P.top) }, hor: { value: new THREE.Color(P.hor) }, sun: { value: new THREE.Color(P.sun) }, sd: { value: sd } },
+    uniforms: { top: { value: LC(P.top) }, mid: { value: LC(P.mid) }, hor: { value: LC(P.hor) }, sun: { value: LC(P.sun) }, sd: { value: sd } },
     vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
-    fragmentShader: 'uniform vec3 top,hor,sun,sd; varying vec3 vD; void main(){ float y = max(vD.y,0.); vec3 c = mix(hor, top, pow(y,0.55)); float s = max(dot(normalize(vD), sd),0.); c += sun*(pow(s,600.)*2.+pow(s,12.)*0.35); if (vD.y<0.) c = hor*0.8; gl_FragColor = vec4(c,1.); }' }));
+    fragmentShader: 'uniform vec3 top,mid,hor,sun,sd; varying vec3 vD; void main(){ float y = max(vD.y,0.); vec3 c = mix(hor, mid, smoothstep(0.,.12,y)); c = mix(c, top, smoothstep(.1,.6,y)); float s = max(dot(normalize(vD), sd),0.); c += sun*(pow(s,600.)*2.+pow(s,12.)*0.35); if (vD.y<0.) c = hor*0.8; gl_FragColor = vec4(c,1.); \n#include <colorspace_fragment>\n}' }));
   scene.add(sky);
   // mar: raso perto da areia, fundo longe; ondulação e brilho do sol baratos
-  const seaM = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, a: { value: new THREE.Color(P.sea) }, b: { value: new THREE.Color(P.sea2) }, sun: { value: new THREE.Color(P.sun) }, sd: { value: sd } }]),
+  const seaM = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, hz: { value: LC(P.hor) }, a: { value: LC(P.sea) }, b: { value: LC(P.sea2) }, sun: { value: LC(P.sun) }, sd: { value: sd } }]),
     vertexShader: 'varying vec3 vW;\n#include <fog_pars_vertex>\nvoid main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; vec4 mvPosition = viewMatrix*w; gl_Position = projectionMatrix*mvPosition; \n#include <fog_vertex>\n}',
-    fragmentShader: 'uniform float t; uniform vec3 a,b,sun,sd; varying vec3 vW; \n#include <fog_pars_fragment>\nvoid main(){ float sh = clamp(1.-(vW.x-390.)/160.,0.,1.); vec3 c = mix(a,b,sh*sh); float w = sin(vW.x*.09+t*1.3)*sin(vW.z*.07-t*.9)+sin((vW.x+vW.z)*.21+t*2.1)*.5; vec3 V = normalize(cameraPosition-vW); vec3 N = normalize(vec3(w*.06,1.,w*.05)); vec3 R = reflect(-V,N); float s = pow(max(dot(R,sd),0.),180.); float fr = pow(1.-max(V.y,0.),4.); c = c*(0.85+w*.06)+sun*s*1.6+vec3(.6,.7,.8)*fr*.25; float foam = smoothstep(.0,4.,6.-abs(vW.x-391.-sin(vW.z*.05+t)*1.5)); c = mix(c, vec3(.95), foam*.55); gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n}' });
+    fragmentShader: 'uniform float t; uniform vec3 a,b,sun,sd,hz; varying vec3 vW; \n#include <fog_pars_fragment>\nvoid main(){ float sh = clamp(1.-(vW.x-390.)/160.,0.,1.); vec3 c = mix(a,b,sh*sh); float w = sin(vW.x*.09+t*1.3)*sin(vW.z*.07-t*.9)+sin((vW.x+vW.z)*.21+t*2.1)*.5; vec3 V = normalize(cameraPosition-vW); vec3 N = normalize(vec3(w*.06,1.,w*.05)); vec3 R = reflect(-V,N); float s = pow(max(dot(R,sd),0.),180.); float fr = pow(1.-max(V.y,0.),4.); c = mix(c*(0.9+w*.06), hz, fr*.55)+sun*s*1.6; float foam = smoothstep(.0,4.,6.-abs(vW.x-391.-sin(vW.z*.05+t)*1.5)); c = mix(c, vec3(.95), foam*.55); gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n#include <colorspace_fragment>\n}' });
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), seaM); sea.rotation.x = -Math.PI / 2; sea.position.set(1800, -0.6, 0); scene.add(sea); B._sea = seaM;
-  const flat = (c) => new THREE.MeshBasicMaterial({ color: c });
+  const flat = (c) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
   const sand = new THREE.Mesh(new THREE.PlaneGeometry(76, 1500), flat(P.sand)); sand.rotation.x = -Math.PI / 2; sand.position.set(355, 0, 0); scene.add(sand);
   const isl = new THREE.Mesh(new THREE.PlaneGeometry(300, 1500), flat(P.ground)); isl.rotation.x = -Math.PI / 2; isl.position.set(168, -0.05, 0); scene.add(isl);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(16, 1500), flat(0x3a3c40)); road.rotation.x = -Math.PI / 2; road.position.set(306, 0.05, 0); scene.add(road);
   // prédios instanciados com janelas procedurais (sem texturas)
   const N = 170, geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
-  const bm = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { win: { value: new THREE.Color(P.win) }, on: { value: P.winOn }, sd: { value: sd } }]),
+  const bm = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { win: { value: LC(P.win) }, on: { value: P.winOn }, sd: { value: sd } }]),
     vertexShader: 'attribute vec3 col; varying vec3 vC, vN, vL;\n#include <fog_pars_vertex>\nvoid main(){ vC = col; vec4 w = modelMatrix*instanceMatrix*vec4(position,1.); vL = (instanceMatrix*vec4(position,1.)).xyz; vN = normalize(mat3(instanceMatrix)*normal); vec4 mvPosition = viewMatrix*w; gl_Position = projectionMatrix*mvPosition; \n#include <fog_vertex>\n}',
-    fragmentShader: 'uniform vec3 win, sd; uniform float on; varying vec3 vC, vN, vL; \n#include <fog_pars_fragment>\nvoid main(){ float l = .55+.45*max(dot(normalize(vN),sd),0.); vec3 c = vC*l; if (abs(vN.y)<.5){ vec2 q = vec2(abs(vN.x)>.5?vL.z:vL.x, vL.y); vec2 g = fract(q/vec2(3.2,3.4)); float wnd = step(.18,g.x)*step(g.x,.82)*step(.25,g.y)*step(g.y,.8); float h = fract(sin(dot(floor(q/vec2(3.2,3.4)),vec2(12.9898,78.233)))*43758.5); c = mix(c, c*.55+vec3(.08,.12,.16), wnd*.6); c += win*wnd*step(.62,h)*on; } gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n}' });
+    fragmentShader: 'uniform vec3 win, sd; uniform float on; varying vec3 vC, vN, vL; \n#include <fog_pars_fragment>\nvoid main(){ float l = .55+.45*max(dot(normalize(vN),sd),0.); vec3 c = vC*l; if (abs(vN.y)<.5){ vec2 q = vec2(abs(vN.x)>.5?vL.z:vL.x, vL.y); vec2 g = fract(q/vec2(3.2,3.4)); float wnd = step(.18,g.x)*step(g.x,.82)*step(.25,g.y)*step(g.y,.8); float h = fract(sin(dot(floor(q/vec2(3.2,3.4)),vec2(12.9898,78.233)))*43758.5); c = mix(c, c*.55+vec3(.08,.12,.16), wnd*.6); c += win*wnd*step(.62,h)*on; } gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n#include <colorspace_fragment>\n}' });
   const im = new THREE.InstancedMesh(geo, bm, N); const col = new Float32Array(N * 3); const r = rng(42); const m4 = new THREE.Matrix4(); const cc = new THREE.Color();
   for (let i = 0; i < N; i++) {
     const front = i < 70; const z = -660 + (front ? (i / 70) * 1320 : r() * 1320) + (r() - 0.5) * 8;

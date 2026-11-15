@@ -39,8 +39,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ck('100% ao ficar pronto, menu entra sozinho sobre a cidade (sem tela preta)', r.pct === 100 && r.menuIn && r.op > 0.9 && r.ld === 'none' && !r.dis && /JOGAR/.test(r.play), r);
   ck('tema maduro: botão dourado (sem rosa), sem o sol listrado', /226, 193, 120|184, 137, 58/.test(r.bg) && !/255, 79, 184/.test(r.bg) && !r.sun, { bg: r.bg.slice(0, 90) });
   // câmera do menu continua o sobrevoo
-  const c1 = await ev(() => { const p = window.__G.camera ? window.__G.camera.position : null; return p ? [p.x, p.y, p.z] : null; }); await sleep(1000);
-  const c2 = await ev(() => { const p = window.__G.camera ? window.__G.camera.position : null; return p ? [p.x, p.y, p.z] : null; });
+  const cp = () => ev(() => { const p = window.__G.camera ? window.__G.camera.position : null; return p ? [p.x, p.y, p.z] : null; });
+  const c1 = await cp(); let c2 = c1; for (let k = 0; k < 20 && c2 && c1 && Math.hypot(c1[0] - c2[0], c1[1] - c2[1], c1[2] - c2[2]) <= 0.5; k++) { await sleep(500); c2 = await cp(); } // quadros lentos no renderizador de software do teste
   ck('sobrevoo continua atrás do menu (câmera em movimento)', c1 && c2 && Math.hypot(c1[0] - c2[0], c1[1] - c2[1], c1[2] - c2[2]) > 0.5, { c1, c2 });
   await page.screenshot({ path: `/workspace/t361-prints/t426-${GAME}-${out}-menu.png` });
   // Controles recolhidos
