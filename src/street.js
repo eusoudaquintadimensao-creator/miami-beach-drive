@@ -86,7 +86,7 @@ export class Street {
     const n = this.nearRival(50);
     if (!n) { this._flashWhy = 'none:' + G.env.hour; { const k = this.rank(); G.ui.toast(`💡 Nenhum rival por perto · Liga: <b>${k.pos}º</b> lugar · reputação <b>${this.save.rep}</b> · procure 🏎️ no mapa`, 2800); } return false; }
     const r = n.r; if (this.save.rep < r.need) { this._flashWhy = 'rep'; this.say(r, pick(STREET.locked)); G.ui.toast(`🔒 ${r.name} pede reputação ${r.need} (você tem ${this.save.rep})`, 2600); return false; }
-    if (!v || v.spec.boat || v.spec.air) { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Pegue um carro e pisque o farol (L / 💡) para correr', 2400); return false; }
+    if (!v || v.spec.boat || v.spec.air) { this._flashWhy = 'car:' + (v ? v.type : 'null'); this.say(r, pick(STREET.idle)); G.ui.toast('🚗 Entre num carro e pisque o farol (L / 💡) para correr', 2400); return false; }
     if (G.race.active || G.missions.active) { this._flashWhy = 'busy'; G.ui.toast('Termine a missão/corrida atual antes do racha', 2200); return false; }
     this._flashWhy = 'ok'; this.start(n.ri, n); return true;
   }

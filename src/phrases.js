@@ -19,7 +19,7 @@ export const GENERIC_PERS = ['surfista', 'vovo', 'influencer', 'turista', 'mecan
 // cumprimento por período do dia
 const GREET = {
   manha: [(c) => `Bom dia, ${c.am}! O sol já tá brilhando em Solara ☀️`, 'Bom dia! Nada como o cheirinho de maresia de manhã.', 'Bom dia! Cedinho a cidade é só nossa.', (c) => `Bom dia, ${c.am}! Já tomou café?`],
-  tarde: ['Boa tarde! Que calorzinho gostoso, né?', (c) => `Boa tarde, ${c.am}! Dia perfeito pra rolê.`, 'Boa tarde! A praia tá lotada hoje.', 'Boa tarde! Tô derretendo aqui 😅'],
+  tarde: ['Boa tarde! Que calorzinho bom, né?', (c) => `Boa tarde, ${c.am}! Dia perfeito pra rolê.`, 'Boa tarde! A praia tá lotada hoje.', 'Boa tarde! Tô derretendo aqui 😅'],
   por: ['Olha esse pôr do sol… Solara fica cor-de-rosa 🌅', 'Chegou a hora mais bonita do dia!', (c) => `Boa tardinha, ${c.am}! Corre pro píer ver o sol se pôr.`, 'Esse céu laranja parece pintura, né?'],
   noite: ['Boa noite! O neon da Ocean Drive já acendeu 💜', (c) => `Boa noite, ${c.am}! A cidade ganha outra vida agora.`, 'Boa noite! Ouviu o helicóptero passando? Os holofotes são lindos.', 'Boa noite! Hoje a lua tá caprichada 🌙'],
   madrugada: ['Ainda acordado(a)? A madrugada aqui é tranquila…', (c) => `Uau, ${c.am}, você também é da madrugada? 🌙`, 'Madrugada em Solara: só o barulho do mar e o neon piscando.', 'Psiu… a cidade tá dormindo 😴'],
@@ -43,7 +43,7 @@ const CAR = [
 ];
 const MISSION = [
   (c) => c.mission === 'entrega' ? 'Tá fazendo entrega? Corre que o cliente tá esperando! 📦' : null,
-  (c) => c.mission === 'taxi' ? 'Taxista! Dirige com carinho que a gorjeta vem 💸' : null,
+  (c) => c.mission === 'taxi' ? 'Taxista! Dirige com cuidado que a gorjeta é garantida 💸' : null,
   (c) => c.mission === 'corrida' ? 'Tá no meio de uma corrida? Foco nos checkpoints! 🏁' : null,
   (c) => c.mission === 'foto' ? 'Indo tirar foto? Vai na hora do pôr do sol que bomba de curtida 📸' : null,
   (c) => c.mission === 'favor' ? 'Tá ajudando alguém? Solara precisa de mais gente assim 💛' : null,
@@ -71,13 +71,13 @@ const TIPS = [
 // autódromo, drift e nitro (quando você chega num carro de corrida ou perto da pista)
 const RACE = [
   'Bora apostar um racha no Autódromo Neon? Lá é na pista, sem perigo pra ninguém!',
-  'Freia na entrada da curva e vira: a traseira sai de lado. Isso é drift!',
+  'Freia na entrada da curva e vira: o carro escorrega de lado. Isso é drift!',
   'Guarda o nitro pra reta principal. Na curva ele só te joga pra fora.',
   'Dizem que a Luna Turbo tá invicta no autódromo. Será que você ganha dela?',
   'Esse carro de corrida é lindo demais! Parece de videogame.',
   'Que ronco desse motor! Dá pra ouvir lá da praia.',
   'Quanto mais tempo de lado no drift, mais o nitro enche. Aproveita as curvas!',
-  'Fiquei sabendo que a curva do grampo no autódromo é traiçoeira. Entra devagar!',
+  'Fiquei sabendo que a curva do grampo no autódromo é traiçoeira. Reduz antes dela!',
 ];
 // direções pela cidade (o morador ensina o caminho)
 const DIRS = [
@@ -108,7 +108,7 @@ export const ROUTINE = {
   bar: ['Esse suco de maracujá tá geladinho!', 'Vim ver o pôr do sol com os amigos.'],
   trabalho: ['Tô atrasado pro trabalho!', 'Reunião às nove, bora!'],
   compras: ['Achei uma promoção ótima!', 'Mais uma sacola, não resisti.'],
-  praia: ['Dia perfeito pra pegar onda!', 'Passa o protetor, hein!'],
+  praia: ['Dia perfeito pra surfar!', 'Passa o protetor, hein!'],
   corrida: ['Mais cinco quilômetros e eu paro!', 'Correr na orla é outra coisa.'],
   cachorro: ['O Bolinha adora passear na orla!', 'Calma, Pipoca, devagar!'],
   academia: ['Hoje é dia de perna!', 'Mais uma série e acabou!'],
@@ -130,15 +130,15 @@ export const THANKS = ['Valeu demais! 💛', 'Você é demais! Obrigado(a)!', 'C
 // falas próprias de cada personalidade
 const OWN = {
   surfista: ['O mar tá com umas ondinhas perfeitas hoje, brother 🌊', 'Já surfei no Píer da Praia ao amanhecer. Recomendo demais!', 'Prancha, protetor e paz. É disso que eu preciso.', 'Se vir uma prancha azul perdida, é minha 😅', 'Vida de surfista: acordar cedo e dormir com o barulho do mar.'],
-  vovo: (c) => [`Moro em Solara há 50 anos, ${c.qa}. Antes nem tinha esses prédios todos!`, 'Quando eu era moça, a Ocean Drive era de terra batida, acredita?', `Come direito, ${c.qa}! Tá muito magrinho(a).`, 'Meu neto vive no celular… mas me ensinou a postar na Vibez 😄', 'O segredo da vida longa? Caminhar na orla e falar com todo mundo.'],
+  vovo: (c) => [`Moro em Solara há 50 anos, ${c.qa}. Antes nem tinha esses prédios todos!`, 'Quando eu era moça, a Ocean Drive era de terra batida, acredita?', `Se alimenta direito, ${c.qa}! Tá muito magrinho(a).`, 'Meu neto vive no celular… mas me ensinou a postar na Vibez 😄', 'O segredo da vida longa? Caminhar na orla e falar com todo mundo.'],
   influencer: ['Peraí que eu tô gravando um story… pronto! Oi!', 'Esse ângulo aqui com a roda-gigante ao fundo é TUDO ✨', 'Se postar com a hashtag #SolaraBay o alcance vai lá em cima!', 'Já fez uma selfie no Farol de Solara? É o meu lugar favorito.', 'Engajamento hoje tá ótimo! Deve ser o pôr do sol 🌅'],
   turista: ['Vim de muito longe só pra ver essa praia. Valeu cada hora de voo!', 'Que cidade colorida! Esses prédios art déco parecem doces 🍬', 'Desculpa, meu português ainda é básico… mas eu amei tudo aqui!', 'Onde fica a Roda-gigante da Baía? Quero ir à noite!', 'Já tirei 300 fotos hoje e ainda não chegou no hotel.'],
   mecanico: ['Escuta esse motor… música pros meus ouvidos 🎶', 'Aerofólio não é só enfeite: segura o carro nas curvas!', 'Neon embaixo do carro? Vai de rosa ou ciano, nunca erra.', 'Racha de rua aqui é limpo: ninguém bate, ninguém se machuca. Só talento.', 'Rodas aro grande e kit largo deixam qualquer carro bravo.'],
   pescador: ['Hoje a pescaria rendeu: três robalos e uma bota velha 🥾', 'Quando as gaivotas voam baixo, é chuva na certa.', 'A marina é meu escritório. Melhor vista da cidade!', 'Pescar ensina paciência, sabia?', 'Vi um golfinho perto da marina hoje cedo 🐬'],
-  salva: ['Nade sempre perto do posto de salva-vidas, combinado?', 'Bandeira verde hoje: mar tranquilo 🟢', 'Passa protetor de novo a cada duas horas, viu?', 'Meu trabalho é garantir que todo mundo volte pra casa feliz.', 'Daqui da torre eu vejo a praia inteira. Inclusive você 👀'],
-  dj: ['Hoje à noite tem som na Ocean Drive! Synthwave até o sol nascer 🎶', 'Já ouviu a rádio Neon 88? Fui eu que mixei a vinheta (mentira 😂).', 'Batida boa é igual onda: vem, vai e te leva junto.', 'Liga o rádio do carro e aperta R pra trocar de estação!', 'Neon, batida e brisa do mar. Solara é uma pista de dança!'],
+  salva: ['Nade sempre perto do posto de salva-vidas, combinado?', 'Bandeira verde hoje: mar tranquilo 🟢', 'Passa protetor de novo a cada duas horas, viu?', 'Meu trabalho é garantir que todo mundo volte pra casa feliz.', 'Daqui da torre eu vejo a praia inteira. Tudo tranquilo hoje 👀'],
+  dj: ['Hoje à noite tem som na Ocean Drive! Synthwave até o sol nascer 🎶', 'Já ouviu a rádio Neon 88? Fui eu que mixei a vinheta (mentira 😂).', 'Música boa é igual onda: chega e leva todo mundo pra dançar.', 'Liga o rádio do carro e aperta R pra trocar de estação!', 'Neon, batida e brisa do mar. Solara é uma pista de dança!'],
   corredor: ['Tô no quilômetro 8… ou 9? Perdi a conta 😅', 'Correr na orla de manhã é o melhor remédio.', 'Se eu correr mais rápido que você de carro, me paga um açaí? 😂', 'Hidrata, hein! Esse sol não perdoa.', 'Meu recorde é ida e volta no Píer da Praia em 12 minutos.'],
-  acai: ['Açaí com banana e granola, o mais pedido de Solara! 🍧', 'Fofoca do dia: dizem que tem uma concha neon escondida no farol…', 'Freguês bom é freguês que volta! Volta, hein?', 'Já experimentou açaí com leite condensado? Pecado gostoso.', 'Minha barraquinha tá aqui faz 20 anos. Vi essa cidade crescer!'],
+  acai: ['Açaí com banana e granola, o mais pedido de Solara! 🍧', 'Fofoca do dia: dizem que tem uma concha neon escondida no farol…', 'Freguês bom é freguês que volta! Volta, hein?', 'Já experimentou açaí com leite condensado? Docinho demais!', 'Minha barraquinha tá aqui faz 20 anos. Vi essa cidade crescer!'],
   piloto: ['O helicóptero fica no heliponto ali na frente. Entra com E (ou 🚗) quando estiver pertinho.', 'No ar: W/S frente e ré, A/D gira, Espaço sobe e Shift desce. No celular, use ⤒ Subir e ⤓ Descer.', 'Para descer do helicóptero, pouse com calma em qualquer lugar plano ou no telhado de um prédio.', 'Lá de cima, à noite, a Ocean Drive parece um rio de neon 🌃', 'Voo panorâmico é de graça! Só não esqueça de pousar devagar.'],
 };
 // reações quando você passa de carro tunado ou solta o nitro

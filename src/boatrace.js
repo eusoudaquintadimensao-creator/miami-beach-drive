@@ -64,7 +64,7 @@ export class BoatRace {
     this.race = { t: -3.5, beep: 4, s0, ais, lap: 0, prog: 0, last: null, hint: null, done: false, k: 0 };
     const nm = {}; BOAT_RACE.racers.forEach((r, k) => { nm[r.fem ? (k ? 'duda' : 'bia') : 'tche'] = r.name; }); this.radio.names = Object.assign({ lipe: 'Lipe (rádio)', valdo: 'Valdo (rádio)' }, nm); this.radio.load(); this.radio.reset();
     setTimeout(() => this.race && this.radio.say('boatStart', null, 0, true), 700);
-    G.ui.toast(`🚤 <b>${BOAT_RACE.name}</b> · ${BOAT_RACE.laps} voltas pelas boias · 4 lanchas tunadas · siga o anel rosa`, 3200); this.hud(true); return true;
+    G.ui.toast(`🚤 <b>${BOAT_RACE.name}</b> · ${BOAT_RACE.laps} voltas pelas boias · 4 lanchas tunadas · siga o arco rosa`, 3200); this.hud(true); return true;
   }
   position() { const R = this.race; if (!R) return 1; const me = R.prog; let k = 1; for (const a of R.ais) if (a.s - R.s0 > me) k++; return k; }
   end(fin, why) {

@@ -537,7 +537,7 @@ function enterVehicle(v) {
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
   if (airToast(v)) { } else
-  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : (touch ? ' · deslize para cima: nitro · para baixo: drift' : '')}`, 2400);
+  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para buscar passageiros' : (touch ? ' · deslize para cima: nitro · para baixo: drift' : '')}`, 2400);
   if (STATIONS[G.audio.station].bpm) G.ui.radio(STATIONS[G.audio.station]);
   G.camYaw = v.h;
 }
@@ -561,7 +561,7 @@ function action() {
   p.vehicle = v; v.driver = p; v.parked = false; v.vx = v.vz = v.vf = 0;
   seatHero(v);
   if (airToast(v)) { } else
-  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para pegar passageiros' : ''}`, 2400);
+  G.ui.toast(`${v.spec.name}${v.type === 'taxi' ? ' · aperte <b>Iniciar</b> para buscar passageiros' : ''}`, 2400);
   if (STATIONS[G.audio.station].bpm) G.ui.radio(STATIONS[G.audio.station]);
   G.camYaw = v.h;
 }

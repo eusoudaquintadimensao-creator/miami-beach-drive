@@ -4,8 +4,8 @@
 const CARRO = [
   'Mas bah, tchê! Que máquina linda!', 'Barbaridade, que carrão, vivente!', 'Mas que tal! Esse possante é tri!', 'Ô loco de especial, que baita carro!',
   'Bah, guri, esse aí é bagual de bom!', 'Capaz! Um carro desses aqui na orla?', 'Índio véio já viu de tudo, mas um carro assim, nunca!', 'Mas bah, esse motor ronca que nem trovão de inverno!',
-  'Barbaridade, tchê! Isso aí custou uma baita pila!', 'Que lindeza de carro, vivente! Tri bonito!', 'Bah, que carro faceiro, tchê!', 'Mas que tal esse brilho? Parece prenda em baile!',
-  'Ô guria, olha só que máquina passando!', 'Bah, com um carro desses até o chimarrão fica mais gostoso!', 'Capaz que esse carro é teu, tchê? Tri massa!',
+  'Barbaridade, tchê! Isso aí custou um dinheirão!', 'Que lindeza de carro, vivente! Tri bonito!', 'Bah, que carro faceiro, tchê!', 'Mas que tal esse brilho? Parece prenda em baile!',
+  'Ô guria, olha só que máquina passando!', 'Bah, com um carro desses até o chimarrão fica mais saboroso!', 'Capaz que esse carro é teu, tchê? Tri massa!',
 ];
 const CIDADE = [
   'Mas bah, que cidade bonita, tchê! Parece um quadro!', 'Barbaridade, que praia linda, vivente!', 'Bah, esse mar é mais azul que bombacha nova!', 'Mas que tal esse pôr do sol? É de chorar, tchê!',

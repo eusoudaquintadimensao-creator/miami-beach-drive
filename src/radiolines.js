@@ -26,7 +26,7 @@ export const RADIO = {
     ['duda', 'Que linha! Desenhou a curva com fumaça!'],
     ['valdo', 'Barbaridade, piá! Esse drift merece um churrasco!'],
     ['lipe', 'Que isso, mano! Tá dançando com o carro!'],
-    ['lipe', 'Segura, segura! Esse drift não acaba nunca! Que delícia!'],
+    ['lipe', 'Segura, segura! Esse drift não acaba nunca! Que show!'],
     ['valdo', 'Capaz! Saiu tanta fumaça que os peixes pensaram que era neblina!'],
     ['duda', 'Pêndulo perfeito! Trocou de lado igual passo de dança!'],
   ],
@@ -34,15 +34,15 @@ export const RADIO = {
     ['bia', 'Colou em mim! Tandem de novela, que coisa linda!'],
     ['tche', 'Bah, porta com porta! Parece até ensaiado, tchê!'],
     ['duda', 'Que proximidade! Dá pra passar o sal daqui!'],
-    ['lipe', 'Gruda, gruda! Somos um trenzinho de fumaça!'],
-    ['valdo', 'Tá no meu para-choque, guri! Assim que o véio gosta!'],
+    ['lipe', 'Lado a lado! Parece esquadrilha de fumaça!'],
+    ['valdo', 'Tá colado na minha linha, guri! Que tandem bonito!'],
     ['bia', 'Isso! Mesma fumaça, mesmo ângulo, mesma alegria!'],
   ],
   wall: [
     ['valdo', 'Ó a mureta, tchê! Ela não quer beijinho!'],
     ['duda', 'Opa! Tá raspando a mureta! Ela é tímida, dá espaço!'],
     ['tche', 'Bah, guri, quase pintou a mureta com teu carro!'],
-    ['lipe', 'Abre um pouquinho! A mureta tá com ciúme!'],
+    ['lipe', 'Afasta um pouquinho! A mureta tá com ciúme!'],
     ['bia', 'Cuidado aí! A mureta chegou primeiro!'],
   ],
   crash: [
@@ -64,7 +64,7 @@ export const RADIO = {
     ['lipe', 'Ei! Me ultrapassou de lado? Respeito, mestre!'],
     ['duda', 'Ultrapassagem limpinha! Nem senti o vento!'],
     ['valdo', 'Vai lá, piá! Mostra o caminho pro véio!'],
-    ['bia', 'Pode ir! Eu colo no teu vácuo e dou tchauzinho!'],
+    ['bia', 'Pode ir! Eu fico no teu vácuo e aceno tchauzinho!'],
   ],
   aiPass: [
     ['bia', 'Com licença! Passando por fora com charme!'],
@@ -133,7 +133,7 @@ export const RADIO = {
     ['bia', 'Olha aquela ilha! Que lugar bonito, gente!'],
     ['tche', 'Bah, olha a ilha ali do lado! Mansão, palmeira e piscina. Quero morar lá, tchê!'],
     ['duda', 'Ilha nova à vista! Parece cartão-postal!'],
-    ['lipe', 'Mano, olha essa ilha! Cada minuto aparece uma diferente. A gente tá viajando!'],
+    ['lipe', 'Mano, olha essa ilha! Cada minuto aparece uma diferente. Que passeio!'],
     ['valdo', 'Capaz! Que ilha linda! Dá até vontade de parar pra pescar.'],
     ['bia', 'Olha que lugar bonito! Até o mar ficou mais azul!'],
     ['duda', 'Que vista! Essa ponte leva a gente pra cada lugar!'],
@@ -163,7 +163,7 @@ export const RADIO = {
     ['duda', 'Subiu de posição! Bora pro primeiro!'],
     ['tche', 'Bah, passou mais um! Tá voando, tchê!'],
     ['lipe', 'Ganhou posição! Desse jeito o pódio é teu!'],
-    ['bia', 'Mais uma posição! Que pilotagem gostosa de ver!'],
+    ['bia', 'Mais uma posição! Que pilotagem bonita de ver!'],
   ],
   win1: [
     ['tche', 'Primeiro lugar! Bah, tchê, tu é o rei da ponte!'],
@@ -193,8 +193,8 @@ export const RADIO = {
     ['bia', 'Liderança! Segura a linha e curte a cidade!'],
   ],
   stChase: [
-    ['tche', 'Vem me pegar, tchê! Tô logo ali na frente!'],
-    ['lipe', 'Tá ficando pra trás! Bota um nitro nisso!'],
+    ['tche', 'Vem me alcançar, tchê! Tô logo ali na frente!'],
+    ['lipe', 'Tá ficando pra trás! Liga o nitro!'],
     ['duda', 'Ainda dá tempo! Na próxima curva tu passa!'],
     ['bia', 'Calma que dá! Segue as setas e acelera na reta!'],
   ],
@@ -223,7 +223,7 @@ export const RADIO = {
   ],
   // ---- t367: lanchas
   boatStart: [
-    ['bia', 'Corrida de lanchas! Segura o chapéu que vai molhar!'],
+    ['bia', 'Corrida de lanchas! Segura o chapéu que vai respingar!'],
     ['tche', 'Bah, lancha tunada na água! Bora fazer onda, tchê!'],
   ],
   boatWin: [

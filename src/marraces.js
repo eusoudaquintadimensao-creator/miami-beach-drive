@@ -22,7 +22,7 @@ const THEME = {
   ],
   chat: [
     '{a}: Bora, galera! Hoje o mar tá pra peixe… e pra lancha! 🚤', '{a}: Esqueci o protetor solar, mas o turbo eu trouxe 😎', '{a}: Ei {b}, essa onda aí era minha!',
-    '{a}: Se eu cair, finge que foi mergulho planejado 🤿', '{a}: Olha o anel dourado! Brilha mais que meu futuro ✨', '{a}: Peguei moeda! O açaí hoje é por minha conta 🍧',
+    '{a}: Se eu cair, finge que foi mergulho planejado 🤿', '{a}: Olha o arco dourado! Brilha mais que meu futuro ✨', '{a}: Ganhei moeda! O açaí hoje é por minha conta 🍧',
     '{a}: Calma, {b}, é só uma corridinha amistosa… que eu vou ganhar 😏', '{a}: Gaivota no retrovisor! Ah não, é o {b} 🐦', '{a}: Quem chegar por último paga a água de coco! 🥥',
     '{a}: Cabelo arrumado? Nunca mais. Vento bom demais! 💨', '{a}: {b}, sua lancha tem freio de mão? Porque tá parecendo 😂', '{a}: Respira, rema… opa, isso é lancha, só acelera!',
     '{a}: Golfinho me ultrapassou ali atrás, juro 🐬', '{a}: Hoje eu sou o rei da marola! 👑',
@@ -94,7 +94,7 @@ export class SeaRaces {
     const ais = THEME.racers.map((r, k) => { const b = tuneBoat(new Vehicle('boat', G.scene, G.Q, r.col), r.col, r.glow, r.name); const p = C.at(backs[k], lats[k]); b.place(p.x, p.z, p.h); Object.assign(b, { npc: true, noEnter: true, ghost: true, racer: r.name, s: backs[k], lat: lats[k], lat0: lats[k], spd: 0 }); G.vehicles.push(b); return b; });
     this.race = { C, t: -3.5, beep: 4, ais, prog: 0, last: null, hint: null, lap: 1, place: 6, ring: 0, rings: 0, coins: 0, got: new Set(), chat: '', lastLap: false };
     C.coins.visible = true; C.hot.visible = true; this.coinsShow(C, this.race.got);
-    this.say(0); G.ui.toast(`🏆 <b>${C.cfg.name}</b> · ${C.cfg.laps} voltas · 6 barcos · passe pelos anéis dourados e pegue as moedas!`, 3200); this.hud(true); return true;
+    this.say(0); G.ui.toast(`🏆 <b>${C.cfg.name}</b> · ${C.cfg.laps} voltas · 6 barcos · passe pelos arcos dourados e colete as moedas!`, 3200); this.hud(true); return true;
   }
   coinsShow(C, got) { const d = new THREE.Object3D(); C.coinPos.forEach((c, k) => { d.position.set(c.x, WATER_Y + 1.6, c.z); d.rotation.set(0, (this.G.t || 0) * 3 + k, 0); d.scale.setScalar(got.has(k) ? 0 : 1); d.updateMatrix(); C.coins.setMatrixAt(k, d.matrix); }); C.coins.instanceMatrix.needsUpdate = true; }
   say(force) { const R = this.race; if (!R) return; const n = THEME.racers.map(r => r.name); const i = Math.floor(Math.random() * n.length); let j = (i + 1 + Math.floor(Math.random() * (n.length - 1))) % n.length;

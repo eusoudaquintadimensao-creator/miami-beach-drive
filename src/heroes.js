@@ -62,7 +62,7 @@ export const HEROES = {
   },
   colosso: {
     id: 'colosso', label: 'Colosso Verde', name: 'Gigante gentil', base: 'ele', height: 2.3, bulk: 1.28, power: 'forca', emoji: '💪',
-    powerTxt: 'super pulo e levanta carros (com carinho, sem estragar nada)',
+    powerTxt: 'super pulo e levanta carros (com cuidado, sem estragar nada)',
     colors: { Shirt: 0x5aa83c, Pants: 0x34465c, Socks: 0x5aa83c, Hair: 0x14110e, Eyes: 0x1a1a1a, Skin: 0x5aa83c },
     fallback: { skin: 0x5aa83c, shirt: 0x5aa83c, pants: 0x34465c, hair: 0x14110e, stripe: 0x34465c },
     gear(model, k) {
