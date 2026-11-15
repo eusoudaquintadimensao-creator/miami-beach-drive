@@ -270,3 +270,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 20:15 commits 89cd7bb + README (NÃO enviados). SW v32 solara-v32-2026-11-15-olhos-nitro2. sweep14 rodando (/workspace/t367/sweep14.out). Neon: mesmo bug do paraquedas (bailout.js:116 p.h += mx), SW navegação rede-primeiro, sem recados com foto.
 - t439 sweep14: t413/t405/t426/t390/t386 PASS 4 setups; serp d/i ok, il/al draw calls 925/922 (pré-existente 919, +6 das mesinhas); t433 d/i PASS; mech d FAIL farol (PRÉ-EXISTENTE: wt-antes igual i=80<120).
 - t439 sweep14 FIM: t388 d/i, t401 d/i, t436 i, t423 i PASS; t432 local PASS (2392 KB sem gzip, 1º quadro 4,8 s, pronto 16 s, heap 87 MB). Push agora.
+- 21:0x rótulos: Heli, volume '66%'/'Mudo'; SW v33 solara-v33-2026-11-15-olhos-rotulos; t439 il/i PASS. v32 já estava no ar (t432 live 835 KB/1,9 s/10,2 s, t439 live i PASS).

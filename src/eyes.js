@@ -13,7 +13,7 @@ export function setupEyes(G) {
   const MENUS = {
     2: { title: 'Olho 2 · Recursos', items: [
       ['ePlane', '✈️', 'Avião', () => G.callPlane()],
-      ['eHeli', '🚁', 'Helicóptero', () => G.callHeli()],
+      ['eHeli', '🚁', 'Heli', () => G.callHeli()],
       ['eJet', '🎒', 'Jato', () => G.jet.toggle()],
       ['eHorn', '📣', 'Buzina', () => { if (G.player.vehicle) G.horn(); else toast('📣 Entre num carro para buzinar'); }, true],
       ['eFix', '🔄', 'Desvirar', () => G.unstuck()],
@@ -36,7 +36,7 @@ export function setupEyes(G) {
   const ind = document.createElement('div'); ind.id = 'muteInd'; ind.textContent = '🔇 sem som'; ind.hidden = true; const topR = $('topR'); if (topR) topR.appendChild(ind);
   try { const z = parseFloat(localStorage.getItem('miniZoom-v1')); if (z > 0) G.miniZoom = z; } catch (_) { }
   function volUi() { const a = G.audio; if (!a) return; const v = a.muted ? 0 : a.vol; const ic = v <= 0.01 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
-    ind.hidden = v > 0.01; const b = $('eVol'); if (b) { const t = `${ic}<small>Volume ${Math.round(v * 100)}%</small>`; if (b.innerHTML !== t) b.innerHTML = t; b.title = `Volume ${Math.round(v * 100)}%`; } }
+    ind.hidden = v > 0.01; const b = $('eVol'); if (b) { const t = `${ic}<small>${v <= 0.01 ? 'Mudo' : Math.round(v * 100) + '%'}</small>`; if (b.innerHTML !== t) b.innerHTML = t; b.title = `Volume ${Math.round(v * 100)}%`; } }
   const eyes = {};
   for (const n of [2, 3]) {
     const b = document.createElement('button'); b.id = 'bEye' + n; b.type = 'button'; b.innerHTML = `<b>${n}</b>👁`;
