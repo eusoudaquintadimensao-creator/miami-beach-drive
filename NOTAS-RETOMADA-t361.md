@@ -155,3 +155,11 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   SW: solara-v28-2026-11-15-sobrevoo / neon-dist-v20-2026-11-15-sobrevoo; live-drive.js atualizado. Varredura: /workspace/t367/sweep5.sh -> /tmp/sweep5.txt.
   Medição local (Slow 4G 1,6 Mbps/150 ms + CPU 4x, sem compressão): antes pronto 18,0 s sem nada 3D; depois pronto 15,7 s, 1º quadro do sobrevoo 4,7 s, barra real.
   Depois de publicar: medir live com test/t426load.js (BASE=url) e comparar com /workspace/t426/load-antes-live.txt.
+
+## RELEASES (pedido 02:38)
+- RELEASE C (pequena) — JÁ NO AR desde 01:25: cerca do tênis quebrável (faixa da praia livre), outdoors checados p/ t422 (nada a trocar),
+  t423 (pausa em silêncio total, recado some com toque/deslize em qualquer direção, recado falado pela Solara: "Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima.").
+  Commits: Solara ad8ae2e..049ad80, Neon b0dd924. SW solara-v27-2026-11-15-praia-livre / neon-dist-v19-2026-11-15-praia-livre nos 4 links (conferido 02:40).
+- RELEASE D — t426 (menu/heróis maduros, neutros, cinematográficos, designs próprios; Marisol de calça; carregamento mais rápido + barra real)
+  + t428 (sobrevoo de drone no carregamento; conceito /workspace/ideias-inicio/conceito-01-sobrevoo-carregamento.jpg). Commits locais até 47f6916 (Solara) / d84229b (Neon), SW v28/v20.
+  sweep5 (interrompido): t422/t426x8/t423x4/t418 d x2/t413 (7 de 8) PASS; t408 FAIL só no item "Marisol veste roupa feminina" (teste esperava vestido -> ajustar p/ pantalona); t405 timeouts (investigar).
