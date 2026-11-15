@@ -77,11 +77,14 @@ export const BLOCKS = [];
     BLOCKS.push(b);
   }
 }
+// t412: o píer da praia passa alto por cima da areia (vão livre para carros) — rampa no calçadão + degraus + tabuleiro como "telhado" andável
+export const PIER_Y = 3.4, PIER_RAMP_Y = 2.2, PIER_SAND = [324, 386];
 export const PIERS = [ // retângulos de píer (andáveis, bloqueiam barcos)
   { x0: -262, x1: -170, z0: -82, z1: -78 }, { x0: -262, x1: -170, z0: -22, z1: -18 }, { x0: -262, x1: -170, z0: 38, z1: 42 },
   { x0: -262, x1: -200, z0: 98, z1: 102 },
-  { x0: 322, x1: 540, z0: -302, z1: -296, y: 0.9 }, // píer da praia
+  { x0: 386, x1: 540, z0: -302, z1: -296, y: PIER_Y }, // píer da praia (parte sobre o mar; t412: alto, carros passam por baixo na areia)
   { x0: -960, x1: -900, z0: -152, z1: -148, y: 0.4 }, // passarela dos glades
+  { x0: 308, x1: 324, z0: -302, z1: -296, ramp: [308, 0.3, 324, PIER_RAMP_Y] }, // rampa do píer saindo do calçadão
 ];
 // Autódromo Neon (pista de corrida) no norte dos Glades: sem árvores nem poças nessa área
 export const TRACK_ZONE = { x0: -1088, x1: -698, z0: -716, z1: -443 };
@@ -112,7 +115,7 @@ export function groundY(x, z) {
 }
 // chão sem o tabuleiro da ponte (o que fica EMBAIXO dela: mar ou terra) — usado por quem voa por baixo da ponte
 export function baseGroundY(x, z) {
-  const p = onPier(x, z); if (p) return p.y !== undefined ? p.y : 0.3;
+  const p = onPier(x, z); if (p) return p.ramp ? p.ramp[1] + (p.ramp[3] - p.ramp[1]) * clamp((x - p.ramp[0]) / (p.ramp[2] - p.ramp[0]), 0, 1) : p.y !== undefined ? p.y : 0.3;
   if (onBridge(x, z)) return 0.2;
   if (landBase(x, z)) { if (x > 330 && x >= ISL.x0) return -(x - 330) * 0.011; return 0; }
   return -6;
@@ -145,8 +148,8 @@ export function districtName(x, z) {
 // ---------------------------------------------------------------- colisões
 const CELL = 40; const grid = new Map();
 export const BOXES = [];
-export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false) {
-  const b = { x0, z0, x1, z1, h, boatOnly }; BOXES.push(b);
+export function addBox(x0, z0, x1, z1, h = 100, boatOnly = false, y0) { // y0: base elevada (passa-se por baixo, ex.: tabuleiro do píer)
+  const b = { x0, z0, x1, z1, h, boatOnly }; if (y0 != null) b.y0 = y0; BOXES.push(b);
   for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i++)
     for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j++) {
       const k = i + ',' + j; let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(b);
@@ -174,6 +177,7 @@ export function collide(pos, r, boat = false, y = 0) {
     if (a) for (const b of a) {
       if (b.boatOnly && !boat) continue;
       if (y > b.h) continue;
+      if (b.y0 != null && y < b.y0) continue;
       const cx = clamp(pos.x, b.x0, b.x1), cz = clamp(pos.z, b.z0, b.z1);
       let dx = pos.x - cx, dz = pos.z - cz; const d2 = dx * dx + dz * dz;
       if (d2 < r * r) {
@@ -210,7 +214,7 @@ export function rayBlock(ax, az, ay, bx, bz, by) {
         if (Math.abs(d) < 1e-9) { if (p < lo || p > hi) { t0 = 2; break; } }
         else { let u0 = (lo - p) / d, u1 = (hi - p) / d; if (u0 > u1) [u0, u1] = [u1, u0]; t0 = Math.max(t0, u0); t1 = Math.min(t1, u1); }
       }
-      if (t0 <= t1 && t0 < tmin) { const yy = ay + (by - ay) * t0; if (yy < b.h) tmin = t0; }
+      if (t0 <= t1 && t0 < tmin) { const yy = ay + (by - ay) * t0; if (yy < b.h && !(b.y0 != null && yy < b.y0 && ay + (by - ay) * Math.min(1, t1) < b.y0)) tmin = t0; }
     }
   }
   return tmin;
@@ -624,12 +628,23 @@ export function buildWorld(scene, Q) {
   for (const [x, z] of [[-200, -95], [-190, -8], [-230, 25], [-180, 55], [-235, -62], [-150, 120]]) { yachts.push([x, z]); addBox(x - 9, z - 3, x + 9, z + 3, 100, true); }
   // ---- píer da praia
   {
-    const ch = chunk(420, -300); const p = PIERS[4];
-    ch.misc.box((p.x0 + p.x1) / 2, 0.75, -299, p.x1 - p.x0, 0.3, 6, C(0xa88560));
-    for (let x = p.x0; x < p.x1; x += 9) for (const sd of [-1, 1]) ch.misc.box(x, -1.5, -299 + sd * 2.6, 0.45, 4.5, 0.45, C(0x6b513a));
-    for (const sd of [-1, 1]) ch.misc.box((p.x0 + p.x1) / 2, 1.45, -299 + sd * 2.9, p.x1 - p.x0, 0.1, 0.1, C(0xeeeeee));
-    ch.misc.box(535, 2.5, -299, 10, 3.5, 8, C(0x3fa8c8)); ch.misc.box(535, 4.5, -299, 11, 0.5, 9, C(0xffffff));
-    addBox(p.x0, -302.6, p.x1, -302.2, 1.8); addBox(p.x0, -295.8, p.x1, -295.4, 1.8); addBox(p.x0, -303, p.x1 + 2, -295, 100, true);
+    const ch = chunk(420, -300); const p = PIERS[4]; const Y = PIER_Y, wood = C(0xa88560), post = C(0x6b513a), rail = C(0xeeeeee); const xs = PIER_SAND[0], xw = PIER_SAND[1];
+    // rampa no calçadão (chão inclinado) + degraus baixos + tabuleiro alto até o fim do píer
+    { const r = PIERS.find(q => q.ramp); const L = r.x1 - r.x0, dy = r.ramp[3] - r.ramp[1], ang = Math.atan2(dy, L);
+      const rm = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L, dy), 0.3, 6), new THREE.MeshStandardMaterial({ color: 0xa88560, roughness: 0.8 })); rm.position.set((r.x0 + r.x1) / 2, (r.ramp[1] + r.ramp[3]) / 2 - 0.13, -299); rm.rotation.z = ang; rm.receiveShadow = true; scene.add(rm);
+      for (const sd of [-1, 1]) { const rl = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L, dy), 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); rl.position.set(rm.position.x, rm.position.y + 1.1, -299 + sd * 2.9); rl.rotation.z = ang; scene.add(rl); } }
+    const NS = 8, sw = 6 / NS; for (let k = 0; k < NS; k++) { const h = PIER_RAMP_Y + (Y - PIER_RAMP_Y) * (k + 1) / NS, x0 = xs + k * sw; ch.misc.box(x0 + sw / 2, h - 0.15, -299, sw, 0.3, 6, wood); addBox(x0, -302, x0 + sw, -296, h, false, h - 0.45); }
+    ch.misc.box((xs + 6 + p.x1) / 2, Y - 0.15, -299, p.x1 - xs - 6, 0.3, 6, wood);
+    addBox(xs + 6, -302, xw, -296, Y, false, Y - 0.45); // tabuleiro sobre a areia: andável por cima, carros passam por baixo
+    // pilares: só nas pontas do vão da areia, depois a cada 12 m sobre o mar
+    const pil = [xs - 0.3, xw - 16, xw]; for (let x = xw + 12; x < p.x1; x += 12) pil.push(x);
+    for (const x of pil) for (const sd of [-1, 1]) { ch.misc.box(x, (Y - 2.5) / 2, -299 + sd * 2.6, 0.55, Y + 2.5, 0.55, post); if (x < xw + 1) addBox(x - 0.3, -299 + sd * 2.6 - 0.3, x + 0.3, -299 + sd * 2.6 + 0.3, Y - 0.4); }
+    for (const sd of [-1, 1]) ch.misc.box((xs + p.x1) / 2, Y + 1.05, -299 + sd * 2.9, p.x1 - xs, 0.1, 0.1, rail);
+    for (let x = xs + 2; x < p.x1; x += 6) for (const sd of [-1, 1]) ch.misc.box(x, Y + 0.55, -299 + sd * 2.9, 0.08, 1.0, 0.08, rail);
+    ch.misc.box(535, Y + 1.6, -299, 10, 3.5, 8, C(0x3fa8c8)); ch.misc.box(535, Y + 3.6, -299, 11, 0.5, 9, C(0xffffff));
+    // guarda-corpo: só vale para quem está em cima (base elevada); boia de barcos em todo o comprimento
+    for (const [za, zb] of [[-302.6, -302.2], [-295.8, -295.4]]) { addBox(xs, za, xw, zb, Y + 1.2, false, Y - 0.6); addBox(xw, za, p.x1, zb, Y + 1.2); addBox(PIERS.find(q => q.ramp).x0, za, xs, zb, PIER_RAMP_Y + 1.2, false, 0.5); }
+    addBox(xw, -303, p.x1 + 2, -295, 100, true);
     LANDMARKS.push({ id: 'pier', name: 'Píer da Praia', x: 500, z: -299, r: 16, look: [540, 3, -299] });
   }
   // ---- farol na ponta sul
@@ -932,7 +947,7 @@ export function drawMap() {
   g.fillStyle = '#4f7f6a'; for (const p of POOLS) { g.beginPath(); g.arc(X(p.x), Z(p.z), p.r * MAPSCALE, 0, 7); g.fill(); }
   g.fillStyle = '#9a8f7c'; for (const b of BOXES) if (!b.boatOnly && b.h > 3) g.fillRect(X(b.x0), Z(b.z0), (b.x1 - b.x0) * MAPSCALE, (b.z1 - b.z0) * MAPSCALE);
   for (const s of SEGS) { g.strokeStyle = s.kind === 'rural' ? '#b8a27a' : '#f4f4f4'; g.lineWidth = s.w * 2 * MAPSCALE + 1; g.lineCap = 'square'; g.beginPath(); g.moveTo(X(s.a.x), Z(s.a.z)); g.lineTo(X(s.b.x), Z(s.b.z)); g.stroke(); }
-  g.fillStyle = '#7a5a3a'; for (const p of PIERS) g.fillRect(X(p.x0), Z(p.z0), (p.x1 - p.x0) * MAPSCALE, Math.max(2, (p.z1 - p.z0) * MAPSCALE));
+  g.fillStyle = '#7a5a3a'; for (const p of PIERS) g.fillRect(X(p.x0), Z(p.z0), (p.x1 - p.x0) * MAPSCALE, Math.max(2, (p.z1 - p.z0) * MAPSCALE)); g.fillRect(X(PIER_SAND[0]), Z(-302), (PIER_SAND[1] - PIER_SAND[0]) * MAPSCALE, Math.max(2, 6 * MAPSCALE));
   for (const f of HOOKS.map) f(g, X, Z);
   return { canvas: c, X, Z };
 }

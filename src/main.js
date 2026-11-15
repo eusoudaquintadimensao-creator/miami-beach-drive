@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { clamp, lerp, angDiff, smooth } from './util.js';
-import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable, roadAt } from './world.js';
+import { buildWorld, SPAWNS, NODES, groundY, surfaceY, walkable, collide, rayBlock, LANDMARKS, onPier, WATER_Y, boatable, roadAt, BOUNDS } from './world.js';
 import { createEnv } from './env.js';
 import { Fleet } from './frota.js';
 import { PalmBreak } from './palmbreak.js';
@@ -657,7 +657,13 @@ function updatePlayer(dt) {
   const run = fromStick ? mag > 0.85 : keys.has('ShiftLeft') || keys.has('ShiftRight');
   const fx = Math.sin(G.camYaw), fz = Math.cos(G.camYaw), rx = -fz, rz = fx;
   let dx = fx * my + rx * mx, dz = fz * my + rz * mx; const dl = Math.hypot(dx, dz);
-  const maxS = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0)) * G.gifts.speedK() * (G.wardrobe ? G.wardrobe.speedK() : 1);
+  // t412: entrar no mar andando — água rasa freia (até a cintura), funda = nadar (cabeça para fora)
+  const hkW = clamp(G.hero.heightK || 1, 0.8, 1.5), swimD = 1.25 * hkW;
+  const waterAt = (x, z) => x > BOUNDS.x0 + 5 && x < BOUNDS.x1 && z > BOUNDS.z0 && z < BOUNDS.z1 && surfaceY(x, z) < -0.45 && !onPier(x, z);
+  const wDepth = waterAt(p.x, p.z) ? WATER_Y - surfaceY(p.x, p.z) : 0; const inSea = waterAt(p.x, p.z) && p.y < WATER_Y + 0.4;
+  p.inWater = inSea; p.swim = inSea && wDepth >= swimD - 0.05; p.wade = inSea && !p.swim ? clamp(wDepth / swimD, 0, 1) : 0;
+  const waterK = p.swim ? 0.5 : inSea ? clamp(1 - p.wade * 0.5, 0.5, 1) : 1;
+  const maxS = (fromStick ? mag * (run ? 7 : 4.4) : (mag > 0 ? (run ? 7 : 4.2) : 0)) * G.gifts.speedK() * (G.wardrobe ? G.wardrobe.speedK() : 1) * waterK;
   p.vx = p.vx || 0; p.vz = p.vz || 0;
   let tvx = 0, tvz = 0; if (dl > 0.05) { dx /= dl; dz /= dl; tvx = dx * maxS; tvz = dz * maxS; }
   // virada brusca correndo: freia um pouco antes de mudar de direção (inércia)
@@ -668,8 +674,9 @@ function updatePlayer(dt) {
   if (speed > 0.25) p.h += angDiff(p.h, Math.atan2(p.vx, p.vz)) * Math.min(1, dt * (p.grounded ? 10 : 3));
   // rampas: subir cansa um pouco, descer embala
   const ahead = surfaceY(p.x + p.vx * 0.15, p.z + p.vz * 0.15) - surfaceY(p.x, p.z); const slope = speed > 0.1 ? clamp(1 - ahead / (speed * 0.15) * 0.6, 0.65, 1.15) : 1;
-  const stepMax = p.grounded ? 1.0 : 0.6; // degraus e bordas de píer até ~1 m (sobe com uma "escalada" suave)
-  const supY = (x, z) => { const sy = surfaceY(x, z); if (p.y - sy < 1) return [sy, walkable(x, z)]; const r = roofAt(x, z, p.y); return r > sy ? [r, true] : [sy, walkable(x, z)]; }; // telhados também são chão
+  const stepMax = p.swim ? 2.3 : p.grounded ? 1.0 : 0.6; // nadando dá para subir na beira (escada/mureta) // degraus e bordas de píer até ~1 m (sobe com uma "escalada" suave)
+  const seaY = (x, z, sy) => waterAt(x, z) ? [Math.max(sy, WATER_Y - swimD), true] : [sy, walkable(x, z)]; // no mar o "chão" é o fundo ou a altura de nado
+  const supY = (x, z) => { const sy = surfaceY(x, z); if (p.y - sy < 1) return seaY(x, z, sy); const r = roofAt(x, z, p.y); return r > sy ? [r, true] : seaY(x, z, sy); }; // telhados também são chão
   const tryMove = (x, z) => { const [sy, ok] = supY(x, z); return ok && sy - p.y <= stepMax; };
   const nx = p.x + p.vx * slope * dt, nz = p.z + p.vz * slope * dt;
   let blocked = null;
@@ -682,7 +689,7 @@ function updatePlayer(dt) {
   // coyote time + buffer de pulo (~120 ms): um pulo um pouco atrasado ou antecipado ainda vale (input-systems)
   if (p.grounded) p.coyote = 0.12; else p.coyote = Math.max(0, (p.coyote || 0) - dt);
   if (keys.has('Space') || input.jump) p.jumpBuf = 0.12; else p.jumpBuf = Math.max(0, (p.jumpBuf || 0) - dt);
-  if (p.jumpBuf > 0 && (p.grounded || p.coyote > 0) && !G.talk.cur && !G.powers.fly && !G.powers.lev && !G.jet.on) { p.vy = G.gifts.jumpV(); p.grounded = false; p.coyote = 0; p.jumpBuf = 0; p.jumpT = 0; jumped = true; }
+  if (p.jumpBuf > 0 && (p.grounded || p.coyote > 0) && !p.swim && !(p.wade > 0.6) && !G.talk.cur && !G.powers.fly && !G.powers.lev && !G.jet.on) { p.vy = G.gifts.jumpV(); p.grounded = false; p.coyote = 0; p.jumpBuf = 0; p.jumpT = 0; jumped = true; }
   const fc = { keys, input, gy, dx, dz, dl, run, wall: wall || blocked, jumped }; const powered = G.gifts.foot(dt, p, fc) || G.jet.foot(dt, p, fc) || G.powers.foot(dt, p, fc);
   input.jump = false;
   if (powered) { /* o poder controla a altura */ }
@@ -692,10 +699,14 @@ function updatePlayer(dt) {
     if (p.y <= gy) { p.y = gy; p.vy = 0; p.grounded = true; } else if (p.y - gy > 0.25) p.grounded = false; else if (p.vy <= 0) { p.y = lerp(p.y, gy, Math.min(1, dt * 20)); p.grounded = true; } // desce degraus sem "voar"
   }
   p.jumpT = (p.jumpT || 0) + dt;
-  hero.g.position.set(p.x, p.y, p.z); hero.g.rotation.y = p.h;
+  // respingos: ao cair na água e andando/nadando (anéis brancos na superfície)
+  { const nowIn = waterAt(p.x, p.z) && p.y < WATER_Y + 0.4; if (nowIn && !p._wasIn && G.powers) { G.powers.ring(p.x, WATER_Y + 0.03, p.z, 0xffffff, 2.6, 0.6); G.audio.splash ? G.audio.splash() : G.audio.thud && G.audio.thud(3); if (!G._wadeTip) { G._wadeTip = 1; G.ui.toast('🌊 Água do mar! Na parte rasa você anda devagar; no fundo, nada. É só voltar andando para a areia.', 3000); } }
+    p._wasIn = nowIn; if (nowIn && speed > 0.6 && G.powers) { p._spl = (p._spl || 0) - dt; if (p._spl <= 0) { p._spl = p.swim ? 0.35 : 0.28; G.powers.ring(p.x + Math.sin(p.h) * 0.3, WATER_Y + 0.03, p.z + Math.cos(p.h) * 0.3, 0xe8fbff, p.swim ? 1.4 : 1.0, 0.55); } } }
+  p._sl = lerp(p._sl || 0, p.swim && speed > 0.4 ? 1 : 0, Math.min(1, dt * 4)); // nadando deitado: corpo sobe até a superfície
+  hero.g.position.set(p.x - Math.sin(p.h) * p._sl * 0.8, p.y + p._sl * 0.7 * hkW, p.z - Math.cos(p.h) * p._sl * 0.8); hero.g.rotation.y = p.h;
   hero.ph += dt * (speed > 5 ? 11 : 7.5) * (speed > 0.1 ? 1 : 0);
   const ap = G.gifts.airPose || G.jet.airPose || G.powers.airPose; const sp2 = Math.hypot(p.vx, p.vz);
-  hero.g.rotation.x = lerp(hero.g.rotation.x, ap === 'fly' || ap === 'glide' ? Math.min(1.1, sp2 * 0.045) : ap === 'board' ? Math.min(0.18, sp2 * 0.012) : ap === 'dash' ? 0.25 : 0, Math.min(1, dt * 5));
+  hero.g.rotation.x = lerp(hero.g.rotation.x, p.swim && !ap ? (speed > 0.4 ? 1.15 : 0.35) : ap === 'fly' || ap === 'glide' ? Math.min(1.1, sp2 * 0.045) : ap === 'board' ? Math.min(0.18, sp2 * 0.012) : ap === 'dash' ? 0.25 : 0, Math.min(1, dt * 5));
   if (ap === 'climb') hero.pose('walk', 0.6, dt);
   else if (ap === 'fly' || ap === 'lev' || ap === 'board' || ap === 'glide') hero.pose('idle', 0, dt);
   else if (ap === 'dash') hero.pose('walk', 0.95, dt);
