@@ -180,3 +180,9 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Novo: <=2 GB ou <=2 núcleos = leve; queda por FPS agora fica lembrada (save.autoQ) e volta ao caprichado após 60 s fluido em aparelho forte; MBD.perf(); test/t432.js (Slow 4G 1,6 Mbps/150 ms + CPU 4x, 390x844 dpr3, mem 2).
 - Números locais: Solara 2306 KB, 1º quadro 4,8 s, pronto 17,4 s, FPS 3,5 (swiftshader+CPU4x, pr caiu p/ 0,55 sozinho); Neon 2311 KB, 5,1 s, 17,5 s, 3,2 fps. Orçamento: <=2600 KB, 1º quadro <=7 s, pronto <=22 s.
 - Varredura sweep7 (= sweep5 + t431 + sig) rodando: /workspace/t367/sweep7.out
+
+### t433 FEITO (05:25) — PRIORIDADE: "jogo sai sozinho e volta para a tela inicial"
+- CAUSA RAIZ: adapt() em main.js — com qualidade 'auto' em médio/alto (celular intermediário), FPS < 22 por 6 s na resolução mínima => `location.search = '?q=low'` (no t432 virou location.reload()) = página recarregava no meio do jogo e caía no menu. Também: aba descartada por memória/recarregar sempre caía no menu; botão voltar do Android saía da página.
+- CORREÇÃO: lightenLive() deixa leve ao vivo (sem sombras/bloom, resolução e distância menores) e lembra save.autoQ; save.live marca "estava jogando" -> recarregar em até 20 min retoma direto no jogo, na posição salva (?menu força a tela inicial; testes só com ?resume); history.pushState + popstate abre a pausa; webglcontextlost salva progresso (three.js recupera).
+- SW não chama reload (só skipWaiting/claim, sem controllerchange) — descartado. Sem handler de erro que volte ao menu.
+- test/t433.js PASS nos dois. Solara 4b9121a; Neon commit t433.
