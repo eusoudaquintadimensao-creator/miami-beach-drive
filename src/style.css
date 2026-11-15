@@ -944,3 +944,6 @@ body.pintBusy #topBar,body.pintBusy #btns,body.pintBusy .drvRight,body.pintBusy 
 #solaraHi{width:min(440px,calc(100vw - 24px));box-sizing:border-box}
 #solaraHi button{white-space:nowrap}
 body.touch:not(.land) #solaraHi{top:calc(var(--sat,0px) + 150px)}
+#solaraHi{background:rgba(20,22,34,.5)}
+body.touch:not(.land) #solaraHi{left:calc(var(--sal,0px) + 10px);right:calc(var(--sar,0px) + 58px);width:auto;transform:none}
+body.touch:not(.land) #solaraHi.out{transform:translateY(-12px)}
