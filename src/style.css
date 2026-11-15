@@ -992,3 +992,12 @@ body.menuIn #start{opacity:1}
 @media (orientation:landscape) and (max-height:500px){#start{flex-direction:row;align-items:center;justify-content:space-between;padding-left:calc(var(--sal) + 24px);padding-right:calc(var(--sar) + 16px)}#start .logo{text-align:left;margin:0}#start .menu{width:min(60vw,560px);max-height:calc(100vh - 24px);overflow-y:auto}#start .avCard{width:84px}#start .avCard img{width:60px;height:78px}}
 @media (orientation:landscape){#start{background:linear-gradient(90deg,rgba(8,10,13,.78) 0%,rgba(8,10,13,.45) 34%,rgba(8,10,13,0) 58%),linear-gradient(180deg,rgba(8,10,13,.35),rgba(8,10,13,0) 30%,rgba(8,10,13,0) 60%,rgba(8,10,13,.7))}#start .logo{text-shadow:0 2px 18px rgba(0,0,0,.85)}}
 body.menuOn #start{opacity:1;transition:none}
+
+/* ——— t434: Copa Jet Maré ——— */
+#jetTip{position:absolute;left:50%;bottom:calc(var(--sab) + 120px);transform:translateX(-50%);background:rgba(4,30,36,.8);border:1px solid #2ee6d6;box-shadow:0 0 14px rgba(46,230,214,.4);padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:86vw;pointer-events:auto;z-index:8}
+#jetTip[hidden],#jetHud[hidden]{display:none}#jetTip small{display:block;opacity:.85;font-size:12px}
+#jetTip .stAsk{display:flex;gap:8px;justify-content:center;margin-top:6px}#jetTip .stAsk button{min-height:38px;min-width:104px;border-radius:10px;border:0;font-weight:800;font-size:14px;color:#fff;background:#1d4a52}#jetTip .stAsk button[data-k=ok]{background:linear-gradient(90deg,#2ee6d6,#d9b45a);color:#0b1416}
+body.touch #jetTip{bottom:auto;top:calc(var(--sat) + 58px)}
+#jetHud{position:absolute;left:50%;top:calc(var(--sat) + 12px);transform:translateX(-50%);background:rgba(4,24,30,.78);border:1px solid rgba(46,230,214,.7);border-radius:12px;padding:5px 14px;font-weight:800;font-size:13px;text-align:center;color:#e6fffb;pointer-events:none;z-index:8;max-width:90vw}
+#jetHud b{color:#7ff3e8;margin-right:6px}#jetHud .pos{color:#ffd23f}#jetHud .turbo{color:#2ee6d6;text-shadow:0 0 8px #2ee6d6}body.touch #jetHud{top:calc(var(--sat) + 58px)}
+#jetHud .pbar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:3px;overflow:hidden}#jetHud .pbar i{display:block;height:100%;background:linear-gradient(90deg,#2ee6d6,#d9b45a)}
