@@ -100,3 +100,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   · t414-t416 (21:03): no carro Alto e Ré ABAIXO do Freio (Freio mais alto; Alto+Ré embaixo perto da borda, longe da barra de gestos); Pausa e Voltar empilhados na borda, visíveis no carro; botões contornando cantos; botão tela limpa em todas as versões.
     t415: testar que cada botão dispara a ação e nada sobrepõe (retrato+paisagem+desktop/Android; carro, a pé, barco, heli). t416: teste automático: caixas de texto não cruzam carro projetado + área à frente.
   · em andamento: probe /workspace/f7/p6.js mede mensagens x carro (t413/t416)
+  · t417 (21:04): botão N Neutro presente no HUD do carro em todas as versões (retrato/paisagem), mesmo vidro, não some no modo limpo, coberto pelos testes (toque alterna neutro).
+  · medição p6: no carro toast/stTip/adCard/orlaCard/megaCard/prompt/serpHud/driftW cruzam carro/estrada → plano: CSS faixa do topo + guarda JS (src/msgguard.js) que empurra textos para fora da zona carro+frente.
