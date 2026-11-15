@@ -89,7 +89,7 @@ export const PERKS = {
 };
 // [id, dono ('*' = Luna/Davi/Marisol), nome, liga, poder, cor do brilho, preço]
 const SRAW = [
-  ['teia-boreal', 'teia', 'Teia Cristal Boreal', 'boreal', 'velocidade', 0x9cff3a, 4200], ['teia-obsidiana', 'teia', 'Teia Obsidiana Viva', 'obsidiana', 'escudo', 0xff4fd8, 5200],
+  ['teia-boreal', 'teia', 'Vértice Cristal Boreal', 'boreal', 'velocidade', 0x9cff3a, 4200], ['teia-obsidiana', 'teia', 'Vértice Obsidiana Viva', 'obsidiana', 'escudo', 0xff4fd8, 5200],
   ['solar-aurilio', 'solar', 'Solar Aurílio Mk II', 'aurilio', 'voo', 0xfff1b8, 6400], ['solar-cobalto', 'solar', 'Solar Cobalto Estelar', 'cobalto', 'escudo', 0x7fd8ff, 5600],
   ['colosso-coral', 'colosso', 'Colosso Titânio Coral', 'coral', 'escudo', 0xffd27a, 5000], ['colosso-lunar', 'colosso', 'Colosso Ferro-Lunar', 'lunar', 'velocidade', 0x7dff6a, 4600],
   ['sentinela-cobalto', 'sentinela', 'Sentinela Cobalto Alado', 'cobalto', 'voo', 0x4fb3ff, 6000], ['sentinela-nano', 'sentinela', 'Sentinela Nano-Relâmpago', 'nano', 'velocidade', 0x4ff7e0, 4400],

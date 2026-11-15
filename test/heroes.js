@@ -35,7 +35,7 @@ const R = {};
   R.jets = await p.evaluate(() => (__G.hero.rig.model.userData.jets || []).some(j => j.visible));
   await p.evaluate(() => { __G.camYaw = __G.player.h + 2.6; __G.camPitch = 0.05; }); await sleep(900); await shot('solar-voando');
   await pow(); R.solarLanded = await until('MBD.state.grounded === true', 40000);
-  // 🕸️ Teia Neon: escala a parede e lança fio
+  // 🪝 Vértice: escala a parede e lança o cabo
   await use('teia');
   R.wallAt = await p.evaluate(async () => { const m = await import('/src/world.js'); let best = null, bd = 1e9;
     for (const b of m.BOXES) { if (b.boatOnly || b.h < 10 || b.h > 60) continue; const z = (b.z0 + b.z1) / 2, x = b.x1 + 1.2; if (b.z1 - b.z0 < 8 || !m.walkable(x, z)) continue; const d = Math.hypot(x - 290, z + 150); if (d < bd) { bd = d; best = [x, z, b.h]; } }
@@ -60,7 +60,7 @@ const R = {};
   await use('sentinela'); await p.evaluate(() => MBD.teleport(312, -120, Math.PI)); await sleep(400);
   await pow(); await sleep(150); R.dashSpeed = +(await st()).speed.toFixed(1);
   await p.evaluate(() => { __G.camYaw = __G.player.h + 2.3; __G.camPitch = 0.15; }); await shot('sentinela-arrancada'); await sleep(1500);
-  // 🧙 Lorde Férreo: levita
+  // 🌀 Férreo: levita
   await use('ferreo'); await p.evaluate(() => MBD.teleport(312, -120, Math.PI)); await sleep(400);
   await pow(); R.ferreoLev = await until('MBD.state.y > 1.6', 30000);
   await p.evaluate(() => { __G.camYaw = __G.player.h + 2.6; __G.camPitch = 0.1; }); await sleep(600); await shot('ferreo-levitando');
