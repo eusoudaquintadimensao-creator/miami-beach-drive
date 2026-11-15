@@ -151,3 +151,7 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   - t428: src/flyover.js (sobrevoo + barra real; cria o renderer e main.js reaproveita), src/loadman.js gerado por tools/loadman.py (RODAR de novo se mudar imports!), index.html carrega flyover.js (não main.js), #loader, Pular lembrado (mbd-fly-skip / nd-fly-skip), menu de vidro grafite/petróleo/dourado, botão Controles.
   - test/t426.js PASS Solara i; medição: test/t426load.js -> /workspace/t426/load-*.txt (antes live: Pages ~11,1 s pronto, DCL 4,2 s).
   - Falta: Neon (portar), site MIAMI DRIVE (tema), SW CORE + bump, varredura, publicar.
+- 02:55 Neon portado (commit), t426 PASS Solara i + Neon i. Site MIAMI DRIVE: tema grafite/petróleo/dourado em site/index.html (não versionado; contadores intactos).
+  SW: solara-v28-2026-11-15-sobrevoo / neon-dist-v20-2026-11-15-sobrevoo; live-drive.js atualizado. Varredura: /workspace/t367/sweep5.sh -> /tmp/sweep5.txt.
+  Medição local (Slow 4G 1,6 Mbps/150 ms + CPU 4x, sem compressão): antes pronto 18,0 s sem nada 3D; depois pronto 15,7 s, 1º quadro do sobrevoo 4,7 s, barra real.
+  Depois de publicar: medir live com test/t426load.js (BASE=url) e comparar com /workspace/t426/load-antes-live.txt.
