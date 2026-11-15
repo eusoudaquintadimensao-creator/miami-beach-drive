@@ -56,7 +56,7 @@ fs.mkdirSync(SH, { recursive: true });
   // C) ⏸ Pausa: menu, jogo parado, Continuar volta; Voltar sai do veículo
   r = await ev(() => new Promise(res => { const G = window.__G; document.getElementById('bPause').click(); setTimeout(() => { const pm = document.getElementById('pauseMenu'); const t0 = G.t; const o = { open: !pm.hidden, paused: G.paused, back: pm.querySelector('[data-k=back]').textContent, btns: [...pm.querySelectorAll('button')].filter(b => !b.hidden).map(b => b.textContent) };
     setTimeout(() => { o.frozen = G.t === t0; pm.querySelector('[data-k=go]').click(); o.after = { open: !pm.hidden, paused: G.paused }; res(o); }, 500); }, 300); }));
-  ck('C ⏸ abre menu e pausa', r.open && r.paused && r.frozen && r.btns.length === 4 && /Continuar/.test(r.btns[0]) && /Configura/.test(r.btns.join()), r);
+  ck('C ⏸ abre menu e pausa', r.open && r.paused && r.frozen && (r.btns.length === 4 || (r.btns.length === 5 && /Tela cheia/.test(r.btns[4]))) && /Continuar/.test(r.btns[0]) && /Configura/.test(r.btns.join()), r);
   ck('C Continuar volta ao jogo', !r.after.open && !r.after.paused, r);
   await ev(() => document.getElementById('bPause').click()); await shot('pausa', 300);
   r = await ev(() => new Promise(res => { const G = window.__G; document.querySelector('#pauseMenu [data-k=back]').click(); setTimeout(() => res({ inCar: !!G.player.vehicle, paused: G.paused }), 300); }));
