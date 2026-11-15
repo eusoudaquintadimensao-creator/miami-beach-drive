@@ -57,7 +57,7 @@ export class Powers {
     const G = this.G, p = G.player; const k = this.kind; if (!k || p.vehicle || G.talk.cur || this.cool > 0) return false;
     const [fx, fz] = [Math.sin(p.h), Math.cos(p.h)]; G.audio.init && G.audio.init();
     if (k === 'voo') { this.fly = !this.fly; if (this.fly) { p.vy = 4; p.grounded = false; this.hint('voo', '☀️ <b>Voando!</b> Espaço sobe · Ctrl/Q desce · X pousa'); } this.jets(this.fly); this.cool = 0.3; }
-    else if (k === 'levitar') { this.lev = !this.lev; if (this.lev) { p.grounded = false; this.hint('lev', '🧙 <b>Levitando</b> · Espaço sobe · Ctrl/Q desce · X desce ao chão'); this.ring(p.x, p.y, p.z, 0x7dff9a, 3, 0.8); } this.cool = 0.3; }
+    else if (k === 'levitar') { this.lev = !this.lev; if (this.lev) { p.grounded = false; this.hint('lev', '🌀 <b>Levitando</b> · Espaço sobe · Ctrl/Q desce · X desce ao chão'); this.ring(p.x, p.y, p.z, 0x7dff9a, 3, 0.8); } this.cool = 0.3; }
     else if (k === 'teia') { const a = anchorAhead(p.x, p.z, fx, fz); this.anchor = a; this.swing = 1.15; p.vy = 7.5; p.vx = fx * 15; p.vz = fz * 15; p.grounded = false; this.cool = 0.6; this.hint('teia', '🕸️ <b>Fio neon!</b> Ande contra um prédio para escalar'); }
     else if (k === 'turbo') { this.dash = 1.1; this.turbo = true; p.vx = fx * 17; p.vz = fz * 17; this.cool = 1.4; this.hint('turbo', '⚡ <b>Turbo do traje!</b> arrancada de luz'); this.ring(p.x, p.y + 0.3, p.z, 0xff4f8b, 2.5, 0.4); }
     else if (k === 'escudo') { this.dash = 0.45; p.vx = fx * 19; p.vz = fz * 19; this.cool = 0.8; this.hint('esc', '🛡️ <b>Arrancada!</b> Bata numa parede para o escudo quicar'); }
