@@ -213,3 +213,8 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 08:30 sweep10: t433 x8 PASS (S i refeito pendente), t434rec x8 PASS, t434jet S i/il/al PASS, S d falhou (rampa perdida com FPS baixo) -> detecção em janela; refazer t434jet x8 + t433 S i depois do sweep10.
 - 09:16 sweep10 completo: t426 x8, t413 x8 PASS (além de t433/t434rec/t434jet). Pendente só sweep11: t434jet x8 (janela da rampa) + t433 S i.
 - 09:38 sweep11 PASS: t434jet x8, t433 S i. Publicando release E.
+
+### 09:45 RELEASE E PUBLICADO (t434)
+- GitHub: Solara 74daa21 (run 43714799910 ok), Neon fa6f5d9 (run 43714800821 ok). Site MIAMI DRIVE redeploy ok (contadores intactos).
+- SW conferido nos 3 links (Pages Solara/Neon + site /solara-bay/ /neon-distrito/): solara-v29-2026-11-15-jetski / neon-dist-v21-2026-11-15-jetski.
+- Worktrees /workspace/wt-solara e /workspace/wt-neon (branch t434, já mesclado) e servidores 8785/8786 podem ser removidos.
