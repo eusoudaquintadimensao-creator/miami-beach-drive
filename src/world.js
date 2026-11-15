@@ -377,6 +377,7 @@ export function buildWorld(scene, Q) {
   const W = C(0xffffff);
   const R = rng(2026);
   const lampPos = [], palmPos = [], treePos = [], umbrellas = [], towels = [];
+  const cafePos = []; const hr = (x, z) => { const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return v - Math.floor(v); }; // t439: mesinhas de café (sorteio próprio: não mexe no resto da cidade)
 
   // ---- chão
   const groundMesh = (x0, z0, x1, z1, mat, rep, y = 0) => {
@@ -452,6 +453,9 @@ export function buildWorld(scene, Q) {
       for (let t = lo + 15; t < hi - 10; t += 32) for (const sd of [-1, 1]) {
         const off = c + sd * (w + 0.7);
         lampPos.push(along ? [off, t, sd > 0 ? -Math.PI / 2 : Math.PI / 2] : [t, off, sd > 0 ? Math.PI : 0]);
+      }
+      for (let t = lo + 31; t < hi - 14; t += 32) for (const sd of [-1, 1]) { // t439: mesas e cadeiras de café na calçada (quebram); celular fraco: metade
+        const off = c + sd * (w + SW * 0.62), x = along ? off : t, z = along ? t : off; if (hr(x, z) > (Q.level === 'low' ? 0.17 : 0.3) || onBridge(x, z)) continue; cafePos.push([x, z, along]);
       }
     } else {
       for (let t = lo + 20; t < hi; t += 45) treePos.push(along ? [c + (R() < 0.5 ? -1 : 1) * (w + 4 + R() * 10), t] : [t, c + (R() < 0.5 ? -1 : 1) * (w + 4 + R() * 10)]);
@@ -823,6 +827,26 @@ export function buildWorld(scene, Q) {
     m.castShadow = true; scene.add(m);
     S0.lampPoles = { mesh: m, geo: pb.geometry(), list: lampPos.map(([x, z, ry], i) => ({ i, x, z, ry, y: onBridge(x, z) ? 0.5 : 0.16, kind: 'poste' })) }; // t418: postes que tombam
   }
+  // ---- t439: mesas e cadeiras de café nas calçadas (2 malhas instanciadas; quebram com som quando o carro passa)
+  if (cafePos.length) {
+    const tb = new MeshBuilder();
+    tb.addGeo(new THREE.CylinderGeometry(0.42, 0.42, 0.04, Q.level === 'low' ? 7 : 10), new THREE.Matrix4().makeTranslation(0, 0.74, 0), C(0xf3efe6));
+    tb.addGeo(new THREE.CylinderGeometry(0.035, 0.035, 0.72, 4), new THREE.Matrix4().makeTranslation(0, 0.37, 0), C(0x3a4048));
+    tb.addGeo(new THREE.CylinderGeometry(0.22, 0.24, 0.03, Q.level === 'low' ? 6 : 8), new THREE.Matrix4().makeTranslation(0, 0.015, 0), C(0x3a4048));
+    const cb = new MeshBuilder();
+    cb.addGeo(new THREE.BoxGeometry(0.42, 0.04, 0.42), new THREE.Matrix4().makeTranslation(0, 0.45, 0), C(0xffffff));
+    cb.addGeo(new THREE.BoxGeometry(0.42, 0.36, 0.03), new THREE.Matrix4().makeTranslation(0, 0.66, -0.2), C(0xffffff));
+    for (const [lx, lz] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) cb.addGeo(new THREE.BoxGeometry(0.03, 0.45, 0.03), new THREE.Matrix4().makeTranslation(lx, 0.225, lz), C(0x9a9a9a));
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.25 });
+    const chairs = []; for (const [x, z, along] of cafePos) for (const sg of [-1, 1]) { const ux = along ? 0 : sg, uz = along ? sg : 0; chairs.push([x + ux * 0.85, z + uz * 0.85, Math.atan2(-ux, -uz)]); }
+    const tm = new THREE.InstancedMesh(tb.geometry(), mat, cafePos.length), chm = new THREE.InstancedMesh(cb.geometry(), mat, chairs.length);
+    const mtx = new THREE.Matrix4(), cc = [0x2ab3b8, 0xff7a59, 0xffd23f, 0x46c08c, 0xf4f4f4];
+    cafePos.forEach(([x, z], i) => { mtx.makeRotationY(0).setPosition(x, 0.16, z); tm.setMatrixAt(i, mtx); });
+    chairs.forEach(([x, z, ry], i) => { mtx.makeRotationY(ry).setPosition(x, 0.16, z); chm.setMatrixAt(i, mtx); chm.setColorAt(i, C(cc[Math.floor(hr(x, z) * cc.length)])); });
+    tm.receiveShadow = chm.receiveShadow = true; scene.add(tm, chm);
+    S0.cafe = { tables: { mesh: tm, list: cafePos.map(([x, z], i) => ({ i, x, z, ry: 0, kind: 'mesa' })) },
+      chairs: { mesh: chm, list: chairs.map(([x, z, ry], i) => ({ i, x, z, ry, kind: 'cadeira' })) } };
+  }
   // ---- guarda-sóis e toalhas
   {
     const ub = new MeshBuilder();
@@ -903,7 +927,7 @@ export function buildWorld(scene, Q) {
     SPAWNS.taxiStands.push({ x: 293.7, z: -60, h: Math.PI }, { x: -306.3, z: -230, h: 0 }, { x: 173.7, z: 220, h: Math.PI });
   }
 
-  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed, palms: S0.palms, lampPoles: S0.lampPoles, tlPoles: S0.tlPoles, umb: S0.umb };
+  const S = { M, T, dyn, tl, glowMat, palmTime, flamingoAt, lampGlow, palmLed: S0.palmLed, palms: S0.palms, lampPoles: S0.lampPoles, tlPoles: S0.tlPoles, umb: S0.umb, cafe: S0.cafe };
   S.setNight = (night, wet) => {
     M.deco.emissiveIntensity = night * 0.9; M.tower.emissiveIntensity = night * 0.85;
     const k = 0.55 + night * 2.4;

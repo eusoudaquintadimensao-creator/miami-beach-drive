@@ -13,7 +13,7 @@
   function paint() { hi.textContent = TX[lg][0]; msg.textContent = TX[lg][1]; tap.textContent = TX[lg][2]; for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-l') === lg ? 'on' : ''; }
   function stop() { if (au) { au.pause(); au = null; } el.classList.remove('play'); }
   function play() {
-    stop(); au = new Audio('assets/solara/intro-' + lg + '.mp3'); au.preload = 'auto'; el.classList.add('play'); window.__solaraIntro = { lang: lg, playing: true };
+    stop(); au = new Audio('assets/solara/intro-' + lg + '.mp3'); au.preload = 'auto'; try { var vv = parseFloat(localStorage.getItem('vol-v1')); if (vv >= 0 && vv <= 1) au.volume = vv; } catch (e) { } el.classList.add('play'); window.__solaraIntro = { lang: lg, playing: true };
     au.onended = au.onerror = function () { el.classList.remove('play'); if (window.__solaraIntro) window.__solaraIntro.playing = false; };
     var p = au.play(); if (p && p.catch) p.catch(function () { el.classList.remove('play'); });
   }

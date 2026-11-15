@@ -1018,3 +1018,21 @@ body.touch:not(.land) #solaraHi.out,body.touch:not(.land) .solNote.out{transform
 /* t437: a notificação não bloqueia toques nos botões do HUD que ficam embaixo dela (só o botão Tela cheia recebe toque) */
 #solaraHi,.solNote{pointer-events:none}
 .solNote button{pointer-events:auto}
+/* t439: 👁² 👁³ embaixo do 👁 + menus de vidro (mesmo vidro branco espelhado dos outros botões) */
+#eyes button,#eyeMenu button{color:#fff;cursor:pointer;background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.10))!important;border:1.5px solid rgba(255,255,255,.92)!important;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.9);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.55)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:0}
+#eyes button{position:absolute;width:32px;height:32px;border-radius:10px;font-size:15px;z-index:8;pointer-events:auto}
+#eyes button b{position:absolute;right:1px;bottom:-1px;font:800 10px/1 system-ui,sans-serif;color:#fff;background:rgba(20,30,50,.75);border-radius:6px;padding:1px 3px}
+#eyes button.on{background:linear-gradient(160deg,rgba(255,226,140,.7),rgba(255,170,60,.35))!important}
+#eyeMenu{position:absolute;display:grid;gap:6px;z-index:9;pointer-events:auto;animation:eyeIn .16s ease-out}
+#eyeMenu[hidden]{display:none!important}
+#eyeMenu button{width:54px;height:50px;border-radius:12px;font-size:20px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#eyeMenu button small{font:700 9px/1.05 system-ui,sans-serif;max-width:52px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#eyeMenu button:active{transform:scale(.94)}
+body.touch.land #eyeMenu button{width:50px;height:46px;font-size:18px}
+body.eyeOpen #topBar{display:none!important}
+body.lojaOpen #eyes,body.lojaOpen #eyeMenu,body.pintOpen #eyes,body.pintOpen #eyeMenu{display:none!important}
+@keyframes eyeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+/* t440: indicador sem som (embaixo do relógio, não toca) */
+#muteInd{pointer-events:none;font:700 11px/1.2 system-ui,sans-serif;color:#fff;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.9);margin-top:2px;text-align:right}
+#muteInd[hidden]{display:none!important}
+body.eyeRow #solaraHi,body.eyeRow .solNote{top:var(--eyeB,60px)!important}

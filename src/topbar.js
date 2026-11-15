@@ -13,7 +13,7 @@ export function setupTopBar(G) {
   more.onclick = (e) => { e.stopPropagation(); G.audio && G.audio.init && G.audio.init(); const m = !bar.classList.contains('min'); localStorage.setItem(KEY, m ? '1' : '0'); apply(m); };
   for (const ev of ['pointerdown', 'touchstart', 'mousedown']) bar.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
   bar.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { strip.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
-  const SKIP = new Set(['edgeCol', 'bClean', 'topBar', 'hud', 'touch', 'stickZone', 'pauseMenu', 'phone', 'mapFull', 'fade', 'say', 'big', 'toast', 'area']);
+  const SKIP = new Set(['edgeCol', 'bClean', 'eyes', 'eyeMenu', 'topBar', 'hud', 'touch', 'stickZone', 'pauseMenu', 'phone', 'mapFull', 'fade', 'say', 'big', 'toast', 'area']);
   const rowHit = (top, bot, x0, x1) => { let L = x0; const hud = $('hud'); if (!hud) return L;
     for (const el of hud.children) { if (!el.id || SKIP.has(el.id) || el === bar || el.id === 'topR' || el.id === 'mapw' || el.hidden) continue; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) continue;
       const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4 || r.width > innerWidth * 0.6 || r.height > innerHeight * 0.5) continue;

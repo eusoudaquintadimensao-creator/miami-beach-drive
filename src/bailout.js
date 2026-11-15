@@ -113,14 +113,15 @@ export class Bailout {
     }
     if (this.mode === 'chute') {
       this.open = Math.min(1, this.open + dt / 0.7);
-      p.h += clamp(mx, -1, 1) * 1.15 * dt; const fx2 = Math.sin(p.h), fz2 = Math.cos(p.h);
+      // t439: joystick/D para a direita vira para a DIREITA da tela (antes estava invertido)
+      p.h -= clamp(mx, -1, 1) * 1.15 * dt; const fx2 = Math.sin(p.h), fz2 = Math.cos(p.h);
       const fwd = my > 0.15 ? FWD + 3 * my : my < -0.15 ? FWD + 2.6 * my : FWD;
       const gy = this.floor(p.x, p.z, p.y), alt = p.y - gy;
       let sink = input && input.down ? SINK_FAST : SINK; if (alt < 3) sink = Math.min(sink, 1.4 + alt * 0.4); // arredondamento perto do chão
       const k = Math.min(1, dt * 1.6 * (0.3 + this.open));
       this.vx += (fx2 * fwd - this.vx) * k; this.vz += (fz2 * fwd - this.vz) * k; this.vy += (-sink - this.vy) * Math.min(1, dt * 2.2 * (0.3 + this.open));
       this._move(dt); p.y += this.vy * dt;
-      const sway = Math.sin(this.t * 1.7) * 0.06 - clamp(mx, -1, 1) * 0.28;
+      const sway = Math.sin(this.t * 1.7) * 0.06 + clamp(mx, -1, 1) * 0.28; // t439: inclina para o lado da curva
       g.rotation.order = 'YXZ'; g.rotation.set(0.05, p.h, sway * 0.5); g.position.set(p.x, p.y, p.z); hero.pose('idle', 0, dt);
       const C = this.chute; C.visible = true; C.position.set(p.x, p.y, p.z); C.rotation.set(0, p.h, sway, 'YXZ'); const sc = 0.15 + 0.85 * (1 - (1 - this.open) ** 3); C.scale.set(sc, 0.4 + 0.6 * sc, sc);
       G.camYaw += angDiff(G.camYaw, p.h) * Math.min(1, dt * 1.5);

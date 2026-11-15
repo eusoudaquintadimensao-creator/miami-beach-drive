@@ -59,13 +59,14 @@ import { Street } from './street.js';
 import { DriveUI, respawnFade } from './driveui.js';
 import { setupTopBar } from './topbar.js';
 import { setupMsgGuard } from './msgguard.js';
+import { setupEyes } from './eyes.js';
 import { flyCam } from './flyover.js';
 
 const SAVE_KEY = 'mbd-solara-v1';
 const $ = (id) => document.getElementById(id);
 const touch = DEVICE.touch;
 if (touch) document.body.classList.add('touch');
-initInstall({ toast: (t) => G.ui ? G.ui.toast(t, 4000) : null });
+initInstall({ toast: (t) => G.ui ? G.ui.toast(t, 4000) : null, onUpdate: () => { G.updReady = true; G.solaraNote && G.solaraNote('✨ Saiu uma versão nova de Solara Bay! Seu progresso fica salvo.', { ms: 9000, btn: '🔄 Atualizar agora', onBtn: () => { try { G.persist && G.persist(); } catch (_) { } location.reload(); } }); } });
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
 // ---------------- progresso salvo
@@ -212,7 +213,7 @@ async function boot() {
   G.heli = new Heli(scene, Q, { color: 0xff2d55, stripe: 0xffffff }); G.heli.place(HELIPAD.x, HELIPAD.z, -Math.PI / 2); G.vehicles.push(G.heli);
   G.seabase = buildSeaplaneBase(scene, Q); G.plane = new Plane(scene, Q); G.plane.place(SEAPLANE_BASE.x, SEAPLANE_BASE.z, SEAPLANE_BASE.h); G.vehicles.push(G.plane);
   G.helis = new HeliFleet(G, Q.helis); mark('fleet/heli/plane');
-  G.audio = new AudioSys(); G.audio.muted = !!save.muted; G.audio.station = save.station || 0;
+  G.audio = new AudioSys(); { const vv = parseFloat(localStorage.getItem('vol-v1')); if (vv >= 0 && vv <= 1) { G.audio.vol = vv || 0.8; if (vv === 0) save.muted = true; } } G.audio.muted = !!save.muted; G.audio.station = save.station || 0;
   G.ui = new UI(G); mark('audio/ui');
   G.rivals = new Rivals(G);
   G.missions = new Missions(G);
@@ -350,7 +351,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Escape') { if (!$('bigmap').hidden) G.ui.closeMap(); else if (!$('photo').hidden) { $('photo').hidden = true; G.paused = false; } else if (G.phoneOpen) G.ui.closePhone(); else if (!document.pointerLockElement) G.openPause(); } // t400: Esc = pausa (celular continua no P)
   if (G.paused && !['KeyM', 'KeyP'].includes(e.code)) return;
   if (e.code === 'KeyE' || e.code === 'KeyF' && false) action();
-  if (e.code === 'KeyT') { if (G.race.active) G.race.resetCar(); else G.respawnOnRoad(); }
+  if (e.code === 'KeyT') G.unstuck(); // t439: T = 🔄 desvirar/destravar (corrida: último portão)
   if (e.code === 'KeyC' && !e.repeat) input.kick = true;
   if (e.code === 'KeyJ' && G.started && !G.paused) G.jet.toggle();
   if (e.code === 'KeyG' && G.started && !G.paused) G.callHeli();
@@ -451,6 +452,31 @@ function stuckCheck(dt) {
   if (stopT > 1 && (G.t - lastHitT < 8 || !onRoadNow(v.x, v.z) || dbl || (G.street && G.street.race))) respawnOnRoad(v);
 }
 G.respawnOnRoad = () => G.player.vehicle && respawnOnRoad(G.player.vehicle);
+// t439: 🔄 Desvirar/Destravar (menu do olho 2 e tecla T) — carro preso/capotado volta de pé num lugar válido; em corrida volta no último portão;
+// barco encalhado volta para a água; a pé preso numa quina vai para o chão livre mais perto. Nunca no ar.
+function freeSpot(x, z, rad, test) {
+  const q = new THREE.Vector3();
+  for (const r of [0, 3, 6, 10, 15, 22, 30, 42]) for (let k = 0; k < (r ? 16 : 1); k++) { const a = k / 16 * Math.PI * 2, sx = x + Math.sin(a) * r, sz = z + Math.cos(a) * r;
+    if (!test(sx, sz)) continue; q.set(sx, 0, sz); if (rad && collide(q, rad, false, 1)) continue; return [sx, sz]; }
+  return null;
+}
+G.unstuck = () => {
+  if (!G.started || G.paused) return false; const p = G.player, v = p.vehicle;
+  if (G.bail && G.bail.mode) { G.ui.toast('🪂 Espere pousar', 1400); return false; }
+  if (v && (v.spec.air || v.type === 'heli' || v.type === 'plane') && v.air) { G.ui.toast('✈️ No ar não precisa: pouse primeiro', 1600); return false; }
+  G.unstuckN = (G.unstuckN || 0) + 1;
+  const fix = (P, h, msg) => respawnFade(() => { if (v) { v.place(P[0], P[1], h); v.vx = v.vz = v.vf = 0; v.roll = v.pitch = 0; v.drifting = false; v.yawV = 0; v.hitT = 0; v.recover = 1; p.x = v.x; p.z = v.z; p.h = v.h; } else G.placeOnFoot(P[0], P[1], h); G.camYaw = h; G.snapCam && G.snapCam(); stopT = 0; G.ui.toast(msg, 1500); });
+  if (v) {
+    if (G.race && G.race.active) { G.race.resetCar(); return true; }
+    if (G.serp && G.serp.on) { G.serp.stuckT = 9; return true; }
+    if (G.ponte && G.ponte.on) { G.ponte.stuckT = 9; return true; }
+    if (v.spec.boat) { const P = freeSpot(v.x, v.z, 0, (x, z) => boatable(x, z)); if (!P) { G.ui.toast('🚤 Sem água livre por perto', 1600); return false; } fix(P, v.h, '🔄 De volta à água'); return true; }
+    if (!v.spec.air && respawnOnRoad(v)) return true; // racha de rua: último portão; fora: faixa da rua
+    const P = freeSpot(v.x, v.z, 2.6, (x, z) => walkable(x, z) && groundY(x, z) > -0.2); if (!P) { G.ui.toast('Sem espaço livre aqui 😕', 1600); return false; }
+    fix(P, v.h, '🔄 Carro desvirado'); return true;
+  }
+  const P = freeSpot(p.x, p.z, 0.5, (x, z) => walkable(x, z) && groundY(x, z) > -0.2); if (!P) return false; fix(P, p.h, '🔄 Destravado'); return true;
+};
 // t400: ⏸ Pausa (menu Continuar / Voltar ao modo anterior / Configurações / Controles) e ↩ Voltar direto
 function backInfo() {
   const p = G.player, v = p.vehicle;
@@ -489,10 +515,14 @@ G.backInfo = backInfo;
   apply(pref()); addEventListener('resize', () => { if (!G.topBar && localStorage.getItem(qk) === null) apply(innerWidth > innerHeight); });
   qb.onclick = (e) => { e.stopPropagation(); const m = !qd.classList.contains('min'); localStorage.setItem(qk, m ? '1' : '0'); apply(m); };
 }
-setupTopBar(G); setupMsgGuard(G); // t413/t416: textos nunca sobre o carro/estrada · t405: todos os atalhos numa fita de vidro no topo (substitui o recolher do t399)
+setupTopBar(G); setupEyes(G); setupMsgGuard(G); // t413/t416: textos nunca sobre o carro/estrada · t405: todos os atalhos numa fita de vidro no topo (substitui o recolher do t399)
 $('bPhone').onclick = () => G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); $('bMap').onclick = () => G.ui.openMap(); $('bRadio').onclick = () => { G.audio.init(); G.radioSet(G.audio.station + 1); }; $('bCam').onclick = () => cycleCam();
+G.cycleCam = () => cycleCam();
 function cycleCam() { G.camMode = (G.camMode + 1) % 3; G.ui.toast(['Câmera normal', 'Câmera distante', 'Câmera próxima'][G.camMode], 1400); }
 G.radioSet = (i) => { const st = G.audio.setStation(i); save.station = G.audio.station; G.ui.radio(st); persist(); };
+G.horn = () => horn();
+// t440: volume do jogo (0 = sem som); salvo em vol-v1 (a tela de carregar também usa) e no save.muted
+G.setVolume = (v) => { v = Math.max(0, Math.min(1, +v || 0)); const A = G.audio; if (v > 0) { A.vol = v; A.setMuted(false); if (A.ok) A.master.gain.setTargetAtTime(v, A.ctx.currentTime, 0.05); } else A.setMuted(true); save.muted = A.muted; try { localStorage.setItem('vol-v1', String(v)); } catch (_) { } persist(); G.ui && G.ui.toast(v ? `🔊 Volume ${Math.round(v * 100)}%` : '🔇 Sem som', 1000); };
 function horn() { if (!G.player.vehicle) return; G.audio.horn(); const p = G.player; for (const c of G.crowd.peds) if (Math.hypot(c.x - p.x, c.z - p.z) < 14 && c.mode !== 'dodge' && c.mode !== 'lie') { c.mode = 'wave'; c.t = 1.5; c.h = Math.atan2(p.x - c.x, p.z - c.z); } }
 let photoReq = false;
 function photo() { if (!G.started || G.paused) return; photoReq = true; G.audio.chime('photo'); }
@@ -644,11 +674,11 @@ function updatePlayer(dt) {
     if (mobileDrive) DriveUI.tick(dt);
     let steer = mx, thr = my;
     if (fromStick && !mobileDrive) { steer = Math.sign(mx) * Math.min(1, Math.abs(mx) * 1.25) ** 1.4; thr = Math.abs(my) < 0.18 ? 0 : my; }
-    let hb = keys.has('Space') || input.hb; let nitro = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('KeyN') || input.nitro;
+    let nTap = false; let hb = keys.has('Space') || input.hb; let nitro = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('KeyN') || input.nitro;
     let hardBrake = false, limit = 1, kick = !!input.kick; input.kick = false;
     if (mobileDrive) {
       const d = DriveUI.input();
-      steer = d.x; thr = d.y; hb = hb || d.hb; nitro = nitro || d.nitro; hardBrake = d.hardBrake; limit = d.limit; kick = kick || d.kick;
+      steer = d.x; thr = d.y; hb = hb || d.hb; nitro = nitro || d.nitro; if ((d.nitroTaps || 0) !== (G._nTaps || 0)) { nTap = (G._nTaps || 0) < (d.nitroTaps || 0); G._nTaps = d.nitroTaps || 0; } hardBrake = d.hardBrake; limit = d.limit; kick = kick || d.kick;
     }
     if (G.race.frozen && v.race) { // largada: carro parado, motor acelerando
       v.vx = v.vz = v.vf = 0; v.steer += (steer - v.steer) * Math.min(1, dt * 7); v.rpm = lerp(v.rpm || 0, Math.max(0.12, thr) * 0.85, Math.min(1, dt * 6)); v.boosting = false; v.sync(dt);
@@ -684,9 +714,9 @@ function updatePlayer(dt) {
       } else v._inSea = false;
     }
     if (G.breaks) G.breaks.check(v, dt); // t418/t419: postes, sinaleiras, guarda-sóis e passarelas de madeira quebram
-    while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, hardBrake, limit, kick: kick && n === 0, neutral: !!input.neutral }, others, G.t)); v._acc -= F; n++; }
+    while (v._acc >= F && n < 3) { impact = Math.max(impact, v.drive(F, { x: steer, y: thr, hb, nitro, nitroTap: nTap && n === 0, hardBrake, limit, kick: kick && n === 0, neutral: !!input.neutral }, others, G.t)); v._acc -= F; n++; }
     if (n >= 3) v._acc = 0;
-    if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting;
+    if (v.boosting && !G._wasBoost) { G.audio.nitro(); } G._wasBoost = v.boosting; { const n2 = !!(v.boosting && v.n2); if (n2 && !G._wasN2) { G.audio.nitro(); G.ui.big && G.ui.big('NITRO 2!'); G.shake && G.shake(0.15); } G._wasN2 = n2; }
     if (impact > 2.5) { G.audio.thud(impact); G.shake(Math.min(0.7, impact * 0.05)); }
     p.x = v.x; p.z = v.z; p.y = v.y; p.h = v.h;
     hero.pose(v.spec.boat ? 'idle' : 'drive', 0, dt);
@@ -816,7 +846,7 @@ function updatePrompts() {
   if (hasN) { // nitro de cinco camadas
     if (!G._nsegs) G._nsegs = [...nw.querySelectorAll('.nSegs i')]; const n5 = v.nitro * NITRO_STAGES, st = v.boosting ? v.nStage || 1 : 0;
     G._nsegs.forEach((el, i) => { const f = clamp(n5 - i, 0, 1); const b = el.firstChild; const t = `scaleX(${f.toFixed(2)})`; if (b._t !== t) { b.style.transform = t; b._t = t; } const hot = st > i; if (el._h !== hot) { el.classList.toggle('hot', hot); el._h = hot; } });
-    const lb = st ? `NITRO ×${st}` : touch ? 'NITRO 🔥' : 'NITRO · Shift'; if (G._nl !== lb) { $('nitroL').textContent = lb; G._nl = lb; } nw.classList.toggle('on', v.boosting); }
+    const lb = st ? (v.n2 ? `NITRO 2 🔥×${st}` : `NITRO ×${st}`) : touch ? 'NITRO 🔥' : 'NITRO · Shift'; if (G._nl !== lb) { $('nitroL').textContent = lb; G._nl = lb; } nw.classList.toggle('on', v.boosting); }
   { // drift longo: janela de extensão (barra) + tempo + pêndulos encadeados
     const dw = $('driftW'); const dOn = !!(v && v.swD && v.drifting); if (dw.hidden === dOn) dw.hidden = !dOn;
     if (dOn) { const f = clamp(v.dExt / DRIFT_MAX, 0, 1); const b = $('driftB'); const t = `scaleX(${f.toFixed(2)})`; if (b._t !== t) { b.style.transform = t; b._t = t; }
@@ -1028,16 +1058,16 @@ function solaraNote(text, opt = {}) {
 function solNext() {
   const it = solQ.shift(); if (!it) { solCur = null; return; }
   const { text, opt } = it; const el = document.createElement('div'); el.id = opt.id || 'solaraHi'; el.className = 'solNote'; el.setAttribute('role', 'status');
-  el.innerHTML = `<div class="shAv"><img src="assets/solara/solara.webp" alt="" onerror="this.remove()">☀️</div><div class="shTx"><div class="shHd"><b>Solara</b><em>agora</em></div><span>${text}</span>${opt.fs ? '<button id="shFs">⛶ Tela cheia</button>' : ''}</div>`;
+  el.innerHTML = `<div class="shAv"><img src="assets/solara/solara.webp" alt="" onerror="this.remove()"><span class="avS">S</span></div><div class="shTx"><div class="shHd"><b>Solara</b><em>agora</em></div><span>${text}</span>${opt.fs ? '<button id="shFs">⛶ Tela cheia</button>' : ''}${opt.btn ? `<button id="shBtn">${opt.btn}</button>` : ''}</div>`;
   document.body.appendChild(el); solCur = el; G.solaraHi = el; const lg = { t: text.replace(/<[^>]+>/g, '').slice(0, 40), on: performance.now(), off: 0 }; (G.solLog = G.solLog || []).push(lg); let x0 = 0, y0 = 0, down = false, hold = false, gone = false;
   const close = () => { if (gone) return; gone = true; lg.off = performance.now(); el.classList.add('out'); setTimeout(() => { el.remove(); if (G.solaraHi === el) G.solaraHi = null; setTimeout(solNext, 250); }, 480); };
   el.addEventListener('pointerdown', (e) => { e.stopPropagation(); down = true; x0 = e.clientX; y0 = e.clientY; });
   el.addEventListener('pointermove', (e) => { if (down && Math.hypot(e.clientX - x0, e.clientY - y0) > 24) { down = false; close(); } });
-  el.addEventListener('pointerup', (e) => { e.stopPropagation(); if (!down) return; down = false; if (e.target.id === 'shFs') { document.documentElement.requestFullscreen().catch(() => { }); } close(); });
+  el.addEventListener('pointerup', (e) => { e.stopPropagation(); if (!down) return; down = false; if (e.target.id === 'shFs') { document.documentElement.requestFullscreen().catch(() => { }); } if (e.target.id === 'shBtn' && opt.onBtn) opt.onBtn(); close(); });
   el.addEventListener('pointerenter', () => { hold = true; }); el.addEventListener('pointerleave', () => { hold = false; });
   el.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
   // conta só o tempo em que a tela está de fato desenhando (travadas de compilação/aba em 2º plano não "comem" o recado)
-  const need = (opt.ms || 2400) / 1000; let vis = 0, tl = performance.now(); const tick = (now) => { if (gone) return; const d = Math.min(0.1, Math.max(0, (now - tl) / 1000)); tl = now; if (!hold && !down) vis += d; lg.vis = +vis.toFixed(2); if (vis >= need) close(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick);
+  const need = (opt.ms || 2400) / 1000; let vis = 0, tl = performance.now(); const tick = (now) => { if (gone) return; const d = Math.min(0.1, Math.max(0, (now - tl) / 1000)); tl = now; if (!down) vis += hold ? d * 0.25 : d; /* t439: mouse parado em cima não prende o recado (nem a fila) para sempre */ lg.vis = +vis.toFixed(2); if (vis >= need) close(); else requestAnimationFrame(tick); }; requestAnimationFrame(tick);
 }
 G.solaraNote = solaraNote;
 function solaraHi() { G.solaraHiShow = solaraHi;

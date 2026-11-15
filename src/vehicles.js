@@ -468,10 +468,16 @@ export class Vehicle {
     }
     // nitro (só carros tunados)
     this.boosting = !!(this.tune && inp.nitro && this.nitro > 0.02 && thr > 0.05 && vf > 1);
-    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt / ((sp.race ? 4.4 : 3.8) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
+    // t440: NITRO NÍVEL 2 — depois que o 1º jato acaba (ou durante ele), apertar o nitro de novo (até 2,5 s) dispara o 2º estágio:
+    // mais forte, gasta mais e a chama fica vermelha e maior. Sem malha nova (só cor/tamanho das chamas que já existem).
+    { const press = (!!inp.nitro && !this._nPrev) || !!inp.nitroTap; this._nPrev = !!inp.nitro;
+      if (press && this.tune && this.nitro > 0.02 && (this._n1T > 0 || this._n1On)) this.n2 = true;
+      if (this.boosting) { if (!this.n2) { this._n1On = true; this._n1T = 2.5; } }
+      else { this._n1On = false; if (this.n2 && !inp.nitro) { this.n2 = false; this._n1T = 0; } else if (this._n1T > 0) this._n1T -= dt; } }
+    if (this.tune) { const fill = sp.race ? (this.drifting || this.driftAng > 0.2 ? 1 / 4 : 1 / 14) : (this.drift > 3.5 ? 1 / 5 : 1 / 16); const nl = this.npc ? 0 : NITRO.lvl; if (this.boosting) this.nitro = Math.max(0, this.nitro - dt * (this.n2 ? 1.5 : 1) / ((sp.race ? 4.4 : 3.8) * (1 + nl * 0.15))); else this.nitro = Math.min(1, this.nitro + dt * fill * (1 + nl * 0.25)); }
     // nitro de oito camadas: segurando, sobe de estágio a cada 0,45 s (1 a 8), cada um mais forte
     if (this.boosting) { this.nStageT = (this.nStageT || 0) + dt; this.nStage = Math.min(NITRO_STAGES, 1 + Math.floor(this.nStageT / 0.45)); } else { this.nStageT = 0; this.nStage = 0; }
-    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) : 0; const limit = inp.limit != null ? clamp(inp.limit, 0.15, 1) : 1; const mk = this.npc ? 0 : MOTOR.lvl; const max = sp.max * (1 + mk * 0.09) * surf * (1 + boost * 0.32) * limit; const acc = sp.acc * (1 + mk * 0.08) * (1 + boost * 1.4);
+    const boost = this.boosting ? 0.6 + this.nStage * 0.1 + (this.npc ? 0 : NITRO.lvl * 0.05) + (this.n2 ? 0.55 : 0) : 0; const limit = inp.limit != null ? clamp(inp.limit, 0.15, 1) : 1; const mk = this.npc ? 0 : MOTOR.lvl; const max = sp.max * (1 + mk * 0.09) * surf * (1 + boost * 0.32) * limit; const acc = sp.acc * (1 + mk * 0.08) * (1 + boost * 1.4);
     if (thr > 0.05) { if (vf < -0.5) vf = Math.min(0, vf + sp.brake * dt); else vf += acc * thr * Math.max(0, 1 - (vf / max) ** 2) * dt + boost * 4 * dt; }
     else if (thr < -0.05) { if (vf > 0.5) vf = Math.max(0, vf - sp.brake * -thr * dt); else vf = Math.max(-max * 0.3, vf - sp.acc * 0.6 * -thr * dt); }
     else { const c = (sp.boat ? 2.5 : 2.2) * dt; vf = Math.abs(vf) < c ? 0 : vf - Math.sign(vf) * c; }
@@ -776,7 +782,8 @@ export class Vehicle {
     for (const w of this.wheels) w.rotation.x = this.spin;
     for (const f of this.front) f.rotation.y = -this.steer * this.spec.steer * 0.9;
     if (this.tailMesh) this.tailMesh.scale.setScalar(this.brakeOn ? 1.25 : 1);
-    if (this.flames) { const on = this.boosting; const L = (this.spec.race ? 1.5 : 1) * (0.7 + (this.nStage || 1) * 0.15); for (const f of this.flames) { f.visible = on; if (on) { const k = (0.75 + Math.random() * 0.6) * L; f.scale.set(1 + Math.random() * 0.3, 1 + Math.random() * 0.3, k); } } }
+    if (this.flames && (this.boosting && this.n2) !== !!this._redF) { this._redF = this.boosting && this.n2; for (const f of this.flames) for (const [k, m] of f.children.entries()) { const mt = m.material; if (!mt || !mt.color) continue; if (mt.userData.c0 == null) mt.userData.c0 = mt.color.getHex(); mt.color.setHex(this._redF ? (k ? 0xffb070 : 0xff1e0a) : mt.userData.c0); } }
+    if (this.flames) { const on = this.boosting; const L = (this.spec.race ? 1.5 : 1) * (0.7 + (this.nStage || 1) * 0.15) * (this._redF ? 1.75 : 1); for (const f of this.flames) { f.visible = on; if (on) { const k = (0.75 + Math.random() * 0.6) * L; const wq = this._redF ? 1.45 : 1; f.scale.set((1 + Math.random() * 0.3) * wq, (1 + Math.random() * 0.3) * wq, k); } } }
   }
   dispose(scene) {
     scene.remove(this.root);

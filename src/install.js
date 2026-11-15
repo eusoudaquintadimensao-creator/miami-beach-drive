@@ -16,8 +16,14 @@ export function initInstall(opts = {}) {
   $('installSheet').addEventListener('click', (e) => { if (e.target.id === 'installSheet') $('installSheet').hidden = true; });
   refresh();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    // t439: versão nova assumiu (skipWaiting+claim) → ainda carregando: recarrega na hora; já jogando: a Solara oferece "Atualizar"
+    const had = !!navigator.serviceWorker.controller; let done = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || done) return; done = true; installState.updated = true;
+      const hud = document.getElementById('hud'); if (!hud || hud.hidden) { location.reload(); return; } if (opts.onUpdate) opts.onUpdate(); });
     addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js', { scope: './' }).then((r) => { installState.sw = true; r.update && r.update().catch(() => { }); }).catch(() => { });
+      // t439: sw.js nunca vem do cache HTTP; checa versão nova ao abrir e ao voltar para o jogo (app instalado fica aberto dias)
+      navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).then((r) => { installState.sw = true; const up = () => r.update && r.update().catch(() => { }); up();
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') up(); }); }).catch(() => { });
     });
   }
 }

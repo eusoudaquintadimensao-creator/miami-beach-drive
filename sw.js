@@ -1,11 +1,11 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v31-2026-11-15-circuito-solara-bay';
+const VERSION = 'solara-v32-2026-11-15-olhos-nitro2';
 const FAM = VERSION.replace(/v\d.*$/, ''); // só apaga caches antigos DESTE jogo (o domínio é dividido com outros apps/jogos)
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
   'src/style.css', 'src/ldsolara.js', 'src/flyover.js', 'src/loadman.js', 'src/main.js', 'src/util.js', 'src/world.js', 'src/env.js', 'src/vehicles.js', 'src/people.js', 'src/traffic.js', 'src/audio.js',
   'src/missions.js', 'src/ui.js', 'src/recorder.js', 'src/install.js', 'src/garage.js', 'src/rivals.js',
-  'src/avatar.js', 'src/device.js', 'src/heli.js', 'src/plane.js', 'src/talk.js', 'src/phrases.js', 'src/heroes.js', 'src/powers.js', 'src/track.js', 'src/race.js', 'src/fx.js', 'src/home.js', 'src/jetpack.js', 'src/signature.js', 'src/life.js', 'src/birds.js', 'src/gifts.js', 'src/street.js', 'src/serpentina.js', 'src/seabridge.js', 'src/bridgefun.js', 'src/islands.js', 'src/boatrace.js', 'src/megagarage.js', 'src/gpsosm.js', 'src/beachlife.js', 'src/orla.js', 'src/bailout.js', 'src/versions.js', 'assets/osm/miami.json', 'src/radio.js', 'src/radiolines.js', 'src/driveui.js', 'src/frota.js', 'src/marraces.js', 'src/jetrace.js', 'src/palmbreak.js', 'src/outdoor.js', 'src/gauchos.js', 'src/topbar.js', 'src/wardrobe.js', 'src/boutique.js', 'src/msgguard.js', 'src/breakables.js', 'src/paintshop.js', 'src/voice.js', 'assets/voz/index.json',
+  'src/avatar.js', 'src/device.js', 'src/heli.js', 'src/plane.js', 'src/talk.js', 'src/phrases.js', 'src/heroes.js', 'src/powers.js', 'src/track.js', 'src/race.js', 'src/fx.js', 'src/home.js', 'src/jetpack.js', 'src/signature.js', 'src/life.js', 'src/birds.js', 'src/gifts.js', 'src/street.js', 'src/serpentina.js', 'src/seabridge.js', 'src/bridgefun.js', 'src/islands.js', 'src/boatrace.js', 'src/megagarage.js', 'src/gpsosm.js', 'src/beachlife.js', 'src/orla.js', 'src/bailout.js', 'src/versions.js', 'assets/osm/miami.json', 'src/radio.js', 'src/radiolines.js', 'src/driveui.js', 'src/frota.js', 'src/marraces.js', 'src/jetrace.js', 'src/palmbreak.js', 'src/outdoor.js', 'src/gauchos.js', 'src/topbar.js', 'src/eyes.js', 'src/wardrobe.js', 'src/boutique.js', 'src/msgguard.js', 'src/breakables.js', 'src/paintshop.js', 'src/voice.js', 'assets/voz/index.json',
   'assets/avatars/ela.glb', 'assets/avatars/ele.glb', 'assets/avatars/ela.webp', 'assets/avatars/ele.webp',
   'assets/solara/solara.webp', 'assets/avatars/teia.webp', 'assets/avatars/solar.webp', 'assets/avatars/colosso.webp', 'assets/avatars/sentinela.webp', 'assets/avatars/ferreo.webp', 'assets/avatars/tita.webp',
   'vendor/three/addons/loaders/GLTFLoader.js', 'vendor/three/addons/utils/SkeletonUtils.js',
@@ -24,8 +24,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url); if (url.origin !== location.origin) return;
-  if (req.mode === 'navigate') { // página: rede primeiro (pega atualizações), cache se estiver offline
-    e.respondWith(fetch(req).then((r) => { const cp = r.clone(); caches.open(VERSION).then((c) => c.put('index.html', cp)); return r; }).catch(() => caches.match('index.html', { ignoreSearch: true })));
+  if (req.mode === 'navigate') { // t439: página e arquivos SEMPRE da MESMA versão (nunca index novo com main.js velho).
+    // Versão nova chega pelo sw.js novo (instala tudo fresco, assume e a página recarrega/oferece "Atualizar").
+    e.respondWith(caches.open(VERSION).then((c) => c.match('index.html').then((hit) => hit || fetch(req).then((r) => { if (r && r.ok) c.put('index.html', r.clone()); return r; }))).catch(() => fetch(req)));
     return;
   }
   // arquivos: cache na hora, atualiza em segundo plano

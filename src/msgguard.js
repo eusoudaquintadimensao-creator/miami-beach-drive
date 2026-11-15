@@ -20,7 +20,7 @@ export function setupMsgGuard(G) {
   const vis = (el) => { if (el.hidden) return null; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return null; let r = el.getBoundingClientRect(); for (const k of el.children) { const q = k.getBoundingClientRect(); if (q.width < 2 || q.height < 2) continue; r = { left: Math.min(r.left, q.left), top: Math.min(r.top, q.top), right: Math.max(r.right, q.right), bottom: Math.max(r.bottom, q.bottom) }; } r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width < 4 || r.height < 4) return null; return r; };
   const hit = (r, Z, m = 3) => r.left < Z.x1 + m && r.right > Z.x0 - m && r.top < Z.y1 + m && r.bottom > Z.y0 - m;
   function reset(el) { if (el._g) { el.style.translate = ''; el.style.visibility = ''; el._g = null; } }
-  const HUD = ['mapw', 'topR', 'edgeCol', 'bClean', 'topBar', 'drvRightBox', 'btns', 'stickZone', 'drvCruise', 'drvGear', 'bNeutral', 'ponteQuit', 'bPause', 'bBack']; // t437: Desistir da ponte (e ⏸ ↩) também são obstáculos — a legenda do rádio não pode ser empurrada para cima deles
+  const HUD = ['mapw', 'topR', 'edgeCol', 'bClean', 'topBar', 'drvRightBox', 'btns', 'stickZone', 'drvCruise', 'drvGear', 'bNeutral', 'ponteQuit', 'bPause', 'bBack', 'bEye2', 'bEye3', 'eyeMenu']; // t437: Desistir da ponte (e ⏸ ↩) também são obstáculos — a legenda do rádio não pode ser empurrada para cima deles
   const ov = (a, b, m = 2) => a.left < b.right + m && a.right > b.left - m && a.top < b.bottom + m && a.bottom > b.top - m;
   const mv = (r, dx, dy) => ({ left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy });
   function tick() {

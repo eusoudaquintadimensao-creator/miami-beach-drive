@@ -12,13 +12,16 @@ class Pool { // pedacinhos (InstancedMesh reaproveitado)
 }
 export class Breakables {
   constructor(G, scene, world) {
-    this.G = G; this.scene = scene; this.fall = []; this.bits = []; this.planks = []; this.count = { poste: 0, sinal: 0, 'guarda-sol': 0, tabua: 0 };
+    this.G = G; this.scene = scene; this.fall = []; this.bits = []; this.planks = []; this.count = { poste: 0, sinal: 0, 'guarda-sol': 0, tabua: 0, mesa: 0, cadeira: 0 }; this.cafe = [];
     this.cell = 16; this.grid = new Map(); this.secs = [];
     const m4 = () => new THREE.Matrix4();
     const L = world && world.lampPoles, T = world && world.tlPoles, U = world && world.umb;
     if (L) for (const p of L.list) { p.src = L; p.m = m4(); L.mesh.getMatrixAt(p.i, p.m); p.r = 0.3; p.mass = 0.9; this.reg(p); if (L.heads) { p.hm = m4(); L.heads.getMatrixAt(p.i, p.hm); } }
     if (T) for (const p of T.list) { p.src = T; p.m = m4(); T.mesh.getMatrixAt(p.i, p.m); p.r = 0.35; p.mass = 0.88; p.bm = p.bulbs.map(b => { const q = m4(); T.bulbs.getMatrixAt(b, q); return q; }); this.reg(p); }
     if (U) for (const p of U.list) { p.src = U; p.m = m4(); U.mesh.getMatrixAt(p.i, p.m); p.r = 0.45; p.mass = 0.985; p.col = new THREE.Color(); if (U.mesh.instanceColor) U.mesh.getColorAt(p.i, p.col); else p.col.set(0xff4f6f); this.reg(p); }
+    // t439: mesas e cadeiras de café (voam, capotam e caem com barulho de metal/madeira)
+    const CF = world && world.cafe;
+    if (CF) for (const S of [CF.tables, CF.chairs]) for (const p of S.list) { p.src = S; p.m = m4(); S.mesh.getMatrixAt(p.i, p.m); p.r = p.kind === 'mesa' ? 0.45 : 0.3; p.mass = p.kind === 'mesa' ? 0.975 : 0.99; p.col = new THREE.Color(1, 1, 1); if (S.mesh.instanceColor) S.mesh.getColorAt(p.i, p.col); this.reg(p); this.cafe.push(p); }
     // passarelas de madeira sobre a areia: um grupo por trecho de ~3 m (tábuas, pernas, guarda-corpo)
     this.wood = new THREE.MeshStandardMaterial({ color: 0xa88560, roughness: 0.85 }); this.post = new THREE.MeshStandardMaterial({ color: 0x6b513a, roughness: 0.9 }); this.railM = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 });
     for (const d of SAND_DECKS) {
@@ -53,7 +56,7 @@ export class Breakables {
       const ax = c[0] + v.vx * dt * look * 2, az = c[1] + v.vz * dt * look * 2;
       for (const o of this.near(ax, az, r + 4)) {
         if (o.kind === 'tabua') { if (ax > o.x0 - r - 0.6 && ax < o.x1 + r + 0.6 && az > o.z0 - r && az < o.z1 + r && (v.y || 0) < o.y + 0.8) { this.breakDeck(o, v, spd); n++; } }
-        else if (Math.hypot(o.x - ax, o.z - az) < r + o.r) { if (o.kind === 'guarda-sol') this.breakUmb(o, v, spd); else this.breakPole(o, v, spd); n++; }
+        else if (Math.hypot(o.x - ax, o.z - az) < r + o.r) { if (o.kind === 'guarda-sol') this.breakUmb(o, v, spd); else if (o.kind === 'mesa' || o.kind === 'cadeira') this.breakCafe(o, v, spd); else this.breakPole(o, v, spd); n++; }
       }
     }
     return n;
@@ -94,6 +97,17 @@ export class Breakables {
     for (let k = 0; k < 6; k++) this.bit('pano', o.x, 2 + Math.random() * 0.5, o.z, fx * 3 + (Math.random() - 0.5) * 4, 1 + Math.random() * 3, fz * 3 + (Math.random() - 0.5) * 4, 2.4);
     for (let k = 0; k < 5; k++) this.bit('lasca', o.x, 0.4, o.z, fx * 4 + (Math.random() - 0.5) * 3, 1 + Math.random() * 2, fz * 4 + (Math.random() - 0.5) * 3, 1.4);
     G.audio && G.audio.crack && G.audio.crack(Math.min(8, spd * 0.5));
+    G.onBreak && G.onBreak(o);
+  }
+  breakCafe(o, v, spd) { // t439
+    const G = this.G, S = o.src; o.down = true; o.t = 0; this.count[o.kind]++;
+    S.mesh.setMatrixAt(o.i, ZERO); S.mesh.instanceMatrix.needsUpdate = true;
+    const mat = S.mesh.material.clone(); mat.color = o.col.clone(); const mesh = new THREE.Mesh(S.mesh.geometry, mat); mesh.castShadow = true; const pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3(); o.m.decompose(pos, q, sc); mesh.quaternion.copy(q);
+    const f = this.topple(o, v, spd, mesh, pos); f.mat = mat; const light = o.kind === 'cadeira';
+    f.vy = (light ? 3.2 : 2.2) + spd * (light ? 0.16 : 0.1); f.w = (light ? 4 : 2.6) + spd * 0.2; f.slide = spd * (light ? 0.5 : 0.35);
+    this.slow(v, o.mass); const [fx, fz] = this.dir(v, spd);
+    for (let k = 0; k < (light ? 4 : 6); k++) this.bit('metal', o.x, 0.4 + Math.random() * 0.4, o.z, fx * 4 + (Math.random() - 0.5) * 4, 1.5 + Math.random() * 2.5, fz * 4 + (Math.random() - 0.5) * 4, 1.2);
+    G.audio && G.audio.clatter && G.audio.clatter(Math.min(16, spd), o.kind); G.shake && G.shake(light ? 0.05 : 0.08);
     G.onBreak && G.onBreak(o);
   }
   breakDeck(s, v, spd) {

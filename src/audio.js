@@ -146,6 +146,12 @@ export class AudioSys {
   // t418/t419: sons sintetizados — madeira estalando, metal tombando, spray da cabine de pintura
   crack(v = 10) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.55, 0.15 + v * 0.025); for (let k = 0; k < 6; k++) { const tt = t + k * (0.018 + Math.random() * 0.03); this.noise(tt, 0.03 + Math.random() * 0.03, g * (1 - k * 0.12), 'bandpass', 1200 + Math.random() * 2400, this.bus); } this.noise(t, 0.18, g * 0.7, 'lowpass', 300, this.bus); this.tone(t, 140, 0.12, 'triangle', g * 0.25, this.bus, 0.002, 0.08); }
   clang(v = 10) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.4, 0.1 + v * 0.02); for (const [f, k] of [[420, 1], [1130, 0.6], [1870, 0.4], [2650, 0.25]]) this.tone(t, f * (0.95 + Math.random() * 0.1), 0.6, 'triangle', g * k, this.bus, 0.002, 0.5); this.noise(t, 0.12, g, 'highpass', 2000, this.bus); this.noise(t + 0.35, 0.2, g * 0.6, 'lowpass', 500, this.bus); }
+  // t439: cadeira/mesa de café de alumínio: pancada + vários tinidos curtos espalhados (caindo e quicando no chão)
+  clatter(v = 10, kind = 'cadeira') { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.32, 0.08 + v * 0.016), big = kind === 'mesa';
+    this.noise(t, 0.09, g * 1.2, 'lowpass', big ? 700 : 1100, this.bus);
+    const hits = big ? 4 : 5; for (let k = 0; k < hits; k++) { const tk = t + 0.03 + k * (0.07 + Math.random() * 0.09), gk = g * (1 - k / (hits + 1)); const f0 = (big ? 620 : 900) * (0.85 + Math.random() * 0.35);
+      for (const [m, a] of [[1, 1], [2.76, 0.45], [5.4, 0.2]]) this.tone(tk, f0 * m, 0.18, 'triangle', gk * a * 0.6, this.bus, 0.001, 0.16); this.noise(tk, 0.03, gk * 0.7, 'highpass', 2500, this.bus); }
+    this.noise(t + 0.02, 0.35, g * 0.35, 'bandpass', 1800, this.bus); }
   splash(v = 4) { if (!this.ok) return; const t = this.ctx.currentTime, g = Math.min(0.4, 0.08 + v * 0.02); this.noise(t, 0.35, g, 'lowpass', 900, this.bus); this.noise(t + 0.03, 0.25, g * 0.6, 'bandpass', 2600, this.bus); }
   water(g = 0.1) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, 0.4, g, 'bandpass', 1400 + Math.random() * 900, this.bus); }
   spray(d = 1) { if (!this.ok) return; const t = this.ctx.currentTime; this.noise(t, d, 0.12, 'bandpass', 5200, this.bus); }

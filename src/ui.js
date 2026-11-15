@@ -93,7 +93,7 @@ export class UI {
   route(ctx, X, Z, w) { const r = this.G.route; if (!r || r.length < 2) return; ctx.strokeStyle = '#c86bff'; ctx.lineWidth = w; ctx.lineJoin = ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(X(r[0][0]), Z(r[0][1])); for (const p of r) ctx.lineTo(X(p[0]), Z(p[1])); ctx.stroke(); }
   drawMini(cam) {
     const G = this.G; const c = this.mctx, W = this.mini.width, H = this.mini.height; const pl = G.player;
-    const sp = pl.vehicle ? pl.vehicle.speed : 0; const zoom = (W / 220) * (1.25 - Math.min(0.55, sp / 80)); // px por px do mapa
+    const sp = pl.vehicle ? pl.vehicle.speed : 0; const zoom = (W / 220) * (1.25 - Math.min(0.55, sp / 80)) * (G.miniZoom || 1); // t440: 🔍 zoom do minimapa (olho 3) // px por px do mapa
     c.save(); c.fillStyle = '#1b4f78'; c.fillRect(0, 0, W, H);
     c.translate(W / 2, H * 0.62); c.rotate(G.camYaw + Math.PI); c.scale(zoom, zoom);
     const mx = (pl.x - BOUNDS.x0) * MAPSCALE, mz = (pl.z - BOUNDS.z0) * MAPSCALE;
@@ -203,7 +203,7 @@ export class UI {
     else if (d.a === 'wx') { G.env.setWeather(d.v); G.save.weather = d.v; G.persist(); this.phonePage(page); }
     else if (d.a === 'spd') { G.env.speed = G.env.speed === 0.025 ? 0.08 : G.env.speed === 0.08 ? 0 : 0.025; this.phonePage(page); }
     else if (d.a === 'q') { G.save.quality = d.v; G.persist(); this.toast('Aplicando gráficos…'); setTimeout(() => location.reload(), 300); }
-    else if (d.a === 'mute') { G.audio.setMuted(!G.audio.muted); G.save.muted = G.audio.muted; G.persist(); this.phonePage(page); }
+    else if (d.a === 'mute') { G.audio.setMuted(!G.audio.muted); try { localStorage.setItem('vol-v1', String(G.audio.muted ? 0 : G.audio.vol)); } catch (_) { } G.save.muted = G.audio.muted; G.persist(); this.phonePage(page); }
     else if (d.a === 'sens') { G.save.sens = G.save.sens >= 2 ? 0.6 : Math.round((G.save.sens + 0.2) * 10) / 10; G.persist(); this.phonePage(page); }
     else if (d.a === 'shake') { G.save.shake = G.save.shake >= 1 || G.save.shake == null ? 0.5 : G.save.shake >= 0.5 ? 0 : 1; G.persist(); this.phonePage(page); }
     else if (d.a === 'fps') { G.showFps = !G.showFps; this.phonePage(page); }

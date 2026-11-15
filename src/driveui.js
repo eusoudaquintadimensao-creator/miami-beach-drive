@@ -393,7 +393,7 @@ export const DriveUI = {
     this._tocarSteer = n ? clamp(s / n, -1, 1) : 0;
   },
   fireNitro() {
-    this._nitroT = 1.15; this._buzz(14);
+    this._nitroT = 1.15; this._buzz(14); this.nitroTaps = (this.nitroTaps || 0) + 1; // t440: cada deslize conta (2º = nitro nível 2)
     if (this.G && this.G.ui) this.G.ui.toast('🔥 Nitro', 700);
   },
   fireDrift() {
@@ -441,7 +441,7 @@ export const DriveUI = {
       x: this.steer,
       y: this.thr,
       hb: this.hb,
-      nitro: this.nitro,
+      nitro: this.nitro, nitroTaps: this.nitroTaps || 0,
       hardBrake: this.hardBrake,
       limit: this.reverse || this.hardBrake ? 1 : this.cruise,
       reverse: this.reverse,
@@ -467,7 +467,7 @@ export const DriveUI = {
   inspect() {
     return {
       mode: this.mode, cruise: this.cruise, driving: this.driving, steer: this.steer, thr: this.thr,
-      hb: this.hb, nitro: this.nitro, hardBrake: this.hardBrake, reverse: this.reverse, highBeam: this.highBeam,
+      hb: this.hb, nitro: this.nitro, nitroTaps: this.nitroTaps || 0, hardBrake: this.hardBrake, reverse: this.reverse, highBeam: this.highBeam,
       key: DRIVE_KEY, cal: this.cal, wheel: this._wheelA
     };
   }
