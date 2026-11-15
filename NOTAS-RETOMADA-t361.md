@@ -227,3 +227,7 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - FOTO da Solara: arquivo do anexo (72ad969f...) NÃO chegou no box; código usa assets/solara/solara.webp com fallback ☀️. Falta: recortar rosto, ~20–40 KB, pôr no CORE do SW.
 - Antes: /workspace/t435/antes-d-*.png (ok). antes-i-* contaminado (novo código) — refazer da worktree /workspace/wt-antes porta 8795.
 - test/t436.js PASS d (high). Falta: t436 i/il/al, prints depois, t432 orçamento, varredura 4 setups, relatório PESQUISA, push só Solara.
+- 11:12 commits 95fb8a8, 4dd5c4a, 64f2d65 (relatório docs/PESQUISA-GRAFICO-LEVEZA.md = /workspace/t435/), 43638b3 (Solara vira botão redondo no menu). t436 PASS d e i. t432 local PASS (2229 KB, 4,7 s, 15,7 s). Prints antes/depois: /workspace/t435/{antes,depois}-{d,i}-{praia,rua,meio-dia}.png + comp-*.jpg + crop-d-*.jpg.
+- jetrace: 'Anel'→'Argola' (filtro t422). NEON precisa da mesma troca quando for a vez dele.
+- Varredura: /workspace/t367/sweep12.sh → sweep12.out (só Solara). Porta 8795 é de OUTRO agente; worktree antes usa 8797.
+- Foto da Solara ainda NÃO no box (só o print do Radar em d0d2bd...jpg). Não publicar sem decidir: publicar com ☀️ de reserva e trocar a foto depois.
