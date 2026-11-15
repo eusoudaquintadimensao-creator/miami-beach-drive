@@ -668,7 +668,8 @@ export function buildWorld(scene, Q) {
       for (const [a, b] of [[-1.4, -1.4], [1.4, -1.4], [-1.4, 1.4], [1.4, 1.4]]) ch.misc.box(x + a, y + 1.4, z + b, 0.25, 2.8, 0.25, C(0xffffff));
       ch.misc.box(x, y + 3.0, z, 3.6, 0.3, 3.6, C(0xffffff)); ch.misc.box(x, y + 4.4, z, 3.2, 2.6, 3.2, c); ch.misc.box(x, y + 5.9, z, 3.8, 0.4, 3.8, C(0xffffff));
       ch.misc.box(x + 1.7, y + 4.6, z, 0.06, 1.2, 2.4, C(0x335577));
-      addBox(x - 1.7, z - 1.7, x + 1.7, z + 1.7, 6.2);
+      for (const [a, b] of [[-1.4, -1.4], [1.4, -1.4], [-1.4, 1.4], [1.4, 1.4]]) addBox(x + a - 0.15, z + b - 0.15, x + a + 0.15, z + b + 0.15, y + 3); // t412: só as pernas colidem — carro passa por baixo da cabine
+      addBox(x - 1.9, z - 1.9, x + 1.9, z + 1.9, y + 6.2, false, y + 2.9);
       if (k === 5) LANDMARKS.push({ id: 'salva', name: 'Posto Salva-vidas', x: x - 12, z, r: 14, look: [x, 4, z] });
     }
     for (let i = 0; i < 140; i++) { const x = 334 + R() * 44, z = -620 + R() * 1240, r = R(); if (BEACH.courts.some(c => Math.abs(x - c.x) < c.hw + 3 && Math.abs(z - c.z) < c.hl + 3) || inKeep(x, z, 2)) continue; umbrellas.push([x, z, r]); towels.push([x + 1.5, z + (R() - 0.5) * 2, R()]); }
