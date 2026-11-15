@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { LOADMAN } from './loadman.js';
 
-const CFG = { title: 'SOLARA BAY', key: 'mbd-solara-v1', skipKey: 'mbd-fly-skip', neon: false, defHour: 17.2 };
+const CFG = { title: 'SOLARA BAY', key: 'mbd-solara-v1', skipKey: 'mbd-fly-skip', neon: false, defHour: 17.4 };
 // trilha da câmera (coordenadas reais do mapa: mar a leste de x=390, orla em x≈320–390, ilha x 30–320)
 const PATH = [
   [560, 30, 380, 330, 16, 180], [468, 13, 190, 335, 10, 30], [428, 8, 10, 330, 12, -120], [452, 26, -210, 300, 24, -330],
@@ -45,9 +45,9 @@ function ui(dt) {
 // ---- cena mínima
 function pal() {
   const h = hour, night = h < 5.8 || h > 19.6, gold = (h > 17.6 && h <= 19.6) || (h >= 5.8 && h < 7.2);
-  if (CFG.neon || night) return { top: 0x070b16, mid: 0x111c33, hor: 0x24365a, sun: 0x6a86c8, sea: 0x0a2230, sea2: 0x10414a, sand: 0x6b6250, ground: 0x1b1f24, fac: [0x2a2f38, 0x323843, 0x1f242c], win: 0xffd38a, winOn: 0.85, fog: 0x14203a, sunDir: [0.3, 0.25, -0.9] };
-  if (gold) return { top: 0x24344f, mid: 0xc98a6a, hor: 0xffc27a, sun: 0xffd08a, sea: 0x125e6c, sea2: 0x3fb3ad, sand: 0xe0c48e, ground: 0x6f7a62, fac: [0xe9dcc6, 0xd9cdb8, 0xb8c4cc, 0xf2ece0], win: 0xffcf8a, winOn: 0.25, fog: 0xe0a970, sunDir: [-0.85, 0.12, 0.2] };
-  return { top: 0x2f6fb4, mid: 0x7fb0d8, hor: 0xd6ecf6, sun: 0xfff6dc, sea: 0x0b5d74, sea2: 0x37c2c0, sand: 0xeedcb0, ground: 0x7d9a62, fac: [0xf4efe6, 0xe6e0d4, 0xbcd0dc, 0xffffff], win: 0xffe9b0, winOn: 0.0, fog: 0xbfd8e8, sunDir: [-0.5, 0.6, 0.3] };
+  if (night) return { top: 0x070b16, mid: 0x111c33, hor: CFG.neon ? 0x3a1f55 : 0x24365a, sun: 0x6a86c8, sea: 0x0a2230, sea2: 0x10414a, sand: 0x6b6250, ground: 0x1b1f24, fac: [0x2a2f38, 0x323843, 0x1f242c], win: CFG.neon ? 0xff4fb8 : 0xffd38a, win2: CFG.neon ? 0x29f0ff : 0xffe2a8, winOn: 0.9, fog: 0x14203a, sunDir: [0.3, 0.25, -0.9] };
+  if (gold) return { top: 0x24344f, mid: 0xc98a6a, hor: 0xffc27a, sun: 0xffd08a, sea: 0x125e6c, sea2: 0x3fb3ad, sand: 0xe0c48e, ground: 0x6f7a62, fac: [0xe9dcc6, 0xd9cdb8, 0xb8c4cc, 0xf2ece0], win: 0xffcf8a, win2: 0xffe2a8, winOn: 0.25, fog: 0xe0a970, sunDir: [-0.85, 0.12, 0.2] };
+  return { top: 0x2f6fb4, mid: 0x7fb0d8, hor: 0xd6ecf6, sun: 0xfff6dc, sea: 0x0b5d74, sea2: 0x37c2c0, sand: 0xeedcb0, ground: 0x7d9a62, fac: [0xf4efe6, 0xe6e0d4, 0xbcd0dc, 0xffffff], win: 0xffe9b0, win2: 0xffe9b0, winOn: 0.0, fog: 0xbfd8e8, sunDir: [-0.5, 0.6, 0.3] };
 }
 const LC = (h) => new THREE.Color(h); // cores em espaço linear; os shaders convertem para a tela no fim (colorspace_fragment)
 function rng(s) { return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
@@ -72,9 +72,9 @@ function build() {
   const road = new THREE.Mesh(new THREE.PlaneGeometry(16, 1500), flat(0x3a3c40)); road.rotation.x = -Math.PI / 2; road.position.set(306, 0.05, 0); scene.add(road);
   // prédios instanciados com janelas procedurais (sem texturas)
   const N = 170, geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
-  const bm = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { win: { value: LC(P.win) }, on: { value: P.winOn }, sd: { value: sd } }]),
+  const bm = new THREE.ShaderMaterial({ fog: true, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { win: { value: LC(P.win) }, win2: { value: LC(P.win2) }, on: { value: P.winOn }, sd: { value: sd } }]),
     vertexShader: 'attribute vec3 col; varying vec3 vC, vN, vL;\n#include <fog_pars_vertex>\nvoid main(){ vC = col; vec4 w = modelMatrix*instanceMatrix*vec4(position,1.); vL = (instanceMatrix*vec4(position,1.)).xyz; vN = normalize(mat3(instanceMatrix)*normal); vec4 mvPosition = viewMatrix*w; gl_Position = projectionMatrix*mvPosition; \n#include <fog_vertex>\n}',
-    fragmentShader: 'uniform vec3 win, sd; uniform float on; varying vec3 vC, vN, vL; \n#include <fog_pars_fragment>\nvoid main(){ float l = .55+.45*max(dot(normalize(vN),sd),0.); vec3 c = vC*l; if (abs(vN.y)<.5){ vec2 q = vec2(abs(vN.x)>.5?vL.z:vL.x, vL.y); vec2 g = fract(q/vec2(3.2,3.4)); float wnd = step(.18,g.x)*step(g.x,.82)*step(.25,g.y)*step(g.y,.8); float h = fract(sin(dot(floor(q/vec2(3.2,3.4)),vec2(12.9898,78.233)))*43758.5); c = mix(c, c*.55+vec3(.08,.12,.16), wnd*.6); c += win*wnd*step(.62,h)*on; } gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n#include <colorspace_fragment>\n}' });
+    fragmentShader: 'uniform vec3 win, win2, sd; uniform float on; varying vec3 vC, vN, vL; \n#include <fog_pars_fragment>\nvoid main(){ float l = .55+.45*max(dot(normalize(vN),sd),0.); vec3 c = vC*l; if (abs(vN.y)<.5){ vec2 q = vec2(abs(vN.x)>.5?vL.z:vL.x, vL.y); vec2 g = fract(q/vec2(3.2,3.4)); float wnd = step(.18,g.x)*step(g.x,.82)*step(.25,g.y)*step(g.y,.8); float h = fract(sin(dot(floor(q/vec2(3.2,3.4)),vec2(12.9898,78.233)))*43758.5); c = mix(c, c*.55+vec3(.08,.12,.16), wnd*.6); c += mix(win, win2, step(.81,h))*wnd*step(.62,h)*on; } gl_FragColor = vec4(c,1.); \n#include <fog_fragment>\n#include <colorspace_fragment>\n}' });
   const im = new THREE.InstancedMesh(geo, bm, N); const col = new Float32Array(N * 3); const r = rng(42); const m4 = new THREE.Matrix4(); const cc = new THREE.Color();
   for (let i = 0; i < N; i++) {
     const front = i < 70; const z = -660 + (front ? (i / 70) * 1320 : r() * 1320) + (r() - 0.5) * 8;
