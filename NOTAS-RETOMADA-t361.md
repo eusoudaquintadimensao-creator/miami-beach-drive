@@ -169,3 +169,8 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   NOVO na release D: t431 Colosso no estilo do conceito (gigante musculoso, armadura marinho/grafite com placas prata, emblema sol dourado, energia nos punhos; rosto próprio)
   + herói NOVO 'Atlas Índigo' (gigante de pele azul, queixo quadrado, olhos prata, cicatriz na sobrancelha, mesma armadura; poder: onda de choque dourada/pisão que derruba objetos, sem violência; no menu e na loja de trajes).
   t432 (regra fixa): orçamento p/ celular fraco a cada release: modo leve automático (deviceMemory/hardwareConcurrency/GPU + FPS), texturas comprimidas, LOD/instancing, carga preguiçosa de áudio/bairros, teto de pixel ratio, testes de orçamento (download inicial, 1º quadro, FPS com CPU 4x + slow-4G), relatar números.
+
+### t431 FEITO (04:30) — Solara afc6280, Neon (commit acima no log)
+- Colosso: titanSuit (marinho/prata, sol dourado 12 raios, ombreiras prata, energia dourada nos punhos), altura 2.35. Atlas Índigo: pele azul, mandíbula quadrada, olhos prata, cicatriz na sobrancelha, poder 'onda' (pulo + pisão, anel dourado, derruba postes/guarda-sóis/tábuas/palmeiras em 14 m). Cartão no menu + trajes atlas-cobalto/atlas-lunar na loja + Caminhonete Atlas.
+- test/t431.js PASS nos dois (prints /workspace/t361-prints/t431-*-{menu,onda,colosso}.png).
+- PRÓXIMO: t432 (modo leve automático + testes de orçamento), rodar t426/heroes/t408/sig + varredura, publicar release D.
