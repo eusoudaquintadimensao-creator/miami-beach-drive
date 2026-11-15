@@ -10,9 +10,10 @@ export const SIGNATURE = {
   ele: { type: 'moto', name: 'Raio Ciano', tune: { paint: 0x19c3e6, accent: 0x111111, glow: 0x29f0ff, rim: 0x111111, text: 'DAVI', style: 1 } },
   teia: { type: 'moto', name: 'Moto Vértice', tune: { paint: 0x0f5f5a, accent: 0x9cff3a, glow: 0x9cff3a, rim: 0x111111, text: 'VÉRTICE', style: 2 } },
   solar: { type: 'rc_hyper', name: 'Hiper Solar', tune: { paint: 0xffc61a, accent: 0xffffff, glow: 0xff9a3c, rim: 0xffffff, text: 'SOLAR', style: 1, kit: true, spoiler: 0, num: 1 } },
-  colosso: { type: 'pickup', name: 'Caminhonete Colosso', tune: { paint: 0x2f9e44, accent: 0x1c1c1e, glow: 0x7dff6a, rim: 0x1a1a1a, text: 'COLOSSO', style: 0, spoiler: 0, kit: true } },
+  colosso: { type: 'pickup', name: 'Caminhonete Colosso', tune: { paint: 0x1c2a44, accent: 0xc9ced6, glow: 0xffc44d, rim: 0x1a1a1a, text: 'COLOSSO', style: 0, spoiler: 0, kit: true } },
   sentinela: { type: 'rc_muscle', name: 'Muscle Sentinela', tune: { paint: 0x1b2a4a, accent: 0xc8ccd0, glow: 0x4fb3ff, rim: 0xc8ccd0, text: 'SENTINELA', style: 0, kit: true, spoiler: 0, num: 5 } },
   ferreo: { type: 'rc_gt', name: 'GT Férreo', tune: { paint: 0x3a3d44, accent: 0xff6a2a, glow: 0xff6a2a, rim: 0x1a1a1a, text: 'FÉRREO', style: 2, kit: true, spoiler: 0, num: 8 } },
+  atlas: { type: 'pickup', name: 'Caminhonete Atlas', tune: { paint: 0x1a2440, accent: 0xc9ced6, glow: 0xffc44d, rim: 0xc9ced6, text: 'ATLAS', style: 0, spoiler: 0, kit: true } },
   tita: { type: 'rc_jdm', name: 'JDM Titã', tune: { paint: 0x5b2a9e, accent: 0xff4fb8, glow: 0xb36bff, rim: 0xff4fb8, text: 'TITÃ', style: 1, kit: true, spoiler: 0, num: 9 } },
 };
 export const sigOf = (id) => SIGNATURE[id] || SIGNATURE.ela;

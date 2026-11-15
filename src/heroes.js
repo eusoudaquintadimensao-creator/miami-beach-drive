@@ -65,6 +65,22 @@ function helmet(model, k, shell, visor, open) {
   return attach(model, 'Head', g, [0, 0.11, 0.005], k);
 }
 
+// t431: traje de titã (gigantes): armadura marinho/grafite com placas prata, emblema de sol dourado e energia dourada nos punhos — desenho próprio
+export function titanSuit(model, k, o = {}) {
+  tacArmor(model, k, { plate: o.plate ?? 0xb9c0c8, trim: o.trim ?? 0x1c2a44, glow: 0xffc44d, pm: 0.92, pr: 0.22, suit: o.suit ?? 0x1c2a44, core: false });
+  const silver = M(0xc9ced6, { metalness: 0.95, roughness: 0.2 }), sun = GLOW(0xffc44d, 2.6), navy = M(o.suit ?? 0x1c2a44, { metalness: 0.5, roughness: 0.4 });
+  // emblema de sol: disco + 12 raios finos alternados (desenho próprio)
+  const em = grp(mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.02, 16), sun, 0, 0, 0, Math.PI / 2));
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, L = i % 2 ? 0.05 : 0.08; em.add(mesh(box(0.012, L, 0.012), sun, Math.cos(a) * (0.05 + L / 2), Math.sin(a) * (0.05 + L / 2), 0, 0, 0, a - Math.PI / 2)); }
+  attach(model, 'Torso', em, [0, 0.17, 0.162], k);
+  // ombreiras prata grandes por cima, cinto prata com placa central
+  for (const s of [1, -1]) { const sh = grp(mesh(new THREE.SphereGeometry(0.115, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), silver), mesh(box(0.012, 0.012, 0.16), sun, s * 0.06, 0.045, 0)); sh.scale.set(1, 0.7, 1); attach(model, s > 0 ? 'UpperArmL' : 'UpperArmR', sh, [s * -0.01, -0.06, 0], k); }
+  attach(model, 'Hips', grp(mesh(new THREE.TorusGeometry(0.175, 0.026, 6, 24), silver, 0, 0, 0, Math.PI / 2), mesh(box(0.12, 0.07, 0.03), silver, 0, 0, 0.18)), [0, 0.1, 0], k);
+  // manoplas prata e energia dourada em volta dos punhos
+  const fx = new THREE.MeshBasicMaterial({ color: 0xffc44d, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  for (const s of ['L', 'R']) { attach(model, 'LowerArm' + s, mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.2, 10), silver), [0, -0.15, 0], k); attach(model, 'Palm' + s, grp(mesh(new THREE.SphereGeometry(0.07, 10, 8), navy), mesh(new THREE.IcosahedronGeometry(0.11, 1), fx)), [0, 0.04, 0], k); }
+}
+
 export const HEROES = {
   teia: {
     id: 'teia', label: 'Vértice', name: 'Ágil e escaladora', base: 'ela', height: 1.72, power: 'teia', emoji: '🪝',
@@ -100,14 +116,11 @@ export const HEROES = {
     },
   },
   colosso: {
-    id: 'colosso', label: 'Colosso', name: 'Gigante gentil', base: 'ele', height: 2.3, bulk: 1.28, power: 'forca', emoji: '💪',
+    id: 'colosso', label: 'Colosso', name: 'Gigante gentil', base: 'ele', height: 2.35, bulk: 1.36, power: 'forca', emoji: '💪',
     powerTxt: 'super pulo e levanta carros (com cuidado, sem estragar nada)',
-    colors: { Shirt: 0x2c3138, Pants: 0x23272d, Socks: 0x2c3138, Hair: 0x14110e, Eyes: 0x1a1a1a, Skin: 0x8d5a3b },
-    fallback: { skin: 0x8d5a3b, shirt: 0x2c3138, pants: 0x23272d, hair: 0x14110e, stripe: 0xb8793a },
-    gear(model, k) {
-      tacArmor(model, k, { plate: 0x7a5530, trim: 0x2c3138, glow: 0xffb347, pm: 0.7, pr: 0.38, suit: 0x2c3138 });
-      for (const s of ['L', 'R']) attach(model, 'LowerArm' + s, mesh(new THREE.CylinderGeometry(0.075, 0.08, 0.13, 10), M(0xb8793a, { metalness: 0.6, roughness: 0.35 })), [0, -0.17, 0], k);
-    },
+    colors: { Shirt: 0x1c2a44, Pants: 0x18233a, Socks: 0x1c2a44, Hair: 0x14110e, Eyes: 0x1a1a1a, Skin: 0x8d5a3b },
+    fallback: { skin: 0x8d5a3b, shirt: 0x1c2a44, pants: 0x18233a, hair: 0x14110e, stripe: 0xc9ced6 },
+    gear(model, k) { titanSuit(model, k); },
   },
   sentinela: {
     id: 'sentinela', label: 'Sentinela', name: 'Escudo e impulso', base: 'ele', height: 1.82, power: 'escudo', emoji: '🛡️',
@@ -151,6 +164,20 @@ export const HEROES = {
       model.userData.gauntlet = attach(model, 'LowerArmR', g, [0, -0.1, 0], k);
     },
   },
+  atlas: {
+    id: 'atlas', label: 'Atlas Índigo', name: 'Onda de choque dourada', base: 'ele', height: 2.4, bulk: 1.34, power: 'onda', emoji: '🌅',
+    powerTxt: 'pisão que solta uma onda de choque dourada e derruba postes, guarda-sóis e palmeiras (ninguém se machuca)',
+    colors: { Shirt: 0x1a2440, Pants: 0x161f36, Socks: 0x1a2440, Hair: 0x141826, Eyes: 0xdfe5ee, Skin: 0x3f5fa8 },
+    fallback: { skin: 0x3f5fa8, shirt: 0x1a2440, pants: 0x161f36, hair: 0x141826, stripe: 0xffc44d },
+    gear(model, k) {
+      const skin = M(0x3f5fa8, { roughness: 0.55 });
+      titanSuit(model, k, { suit: 0x1a2440 });
+      // rosto próprio: queixo quadrado, olhos prata e cicatriz na sobrancelha esquerda
+      attach(model, 'Head', mesh(box(0.15, 0.06, 0.08), skin), [0, -0.005, 0.085], k);
+      const eye = GLOW(0xe6ecf5, 1.2); for (const s of [-1, 1]) attach(model, 'Head', mesh(box(0.03, 0.012, 0.01), eye), [s * 0.045, 0.1, 0.132], k);
+      attach(model, 'Head', mesh(box(0.008, 0.045, 0.01), M(0x8fa6d8, { roughness: 0.4 }), 0, 0, 0, 0, 0, 0.35), [0.05, 0.125, 0.132], k);
+    },
+  },
 };
 // ajustes de material: brilho metálico e partes que brilham
 export function heroMaterials(H, mats) {
@@ -162,7 +189,7 @@ export function heroMaterials(H, mats) {
 
 // ---- "traje nano-metal": roupa tecnológica metálica escura com linhas de luz (estilo próprio de Solara) para todos os personagens jogáveis
 const SUIT_CLOTH = ['Shirt', 'Pants', 'Socks', 'Shoes']; const SUIT_SKIN = new Set(['teia', 'solar']);
-export const SUIT_GLOW = { ela: 0xff4f8b, ele: 0x19e3ff, teia: 0x9cff3a, solar: 0xffd23f, colosso: 0x7dff6a, sentinela: 0x4fb3ff, ferreo: 0xff6a2a, tita: 0xb36bff };
+export const SUIT_GLOW = { ela: 0xff4f8b, ele: 0x19e3ff, teia: 0x9cff3a, solar: 0xffd23f, colosso: 0xffc44d, sentinela: 0x4fb3ff, ferreo: 0xff6a2a, tita: 0xb36bff, atlas: 0xffc44d };
 export function nanoSuit(A, model, mats, k) {
   const glow = SUIT_GLOW[A.id] ?? 0x29f0ff; const hsl = {};
   for (const m of mats) {

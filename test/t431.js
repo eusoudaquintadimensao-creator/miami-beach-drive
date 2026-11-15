@@ -1,0 +1,38 @@
+// t431: Colosso novo + Atlas Índigo (cartão no menu, loja de trajes, poder onda dourada derruba objetos)
+const puppeteer = require('puppeteer-core');
+const [,, W = 1440, H = 900, q = 'low', out = 'd'] = process.argv; const mobile = +W < 600;
+const PORT = process.env.PORT || 8765, KEY = process.env.KEY || 'mbd-solara-v1';
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = {};
+(async () => {
+  const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+  const p = await b.newPage(); await p.setViewport({ width: +W, height: +H, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: mobile ? 2 : 1 });
+  const errs = []; p.on('pageerror', e => errs.push('PAGE: ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.goto(`http://localhost:${PORT}/?q=${q}`, { waitUntil: 'load' });
+  await p.waitForFunction('window.MBD_READY === true', { timeout: 150000 });
+  const until = async (fn, ms = 30000) => { try { await p.waitForFunction(fn, { timeout: ms, polling: 200 }); return true; } catch (e) { return false; } };
+  R.cards = await p.evaluate(() => [...document.querySelectorAll('#avPick .avCard')].map(c => c.dataset.av).filter(a => a === 'atlas' || a === 'colosso'));
+  R.atlasImg = await p.evaluate(() => { const c = document.querySelector('#avPick .avCard[data-av="atlas"]'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
+  await p.evaluate(() => document.querySelector('#avPick .avCard[data-av="atlas"]').scrollIntoView({ inline: 'center', block: 'nearest' }));
+  await p.click('#avPick .avCard[data-av="atlas"]'); await sleep(300);
+  R.saved = await p.evaluate((k) => JSON.parse(localStorage.getItem(k)).avatar, KEY);
+  await p.screenshot({ path: `/workspace/t361-prints/t431-${out}-menu.png` });
+  await p.click('#play'); await until('MBD.state.avatar3d === true && MBD.state.fps > 0', 60000);
+  R.avatar = await p.evaluate(() => MBD.state.avatar);
+  R.store = await p.evaluate(async () => { const w = await import('/src/wardrobe.js'); const s = JSON.stringify(Object.keys(w).map(k => typeof w[k] === 'object' ? Object.keys(w[k]).join(',') : '')); return /atlas/.test(s); });
+  const pole = await p.evaluate(() => { for (const a of __G.breaks.grid.values()) for (const o of a) if (!o.down && (o.kind === 'poste' || o.kind === 'sinal') && o.x != null) return { x: o.x, z: o.z, kind: o.kind }; return null; });
+  R.pole = pole && pole.kind;
+  const c0 = await p.evaluate(() => Object.values(__G.breaks.count).reduce((a, b) => a + b, 0) + __G.palms.count);
+  await p.evaluate((o) => { MBD.setHour(10.5); MBD.teleport(o.x + 4, o.z + 1, 0); }, pole); await sleep(1200);
+  await until('MBD.state.grounded === true', 15000);
+  await (mobile ? p.tap('#bPow') : p.keyboard.press('KeyX'));
+  R.knockedOk = false; for (let i = 0; i < 90 && !R.knockedOk; i++) { await sleep(500); R.knockedOk = await p.evaluate(() => (MBD.powers().knocked || 0) > 0); } R.waitS = 'ok';
+  await sleep(500); await p.evaluate(() => { __G.camYaw = __G.player.h + 2.6; __G.camPitch = 0.12; }); await sleep(700);
+  await p.screenshot({ path: `/workspace/t361-prints/t431-${out}-onda.png` });
+  R.knocked = await p.evaluate(() => MBD.powers().knocked); R.err = await p.evaluate(() => MBD.powers().err || null);
+  R.broke = (await p.evaluate(() => Object.values(__G.breaks.count).reduce((a, b) => a + b, 0) + __G.palms.count)) - c0;
+  await p.evaluate(() => MBD.avatar('colosso')); R.colosso = await until('MBD.state.avatar === "colosso" && MBD.state.avatar3d', 20000);
+  await sleep(800); await p.screenshot({ path: `/workspace/t361-prints/t431-${out}-colosso.png` });
+  R.errs = errs.filter(e => !/favicon|404/.test(e));
+  const ok = R.cards.length === 2 && R.saved === 'atlas' && R.avatar === 'atlas' && R.store && R.knockedOk && R.broke > 0 && !R.err && R.colosso && !R.errs.length;
+  console.log(JSON.stringify(R)); console.log(ok ? 'PASS t431' : 'FAIL t431'); await b.close(); process.exit(ok ? 0 : 1);
+})().catch(e => { console.log('FAIL t431', e.message); process.exit(1); });

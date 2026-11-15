@@ -67,6 +67,7 @@ export const CIVIL = {
   colosso: { sex: 'm', hair: 0x14110e, eq: { top: 'm-guayabera', bottom: 'm-calca-linho-areia', shoes: 'u-espadrille' } },
   sentinela: { sex: 'm', eq: { top: 'm-polo-menta', bottom: 'm-alfaiataria-perola', shoes: 'm-sapatenis', hat: 'u-bone-linho' } },
   ferreo: { sex: 'm', skin: 0xd9a066, hair: 0x2c2c2c, eq: { top: 'm-camisa-palmeiras', bottom: 'm-calca-seda-noite', shoes: 'm-mocassim', hat: 'm-fedora' } },
+  atlas: { sex: 'm', skin: 0x3f5fa8, hair: 0x141826, eq: { top: 'm-camisa-linho', bottom: 'm-calca-seda-noite', shoes: 'm-mocassim', glasses: 'u-aviador' } },
   tita: { sex: 'm', eq: { top: 'm-cubana-coral', bottom: 'm-chino-branco', shoes: 'u-espadrille', glasses: 'u-redondo' } },
 };
 export const sexOf = (id) => (CIVIL[id] && CIVIL[id].sex) || 'f';
@@ -94,6 +95,7 @@ const SRAW = [
   ['colosso-coral', 'colosso', 'Colosso Titânio Coral', 'coral', 'escudo', 0xffd27a, 5000], ['colosso-lunar', 'colosso', 'Colosso Ferro-Lunar', 'lunar', 'velocidade', 0x7dff6a, 4600],
   ['sentinela-cobalto', 'sentinela', 'Sentinela Cobalto Alado', 'cobalto', 'voo', 0x4fb3ff, 6000], ['sentinela-nano', 'sentinela', 'Sentinela Nano-Relâmpago', 'nano', 'velocidade', 0x4ff7e0, 4400],
   ['ferreo-obsidiana', 'ferreo', 'Férreo Obsidiana Voadora', 'obsidiana', 'voo', 0x7dff9a, 6200], ['ferreo-aurilio', 'ferreo', 'Férreo Aurílio Blindado', 'aurilio', 'escudo', 0xffb14a, 5400],
+  ['atlas-cobalto', 'atlas', 'Atlas Cobalto Estelar', 'cobalto', 'escudo', 0xffc44d, 5800], ['atlas-lunar', 'atlas', 'Atlas Ferro-Lunar Alado', 'lunar', 'voo', 0xffd27a, 6800],
   ['tita-boreal', 'tita', 'Titã Cristal Boreal', 'boreal', 'velocidade', 0xb36bff, 4800], ['tita-nano', 'tita', 'Titã Nano-Cometa', 'nano', 'voo', 0xff5fd2, 6600],
   ['nano-solara', '*', 'Nano-Metal Solara', 'nano', 'escudo', 0x29f0ff, 2500], ['aurilio-asa', '*', 'Asa-Sol de Aurílio', 'aurilio', 'voo', 0xffd27a, 6000], ['lunar-corrida', '*', 'Ferro-Lunar Corrida', 'lunar', 'velocidade', 0xff4f8b, 3800],
 ];

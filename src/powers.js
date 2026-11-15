@@ -61,6 +61,7 @@ export class Powers {
     else if (k === 'teia') { const a = anchorAhead(p.x, p.z, fx, fz); this.anchor = a; this.swing = 1.15; p.vy = 7.5; p.vx = fx * 15; p.vz = fz * 15; p.grounded = false; this.cool = 0.6; this.hint('teia', '🕸️ <b>Fio neon!</b> Ande contra um prédio para escalar'); }
     else if (k === 'turbo') { this.dash = 1.1; this.turbo = true; p.vx = fx * 17; p.vz = fz * 17; this.cool = 1.4; this.hint('turbo', '⚡ <b>Turbo do traje!</b> arrancada de luz'); this.ring(p.x, p.y + 0.3, p.z, 0xff4f8b, 2.5, 0.4); }
     else if (k === 'escudo') { this.dash = 0.45; p.vx = fx * 19; p.vz = fz * 19; this.cool = 0.8; this.hint('esc', '🛡️ <b>Arrancada!</b> Bata numa parede para o escudo quicar'); }
+    else if (k === 'onda') { if (p.grounded) { p.vy = 7; p.grounded = false; } this.slam = 1; this.cool = 1.4; this.hint('onda', '🌅 <b>Onda de choque dourada</b> · derruba postes e guarda-sóis, ninguém se machuca'); }
     else if (k === 'impacto') { if (p.grounded) { p.vy = 6.5; p.grounded = false; } this.slam = 1; this.cool = 1.2; this.hint('imp', '🟣 <b>Pisão de onda</b> · só luz e vento, ninguém se machuca'); }
     else if (k === 'forca') {
       if (this.carried) return this.toss(fx, fz), true;
@@ -126,6 +127,16 @@ export class Powers {
       if (c.wall) { const vn = p.vx * c.wall.x + p.vz * c.wall.z; if (vn < -2) { p.vx -= 1.7 * vn * c.wall.x; p.vz -= 1.7 * vn * c.wall.z; p.vy = 4.5; p.grounded = false; this.ring(p.x, p.y + 0.8, p.z, 0xffb14a, 2.5, 0.4); G.audio.thud && G.audio.thud(10); this.dash = 0.25; this.hint('bounce', '🛡️ O escudo quicou!'); } }
       else if (p.grounded) { const sp = Math.hypot(p.vx, p.vz); if (sp < 15) { const s = 19 / Math.max(1, sp); p.vx *= s; p.vz *= s; } }
       if (this.dash <= 0) { p.vx *= 0.5; p.vz *= 0.5; }
+    }
+    if (k === 'onda' && this.slam) { // t431: Atlas Índigo — onda dourada derruba objetos em volta (postes, semáforos, guarda-sóis, palmeiras, tábuas)
+      if (!p.grounded && p.vy < 2) p.vy = Math.min(p.vy, -18);
+      if (p.grounded && p.jumpT > 0.15) { this.slam = 0; this.ring(p.x, gy, p.z, 0xffc44d, 18, 1.0); this.ring(p.x, gy + 0.2, p.z, 0xfff1b8, 10, 0.7); G.shake && G.shake(0.6); G.audio.thud && G.audio.thud(22);
+        const R = 14; this.knocked = 0;
+        const fake = (x, z) => { const dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz) || 1; return { x: p.x, z: p.z, y: p.y, vx: dx / d * 9, vz: dz / d * 9, spec: {}, circles: () => [[p.x, p.z]] }; };
+        try { if (G.breaks) for (const o of G.breaks.near(p.x, p.z, R)) { const ox = o.x ?? (o.x0 + o.x1) / 2, oz = o.z ?? (o.z0 + o.z1) / 2; if (Math.hypot(ox - p.x, oz - p.z) > R) continue; const f = fake(ox, oz); if (o.kind === 'tabua') G.breaks.breakDeck(o, f, 9); else if (o.kind === 'guarda-sol') G.breaks.breakUmb(o, f, 9); else G.breaks.breakPole(o, f, 9); this.knocked++; } } catch (e) { this.err = String(e); }
+        try { if (G.palms && G.palms.near) for (const pm of G.palms.near(p.x, p.z, R * 0.8)) { G.palms.breakPalm(pm, fake(pm.x, pm.z), 9); this.knocked++; } } catch (e) { this.err = String(e); }
+        for (const v of G.vehicles) { const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < R && !v.driver && !v.lifted && !v.spec.air) v.hop = Math.max(v.hop || 0, (R - d) / R * 0.6); }
+        this.cheer(p.x, p.z, 28); }
     }
     if (k === 'impacto' && this.slam) {
       if (!p.grounded && p.vy < 2) p.vy = Math.min(p.vy, -16);
