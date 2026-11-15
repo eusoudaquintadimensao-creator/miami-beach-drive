@@ -102,3 +102,10 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   · em andamento: probe /workspace/f7/p6.js mede mensagens x carro (t413/t416)
   · t417 (21:04): botão N Neutro presente no HUD do carro em todas as versões (retrato/paisagem), mesmo vidro, não some no modo limpo, coberto pelos testes (toque alterna neutro).
   · medição p6: no carro toast/stTip/adCard/orlaCard/megaCard/prompt/serpHud/driftW cruzam carro/estrada → plano: CSS faixa do topo + guarda JS (src/msgguard.js) que empurra textos para fora da zona carro+frente.
+
+## FASE 7 — status 21:47 (Solara pronto localmente, falta Neon + publicar)
+- Solara commits: 68aa7a0 (lojas/guarda-roupa/Marisol/trajes), t412 (mar + píer alto), 7536eca + seguinte (t413–t417), ca3835e (salva-vidas sobre pernas, teste t408, SW v25 `solara-v25-2026-11-14-orla-moda`).
+- Novos: src/msgguard.js (guarda de textos x carro+estrada 90 m, sem sobrepor textos/HUD), topbar.js (#edgeCol ⏸ ↩ na borda direita, #bClean 👁 canto sup. esq. `clean-v1`, autofade >6 m/s sem toque 3 s, N no PC `.deskN`).
+- Testes: test/t413.js (PASS d/i/il/al), test/t408.js (PASS d; 4 cfgs passavam antes do fix do salva-vidas), t405 atualizado (PASS 4).
+- Pendente: portar tudo ao Neon (diff 02f283a..HEAD do Solara a partir do commit antes de FASE 7), thumbs Neon, SW Neon v17, varredura, push, deploy MIAMI DRIVE.
+- Bloqueio conhecido: cerca do clube de tênis (x 336–370, z 446/482) — faixa livre na areia x 324–335.
