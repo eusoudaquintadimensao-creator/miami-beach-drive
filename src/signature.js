@@ -8,7 +8,7 @@ import * as THREE from 'three';
 export const SIGNATURE = {
   ela: { type: 'sport', name: 'Flecha Rosa', tune: { paint: 0xff4f8b, accent: 0xffffff, glow: 0xff2bd6, rim: 0xffffff, text: 'LUNA', style: 0, spoiler: 1, kit: true } },
   ele: { type: 'moto', name: 'Raio Ciano', tune: { paint: 0x19c3e6, accent: 0x111111, glow: 0x29f0ff, rim: 0x111111, text: 'DAVI', style: 1 } },
-  teia: { type: 'moto', name: 'Moto Teia Neon', tune: { paint: 0x0f5f5a, accent: 0x9cff3a, glow: 0x9cff3a, rim: 0x111111, text: 'TEIA NEON', style: 2 } },
+  teia: { type: 'moto', name: 'Moto Vértice', tune: { paint: 0x0f5f5a, accent: 0x9cff3a, glow: 0x9cff3a, rim: 0x111111, text: 'VÉRTICE', style: 2 } },
   solar: { type: 'rc_hyper', name: 'Hiper Solar', tune: { paint: 0xffc61a, accent: 0xffffff, glow: 0xff9a3c, rim: 0xffffff, text: 'SOLAR', style: 1, kit: true, spoiler: 0, num: 1 } },
   colosso: { type: 'pickup', name: 'Caminhonete Colosso', tune: { paint: 0x2f9e44, accent: 0x1c1c1e, glow: 0x7dff6a, rim: 0x1a1a1a, text: 'COLOSSO', style: 0, spoiler: 0, kit: true } },
   sentinela: { type: 'rc_muscle', name: 'Muscle Sentinela', tune: { paint: 0x1b2a4a, accent: 0xc8ccd0, glow: 0x4fb3ff, rim: 0xc8ccd0, text: 'SENTINELA', style: 0, kit: true, spoiler: 0, num: 5 } },

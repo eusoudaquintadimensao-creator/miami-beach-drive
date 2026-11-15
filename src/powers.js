@@ -15,7 +15,7 @@ export function roofAt(x, z, y) {
 }
 // altura do prédio que contém (x,z), ignorando a altura de quem pergunta
 function boxTop(x, z) { let f = -1e9; for (const b of BOXES) { if (b.boatOnly || b.h > 400) continue; if (x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1 && b.h > f) f = b.h; } return f; }
-// topo do prédio mais próximo à frente (para o fio da Teia Neon)
+// topo do prédio mais próximo à frente (para o cabo da Vértice)
 function anchorAhead(x, z, fx, fz) {
   let best = null, bs = -1e9;
   for (const b of BOXES) {
@@ -104,7 +104,7 @@ export class Powers {
       return true;
     }
     this.airPose = null;
-    // escalada da Teia Neon: andar contra a parede sobe
+    // escalada da Vértice: andar contra a parede sobe
     if (k === 'teia') {
       if (c.wall && c.dl > 0.05 && (c.dx * c.wall.x + c.dz * c.wall.z) < -0.4) { this.climb = true; this.wallN = c.wall; }
       else if (this.climb && !(c.dl > 0.05)) this.climb = false;
@@ -148,7 +148,7 @@ export class Powers {
       v.sync(0);
     }
     for (const v of G.vehicles) if (v.hop > 0) { v.hopT = (v.hopT || 0) + dt * 9; v.hop = Math.max(0, v.hop - dt * 0.6); v.root.position.y = v.y + (v.hop > 0 ? Math.abs(Math.sin(v.hopT)) * v.hop : 0); if (v.hop <= 0) v.hopT = 0; }
-    // capa do Lorde Férreo balança com o movimento
+    // capa do Férreo balança com o movimento
     const R = G.hero.rig; if (R && R.model.userData.cape) { const sp = Math.hypot(p.vx || 0, p.vz || 0); R.model.userData.cape.rotation.x = lerp(R.model.userData.cape.rotation.x, -Math.min(0.9, sp * 0.06) - (this.lev ? 0.25 : 0) + Math.sin(t * 3) * 0.04, Math.min(1, dt * 4)); }
   }
 }

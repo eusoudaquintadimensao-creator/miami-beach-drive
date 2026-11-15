@@ -229,7 +229,7 @@ export function applyLook(A, model, mats, k, look) {
 }
 
 // trajes de herói: liga metálica + linhas de luz + equipamento do poder
-const SUIT_CLOTH = ['Shirt', 'Pants', 'Socks', 'Shoes']; const SKIN_SUIT = new Set(['teia', 'solar', 'ferreo']);
+const SUIT_CLOTH = ['Shirt', 'Pants', 'Socks', 'Shoes']; const SKIN_SUIT = new Set(['teia', 'solar']);
 function applySuit(A, model, mats, by, k, S) {
   if (S.id === 'classico') { if (A.hero) { heroMaterials(A, mats); try { A.gear(model, k); } catch (e) { } } return; }
   const L = ALLOYS[S.alloy] || ALLOYS.nano; const glow = S.glow;
