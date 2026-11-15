@@ -4,14 +4,33 @@
 <meta name="color-scheme" content="dark">
 <title>Miami Beach Drive — Solara Bay</title>
 <meta name="description" content="Mundo aberto no navegador, sem violência: dirija, ande, faça entregas, táxi, corridas e fotos em Solara Bay, uma costa neon inspirada em Miami.">
-<meta name="theme-color" content="#1a0f2e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1114"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Solara Bay"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>/* t428: abertura (crítico, antes do CSS principal) */
+html,body{background:#0b0e11}
+body{background:radial-gradient(120% 80% at 70% 30%,#1d2a33 0%,#0e1318 55%,#090b0e 100%)}
+#c{opacity:0;transition:opacity 1.4s ease}
+body.flyOn #c{opacity:1}
+#loader{position:fixed;inset:0;z-index:12;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#e9e3d6}
+#loader .ldTop{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 16vh);transform:translateX(-50%);width:min(78vw,620px);transition:opacity .6s ease,transform .6s ease}
+#loader .ldTitle{font-weight:600;letter-spacing:.42em;font-size:clamp(13px,2.2vw,18px);color:#d9b45a;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+#loader .ldBar{position:relative;height:6px;margin:12px 0 10px;background:#123c42;border-radius:3px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.4)}
+#loader .ldBar i{position:absolute;inset:0;background:linear-gradient(90deg,#b8893a,#e2c178);transform-origin:0 50%;transform:scaleX(0)}
+#loader .ldRow{display:flex;justify-content:space-between;font-size:13px;letter-spacing:.06em;color:#d8c9a4;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+#loader #ldPct{font-variant-numeric:tabular-nums;color:#e2c178}
+#ldSkip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 18px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);pointer-events:auto;font:600 14px system-ui,sans-serif;letter-spacing:.08em;color:#e9e3d6;background:rgba(14,18,22,.55);border:1px solid rgba(217,180,90,.45);border-radius:999px;padding:10px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+body.menuIn #loader .ldTop,body.menuIn #ldSkip{opacity:0;transform:translateX(-50%) translateY(-12px);pointer-events:none}
+body.menuIn #ldSkip{transform:none}
+body.ldDone.menuIn #loader{display:none}
+</style>
 <link rel="stylesheet" href="src/style.css">
+<link rel="modulepreload" href="vendor/three/three.module.min.js">
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head><body>
 <canvas id="c"></canvas>
+<div id="loader"><div class="ldTop"><div class="ldTitle">SOLARA BAY</div><div class="ldBar"><i id="ldFill"></i></div><div class="ldRow"><span id="ldStage">carregando a cidade</span><span id="ldPct">0%</span></div></div><button id="ldSkip" type="button">Pular ⏭</button></div>
 <div id="hud" hidden>
   <div id="topR"><div id="clock">17:00 <span id="wx">☀️</span></div><div id="money">$0</div><div id="fol">♥ 0</div></div>
   <div id="mapw"><canvas id="mini" width="220" height="220"></canvas><div id="spd"></div></div>
@@ -86,22 +105,22 @@
 <div id="installSheet" hidden><div class="isBox"><button class="x" id="isX">✕</button><div id="isBody"></div></div></div>
 <div id="start">
   <div id="verPanel" hidden></div>
-  <div class="sun"></div><div class="grid"></div>
-  <div class="logo"><div class="t1">MIAMI BEACH DRIVE</div><div class="t2">Solara Bay</div><div class="t3">mundo aberto · costa neon · sem violência</div></div>
+  <div class="logo"><div class="t1">MIAMI BEACH DRIVE</div><div class="t2">Solara Bay</div><div class="t3">mundo aberto · baía ao pôr do sol · sem violência</div></div>
   <div class="menu">
     <div class="avPick" id="avPick" role="radiogroup" aria-label="Escolha seu avatar"></div>
-    <button id="play" disabled>Carregando cidade…</button>
-    <button id="raceBtn" class="install race" disabled>🏁 Modo Corrida · nitro e drift</button>
-    <button id="verBtn" class="install ver" aria-expanded="false" aria-controls="verPanel">🎮 Versões do jogo</button>
-    <button id="installBtn" class="install">📲 Instalar na tela inicial</button>
+    <button id="play" disabled>Carregando · 0%</button>
+    <button id="raceBtn" class="install race" disabled>Modo Corrida · nitro e drift</button>
+    <button id="verBtn" class="install ver" aria-expanded="false" aria-controls="verPanel">Versões do jogo</button>
+    <button id="installBtn" class="install">Instalar na tela inicial</button>
     <label>Gráficos <select id="qsel"><option value="auto">Automático</option><option value="low">Leve (celular)</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
-    <div class="help"><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair/conversar · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera · V gravar vídeo · Shift/N nitro (carro tunado) · corrida: S ou Espaço numa curva rápida = drift, T volta para a pista · helicóptero: Espaço sobe, Shift desce · X poder do herói (voar/levitar: Espaço sobe, Ctrl/Q desce)<br><b>Celular:</b> a pé, joystick à esquerda · no carro, o modo de Controles (Tocar / Inclinar / Volante) · deslize para cima = nitro, para baixo = drift · VEL, Freio e Ré nos polegares · 🚘 um toque chama o veículo, dois toques entra · rachas aceitos até 50 m</div>
+    <button id="ctlBtn" class="install ctl" type="button" aria-expanded="false" aria-controls="ctlHelp">Controles</button>
+    <div class="help" id="ctlHelp" hidden><b>Computador:</b> WASD/setas andar e dirigir · mouse gira a câmera (clique para travar) · Shift correr · Espaço pular/freio de mão · E entrar/sair/conversar · Enter iniciar missão · F foto · H buzina · R rádio · M mapa · P celular · C câmera · V gravar vídeo · Shift/N nitro (carro tunado) · corrida: S ou Espaço numa curva rápida = drift, T volta para a pista · helicóptero: Espaço sobe, Shift desce · X poder do herói (voar/levitar: Espaço sobe, Ctrl/Q desce)<br><b>Celular:</b> a pé, joystick à esquerda · no carro, o modo de Controles (Tocar / Inclinar / Volante) · deslize para cima = nitro, para baixo = drift · VEL, Freio e Ré nos polegares · 🚘 um toque chama o veículo, dois toques entra · rachas aceitos até 50 m</div>
     <div class="small" id="devInfo"></div>
     <div class="small">Cidade fictícia inspirada em Miami. Músicas, carros e cenário são originais, gerados no seu navegador.</div>
   </div>
 </div>
 <noscript><p style="color:#fff;padding:20px">Ative o JavaScript para jogar.</p></noscript>
-<script type="module" src="src/main.js"></script>
+<script type="module" src="src/flyover.js"></script>
   <div id="ponteEnd" hidden><div class="gCard"><div id="peBody"></div><div class="gBtns"><button id="peMore">🔁 Mais voltas</button><button id="peExit">⬇️ Sair pela saída</button></div></div></div>
   <div id="giftScreen" hidden><div class="gCard"><div class="gIco">🎁🏎️</div><h2>PRESENTES DA PONTE!</h2><p>Você completou uma volta inteira. A garagem de prêmios da sua casa abriu: 3 carros tunados são seus!</p><div id="giftInfo"></div><div class="gBtns"><button id="giftLater">Continuar</button><button id="giftDrive">🚗 Dirigir agora</button></div></div></div>
 </body></html>
