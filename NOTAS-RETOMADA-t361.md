@@ -218,3 +218,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - GitHub: Solara 74daa21 (run 43714799910 ok), Neon fa6f5d9 (run 43714800821 ok). Site MIAMI DRIVE redeploy ok (contadores intactos).
 - SW conferido nos 3 links (Pages Solara/Neon + site /solara-bay/ /neon-distrito/): solara-v29-2026-11-15-jetski / neon-dist-v21-2026-11-15-jetski.
 - Worktrees /workspace/wt-solara e /workspace/wt-neon (branch t434, já mesclado) e servidores 8785/8786 podem ser removidos.
+
+### t435 INÍCIO (10:15) — pesquisa gráfico ultra-realista + leveza (Radar Águia Solar) e aplicar SÓ no Solara; publicar só Pages Solara (Neon e site NÃO).
