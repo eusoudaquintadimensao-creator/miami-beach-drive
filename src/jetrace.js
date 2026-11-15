@@ -14,7 +14,7 @@ const THEME = {
   racers: [{ name: 'Lia Marola', col: 0xff5a7a }, { name: 'Davi Espuma', col: 0x2ab3b8 }, { name: 'Nina Vento', col: 0xffd23f }],
   wGold: 'dourados', wBoost: 'turquesa',
   laps: 2, prize: [400, 200, 120], part: 50, coin: 5, ringPts: 50, coinPts: 10, jumpPts: 30,
-  chat: ['{a}: Segura o boné que a marola vem aí! 🧢', '{a}: Pulei a onda e quase virei gaivota 🐦', '{a}: Anel turquesa = turbo. Anotado! ⚡', '{a}: Ei {b}, essa espuma é minha!', '{a}: Moedinha brilhando ali, olha! 🪙', '{a}: Quem chegar por último lava os coletes 😂'],
+  chat: ['{a}: Segura o boné que a marola vem aí! 🧢', '{a}: Pulei a onda e quase virei gaivota 🐦', '{a}: Argola turquesa = turbo. Anotado! ⚡', '{a}: Ei {b}, essa espuma é minha!', '{a}: Moedinha brilhando ali, olha! 🪙', '{a}: Quem chegar por último lava os coletes 😂'],
 };
 // ---- fim THEME
 export const JET = THEME;
@@ -80,7 +80,7 @@ export class JetRace {
     const ais = THEME.racers.map((r, k) => { const b = new Vehicle('jetski', G.scene, G.Q, r.col); const p = this.at(backs[k], lats[k]); b.place(p.x, p.z, p.h); Object.assign(b, { npc: true, noEnter: true, ghost: true, racer: r.name, s: backs[k], lat: lats[k], lat0: lats[k], spd: 0 }); G.vehicles.push(b); return b; });
     this.race = { t: -3.5, beep: 4, ais, prog: 0, last: null, hint: null, lap: 1, place: 4, idx: 0, pts: 0, coins: 0, rings: 0, boosts: 0, jumps: 0, got: new Set(), chat: '', boostT: 0 };
     this.coins.visible = true; this.hot.visible = true; this.coinsShow();
-    G.ui.toast(`🌊 <b>${THEME.name}</b> · ${THEME.laps} voltas · anéis ${THEME.wGold} = pontos · ${THEME.wBoost} = turbo · rampas = salto!`, 3400); this.hud(true); return true;
+    G.ui.toast(`🌊 <b>${THEME.name}</b> · ${THEME.laps} voltas · argolas ${THEME.wGold} = pontos · ${THEME.wBoost} = turbo · rampas = salto!`, 3400); this.hud(true); return true;
   }
   coinsShow() { const R = this.race, d = new THREE.Object3D(), t = this.G.t || 0; this.coinPos.forEach((c, k) => { d.position.set(c.x, WATER_Y + 1.1, c.z); d.rotation.set(0, t * 3 + k, 0); d.scale.setScalar(R && R.got.has(k) ? 0 : 1); d.updateMatrix(); this.coins.setMatrixAt(k, d.matrix); }); this.coins.instanceMatrix.needsUpdate = true; }
   say(force) { const R = this.race; if (!R) return; const n = THEME.racers.map(r => r.name); const i = Math.floor(Math.random() * n.length), j = (i + 1) % n.length; R.chat = THEME.chat[Math.floor(Math.random() * THEME.chat.length)].replace('{a}', n[i]).replace('{b}', n[j]); this.chatT = 7 + Math.random() * 4; this.hud(true); }
@@ -101,7 +101,7 @@ export class JetRace {
     // borrifo atrás de qualquer jet ski andando (o do jogador)
     if (pv0 && pv0.type === 'jetski') { const sp = Math.hypot(pv0.vx, pv0.vz); this.splT -= dt; if (sp > 5 && this.splT <= 0 && !(pv0.jy > 0.2)) { this.splT = 0.09; this.splash(pv0, Math.min(6, 1 + sp * 0.18)); } if (pv0._landed) { pv0._landed = false; this.splash(pv0, 14, true); G.audio.splash && G.audio.splash(10); } }
     this.promptT -= dt; if (this.promptT <= 0) { this.promptT = 0.4; const tip = $('jetTip'); if (this.near() > 140) this.declined = false; const show = this.canAccept() && !this.declined;
-      if (show) { const h = `🌊 <b>${THEME.name}</b> · ${THEME.laps} voltas · 3 pilotos de jet ski<br><small>prêmios $${THEME.prize[0]} · $${THEME.prize[1]} · $${THEME.prize[2]} + pontos · anéis, turbo, moedas e saltos · ~2 min</small><div class="stAsk"><button data-k="ok">🏁 Aceitar</button><button data-k="no">✖ Recusar</button></div>`; if (tip._h !== h) { tip.innerHTML = h; tip._h = h; } if (tip.hidden) tip.hidden = false; } else if (!tip.hidden) { tip.hidden = true; tip._h = ''; } }
+      if (show) { const h = `🌊 <b>${THEME.name}</b> · ${THEME.laps} voltas · 3 pilotos de jet ski<br><small>prêmios $${THEME.prize[0]} · $${THEME.prize[1]} · $${THEME.prize[2]} + pontos · argolas, turbo, moedas e saltos · ~2 min</small><div class="stAsk"><button data-k="ok">🏁 Aceitar</button><button data-k="no">✖ Recusar</button></div>`; if (tip._h !== h) { tip.innerHTML = h; tip._h = h; } if (tip.hidden) tip.hidden = false; } else if (!tip.hidden) { tip.hidden = true; tip._h = ''; } }
     const R = this.race; if (!R) return; const v = G.player.vehicle;
     if (!v || v.type !== 'jetski') { this.end(false, '🌊 Você saiu do jet ski — corrida cancelada'); return; }
     R.t += dt;
