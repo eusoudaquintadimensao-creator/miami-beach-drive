@@ -237,3 +237,10 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 12:09 refazer depois da sweep: t426 al, t423 d, t405 i, t402 i, t400 i, t387 i
 - 12:12 retomado. sweep12 ainda rodando (t361 i). Box com carga 20 (podcast/wav2lip de outro agente). t361 d timeout → refazer. Pendentes: t426 al, t423 d, t405 i, t402 i, t400 i, t387 i, t361 d + o que falhar no resto.
 - 13:02 sweep12 quase no fim: PASS t422, t426 d/i/il, t423 i, t418 d, t413 d/i/il/al, t408 x4, t405 d/il/al, t402 d, t400 d, t393 d/i, t387 d, t394 d/i, t396 d/i, t383 d/i, heroes d/i (sem erros), t431 d/i, t433 d/i, t434rec d/i, t434jet i, t436 d/i/il/al. Refazer: t426 al, t423 d, t405 i, t402 i, t400 i, t387 i, t361 d/i, t434jet d (+sig se faltar).
+- rerun 13:03 t426.js [915,412,low,al,]: PASS t426 solara al
+- rerun 13:05 t423.js [1280,720,medium,d,]: FAIL recados saem sozinhos (~2–3,5 s visíveis cada)
+- rerun 13:05 t405.js [390,844,low,i,1]: PASS i
+- rerun 13:06 t402.js [390,844,low,i,1]: PASS i
+- rerun 13:07 t400.js [390,844,low,i,1]: PASS i
+- rerun 13:08 t387.js [390,844,low,i,1]: PASS i
+- rerun 13:12 t361.js [1280,720,medium,d,]: PASS d
