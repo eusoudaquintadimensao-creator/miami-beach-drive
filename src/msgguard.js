@@ -12,7 +12,7 @@ export function setupMsgGuard(G) {
     const pts = []; const add = (dx, dy, dz) => { const q = proj(v.x + dx * c + dz * s, v.y + dy, v.z - dx * s + dz * c); if (q) pts.push(q); };
     for (const dx of [-Wd, Wd]) for (const dz of [-L, L]) for (const dy of [0, H]) add(dx, dy, dz);
     const car = pts.slice(); if (!car.length) return null;
-    for (const d of [8, 16, 26, 40]) for (const dx of [-3, 3]) add(dx, 0.2, L + d); // estrada à frente
+    for (const d of [8, 16, 26, 40, 60, 90]) for (const dx of [-3, 3]) add(dx, 0.2, L + d); // estrada à frente (até o horizonte visível)
     const bx = (P) => ({ x0: Math.min(...P.map(p => p[0])), y0: Math.min(...P.map(p => p[1])), x1: Math.max(...P.map(p => p[0])), y1: Math.max(...P.map(p => p[1])) });
     const Z = bx(pts), C = bx(car); const cl = (b) => ({ x0: Math.max(0, b.x0), y0: Math.max(0, b.y0), x1: Math.min(innerWidth, b.x1), y1: Math.min(innerHeight, b.y1) });
     return { all: cl(Z), car: cl(C) };
@@ -20,21 +20,29 @@ export function setupMsgGuard(G) {
   const vis = (el) => { if (el.hidden) return null; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return null; let r = el.getBoundingClientRect(); for (const k of el.children) { const q = k.getBoundingClientRect(); if (q.width < 2 || q.height < 2) continue; r = { left: Math.min(r.left, q.left), top: Math.min(r.top, q.top), right: Math.max(r.right, q.right), bottom: Math.max(r.bottom, q.bottom) }; } r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width < 4 || r.height < 4) return null; return r; };
   const hit = (r, Z, m = 3) => r.left < Z.x1 + m && r.right > Z.x0 - m && r.top < Z.y1 + m && r.bottom > Z.y0 - m;
   function reset(el) { if (el._g) { el.style.translate = ''; el.style.visibility = ''; el._g = null; } }
+  const HUD = ['mapw', 'topR', 'edgeCol', 'bClean', 'topBar', 'drvRightBox', 'btns', 'stickZone', 'drvCruise', 'drvGear', 'bNeutral'];
+  const ov = (a, b, m = 2) => a.left < b.right + m && a.right > b.left - m && a.top < b.bottom + m && a.bottom > b.top - m;
+  const mv = (r, dx, dy) => ({ left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy });
   function tick() {
     const on = !!G.player.vehicle && G.started && !G.paused && !G.phoneOpen;
     const Z = on ? zone() : null; G.msgZone = Z;
+    if (!Z) { for (const el of els()) reset(el); return; }
+    const A = Z.all, Wd = innerWidth, Ht = innerHeight, top = 40;
+    const zr = { left: A.x0, right: A.x1, top: A.y0, bottom: A.y1 };
+    const hud = []; for (const id of HUD) { const e = id === 'drvRightBox' ? document.querySelector('.drvRight') : document.getElementById(id); if (!e) continue; const r = vis(e); if (r) hud.push(r); }
+    const placed = [];
     for (const el of els()) {
-      if (!Z) { reset(el); continue; }
-      const r0 = vis(el) || (el._g && el._g.hid ? (el.style.visibility = '', vis(el)) : null); if (!r0) { continue; }
-      const g = el._g || { dx: 0, dy: 0 }; const r = { left: r0.left - g.dx, right: r0.right - g.dx, top: r0.top - g.dy, bottom: r0.bottom - g.dy, width: r0.width, height: r0.height };
-      const A = Z.all; if (!hit(r, A)) { if (el._g) reset(el); continue; }
-      const top = 44, W = innerWidth, H = innerHeight; const cands = [];
-      const up = A.y0 - 6 - r.bottom; if (r.top + up >= top) cands.push([0, up]);
-      const dn = A.y1 + 6 - r.top; if (r.bottom + dn <= H - 6) cands.push([0, dn]);
-      const lf = A.x0 - 6 - r.right; if (r.left + lf >= 4) cands.push([lf, 0]);
-      const rt = A.x1 + 6 - r.left; if (r.right + rt <= W - 58) cands.push([rt, 0]); // não invade a coluna ⏸ ↩ da borda
-      cands.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]));
-      if (cands.length) { const [dx, dy] = cands[0]; el.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`; el.style.visibility = ''; el._g = { dx: Math.round(dx), dy: Math.round(dy) }; }
+      const r0 = vis(el) || (el._g && el._g.hid ? (el.style.visibility = '', vis(el)) : null); if (!r0) continue;
+      const g = el._g || { dx: 0, dy: 0 }; const r = mv(r0, -g.dx, -g.dy);
+      if (!ov(r, zr, 3) && !placed.some(p => ov(r, p))) { if (el._g) reset(el); placed.push(r); continue; }
+      const obs = [zr, ...placed]; const all = obs.concat(hud); const w = r.right - r.left, h = r.bottom - r.top; const cands = [[0, 0]];
+      for (const o of obs) { cands.push([0, o.top - 6 - r.bottom], [0, o.bottom + 6 - r.top], [o.left - 6 - r.right, 0], [o.right + 6 - r.left, 0]); }
+      for (const o of obs) for (const q of obs) { cands.push([o.left - 6 - r.right, q.top - 6 - r.bottom], [o.right + 6 - r.left, q.top - 6 - r.bottom]); }
+      const okc = (d) => { const q = mv(r, d[0], d[1]); if (q.top < top || q.left < 4 || q.right > Wd - 4 || q.bottom > Ht - 6) return false; if (ov(q, zr, 3)) return false; for (const o of placed) if (ov(q, o)) return false; for (const o of hud) if (ov(q, o, 0)) return false; return true; };
+      const okLoose = (d) => { const q = mv(r, d[0], d[1]); if (q.top < top || q.left < 4 || q.right > Wd - 4 || q.bottom > Ht - 6) return false; if (ov(q, zr, 3)) return false; for (const o of placed) if (ov(q, o)) return false; return true; };
+      const pick = (f) => cands.filter(f).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0];
+      const d = pick(okc) || (['toast', 'big', 'say'].includes(el.id) ? pick(okLoose) : null); // os demais somem até liberar
+      if (d) { const dx = Math.round(d[0]), dy = Math.round(d[1]); el.style.translate = dx || dy ? `${dx}px ${dy}px` : ''; el.style.visibility = ''; el._g = { dx, dy }; placed.push(mv(r, dx, dy)); }
       else { el.style.visibility = 'hidden'; el._g = { dx: g.dx, dy: g.dy, hid: true }; }
     }
   }

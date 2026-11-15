@@ -56,7 +56,9 @@ fs.mkdirSync(SH, { recursive: true });
   const msgs = async (st) => ev((st) => { const G = window.__G; G.ui.toast('🏁 Mensagem de corrida comprida para testar a guarda de textos na tela', 6000); G.ui.toast('🧉 Bah, tchê!', 6000); G.ui.big && G.ui.big('DRIFT!'); G.ui.bubbleText && G.ui.bubbleText('Gaúcho', 'Que carro tri, tchê!'); G.ui.phoneNote && G.ui.phoneNote('@teste', 'Dica de teste'); return st; }, st);
   const guard = () => ev(() => { const G = window.__G; G.msgGuard.tick(); const Z = G.msgGuard.zone(); if (!Z) return { none: true, hits: [] }; const A = Z.all; const hits = [];
     for (const id of G.msgGuard.ids) { const el = document.getElementById(id); if (!el || el.hidden || el.closest('[hidden]')) continue; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) continue; for (const k of [el, ...el.children]) { const rc = k.getBoundingClientRect(); if (rc.width < 4 || rc.height < 4 || !(k.textContent || '').trim()) continue; if (rc.left < A.x1 && rc.right > A.x0 && rc.top < A.y1 && rc.bottom > A.y0) { hits.push(id + ':' + [rc.left, rc.top, rc.right, rc.bottom].map(Math.round)); break; } } }
-    return { zone: [A.x0, A.y0, A.x1, A.y1].map(Math.round), hits }; });
+    const rs = []; for (const id of G.msgGuard.ids) { const el = document.getElementById(id); if (!el || el.hidden || el.closest('[hidden]')) continue; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05 || !(el.textContent || '').trim()) continue; const q = el.getBoundingClientRect(); if (q.width > 4 && q.height > 4) rs.push([id, q]); }
+    const ovl = []; for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i][1], b = rs[j][1]; if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) ovl.push(rs[i][0] + '×' + rs[j][0]); }
+    return { zone: [A.x0, A.y0, A.x1, A.y1].map(Math.round), hits, ovl }; });
   const ok = (o) => !o.hits.length && !o.mid.length && !o.off.length && !o.bov.length && !o.dup.length;
   // 1) 👁 tela limpa a pé: esconde a fita e extras, volta com um toque, fica salvo
   await ev(() => { localStorage.removeItem('clean-v1'); localStorage.removeItem('topMin-v1'); __onFoot(300, -150); MBD.setHour(13); window.__G.topBar.set(true); window.__G.topBar.clean(false); MBD.sim(10, 1 / 30); });
@@ -85,7 +87,7 @@ fs.mkdirSync(SH, { recursive: true });
   r = await ev(() => { const G = window.__G; const v = G.player.vehicle; window.__keep = setInterval(() => { v.vx = Math.sin(v.h) * 15; v.vz = Math.cos(v.h) * 15; }, 50); return null; }); await sleep(3900);
   r = await ev(() => { const o = { fade: document.body.classList.contains('autofade'), nOp: +getComputedStyle(document.getElementById('bNeutral')).opacity, brOp: +getComputedStyle(document.getElementById('drvBrake')).opacity }; window.dispatchEvent(new PointerEvent('pointerdown')); o.back = !document.body.classList.contains('autofade'); clearInterval(window.__keep); const v2 = window.__G.player.vehicle; v2.vx = v2.vz = 0; return o; });
   ck('3 dirigindo sem tocar os extras somem (N e Freio ficam), voltam no toque', r.fade && r.nOp > 0.9 && r.brOp > 0.9 && r.back, r);
-  await msgs('carro'); await sleep(500); r = await guard(); ck('3 textos nunca sobre o carro nem a estrada à frente', !r.hits.length && !r.none, r); await shot('carro-textos', 200);
+  await msgs('carro'); await sleep(500); r = await guard(); ck('3 textos nunca sobre o carro nem a estrada à frente, nem um sobre o outro', !r.hits.length && !r.none && !r.ovl.length, r); await shot('carro-textos', 200);
   r = await ev(() => { document.getElementById('bBack').click(); MBD.sim(3, 1 / 30); return { out: !window.__G.player.vehicle }; });
   ck('3 ↩ no carro sai do veículo', r.out, r);
   // 4) barco e heli: botões sem sobreposição e tocáveis; textos fora do veículo
