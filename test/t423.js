@@ -20,10 +20,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ck('recado da Solara aparece ao jogar, com nome e texto novos', r.on && /Solara/.test(r.txt) && /Oi, eu sou a Solara! Se precisar sair do jogo, é só arrastar para cima\./.test(r.txt), r);
   ck('sem tela cheia automática (o aviso do navegador mostrava o endereço do site)', r.fs === 0, r);
   await page.screenshot({ path: `/workspace/t361-prints/t423-${GAME}-${out}-solara.png` });
-  const swipe = async (dx, dy) => { const b = await page.$eval('#solaraHi', e => { const q = e.getBoundingClientRect(); return [q.left + q.width * 0.3, q.top + q.height / 2]; }); await page.mouse.move(b[0], b[1]); await page.mouse.down(); for (let k = 1; k <= 6; k++) await page.mouse.move(b[0] + dx * k / 6, b[1] + dy * k / 6); await page.mouse.up(); await sleep(450); return ev(() => !document.getElementById('solaraHi')); };
-  const res = {};
-  for (const [n, dx, dy] of [['cima', 0, -80], ['baixo', 0, 80], ['esquerda', -90, 0], ['direita', 90, 0], ['toque', 0, 0]]) { await ev(() => { const o = document.getElementById('solaraHi'); if (o) o.remove(); window.__G.solaraHiShow(); }); await sleep(300); res[n] = await swipe(dx, dy); }
-  ck('recado some ao deslizar para cima/baixo/esquerda/direita e com toque', Object.values(res).every(Boolean), res);
+  // t437: agora é notificação de celular — não bloqueia toques e sai sozinha (~2 s de tela desenhada)
+  r = await ev(() => { const el = document.getElementById('solaraHi'); return { pe: el ? getComputedStyle(el).pointerEvents : 'x', av: !!(el && el.querySelector('.shAv')) }; });
+  ck('recado não bloqueia toques no HUD e tem a foto/avatar da Solara', r.pe === 'none' && r.av, r);
+  { const t0 = Date.now(); while (Date.now() - t0 < 60000 && (await ev(() => (window.__G.solLog || []).length < 3 || !(window.__G.solLog || []).every(x => x.off)))) await sleep(400);
+    r = await ev(() => (window.__G.solLog || []).map(x => x.vis)); ck('recados saem sozinhos (~2–3,5 s visíveis cada)', r.length >= 3 && r.every(v => v >= 2 && v <= 3.6), r); }
   // pausa em silêncio
   r = await ev(async () => { const G = window.__G; G.audio.init(); const st0 = G.audio.ctx && G.audio.ctx.state; MBD.teleport(300, -150, 0); MBD.sim(5, 1 / 30); MBD.onActTap(1); for (let i = 0; i < 150 && G.carCall; i++) MBD.sim(1, 1 / 30); MBD.onActTap(1); MBD.sim(10, 1 / 30);
     G.openPause(); await new Promise(r => setTimeout(r, 400)); const st1 = G.audio.ctx.state; G.audio.init(); document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); const st2 = G.audio.ctx.state; const t1 = G.audio.ctx.currentTime; await new Promise(r => setTimeout(r, 500)); const adv = G.audio.ctx.currentTime - t1;

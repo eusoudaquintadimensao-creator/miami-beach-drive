@@ -1015,3 +1015,6 @@ body.touch:not(.land) #solaraHi.out,body.touch:not(.land) .solNote.out{transform
 .solNote .shHd b{font-size:13px;letter-spacing:.02em;color:#ffe9a8}
 .solNote .shHd em{font-style:normal;font-size:11px;opacity:.6}
 .solNote button{align-self:flex-start;margin-top:3px;min-height:32px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.9);background:rgba(255,255,255,.16);color:#fff;font-weight:800;white-space:nowrap}
+/* t437: a notificação não bloqueia toques nos botões do HUD que ficam embaixo dela (só o botão Tela cheia recebe toque) */
+#solaraHi,.solNote{pointer-events:none}
+.solNote button{pointer-events:auto}
