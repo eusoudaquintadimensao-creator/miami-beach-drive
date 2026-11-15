@@ -10,6 +10,7 @@ export const SLOTS = [['top', '👚', 'Partes de cima e vestidos'], ['bottom', '
 const RAW = [
   ['f-blusa-seda-coral', 'top', 'f', 'Blusa de seda coral', 180, 0xff7f6e, 'seda', 'blusa'],
   ['f-blusa-seda-champanhe', 'top', 'f', 'Blusa de seda champanhe', 220, 0xf3dfc1, 'seda', 'blusa'],
+  ['f-blusa-seda-esmeralda', 'top', 'f', 'Blusa de seda esmeralda', 240, 0x0f8a6a, 'seda', 'blusa'],
   ['f-cropped-linho', 'top', 'f', 'Cropped de linho branco', 150, 0xf7f3ea, 'linho', 'blusa'],
   ['f-top-hibisco', 'top', 'f', 'Top resort hibisco', 160, 0x1fb5a8, 'algodao', 'blusa', { print: 0xff5fa2 }],
   ['f-vest-envelope', 'top', 'f', 'Vestido envelope de seda esmeralda', 520, 0x0f8a6a, 'seda', 'vestido', { len: 0.6, belt: 0xd9b45a }],
@@ -21,6 +22,9 @@ const RAW = [
   ['f-saia-midi-rosa', 'bottom', 'f', 'Saia midi de seda rosa', 260, 0xf7a8c4, 'seda', 'saia', { len: 0.58 }],
   ['f-saia-longa-turquesa', 'bottom', 'f', 'Saia longa de linho turquesa', 280, 0x2ab3b8, 'linho', 'saia', { len: 0.84 }],
   ['f-cigarrete-areia', 'bottom', 'f', 'Short de alfaiataria areia', 230, 0xe3d2b0, 'algodao', 'calca'],
+  ['f-pantalona-marfim', 'bottom', 'f', 'Pantalona de alfaiataria marfim', 360, 0xefe6d6, 'seda', 'pantalona'],
+  ['f-pantalona-grafite', 'bottom', 'f', 'Pantalona de alfaiataria grafite', 380, 0x34373d, 'linho', 'pantalona'],
+  ['f-calca-reta-petroleo', 'bottom', 'f', 'Calça reta de seda azul-petróleo', 340, 0x1d4e5a, 'seda', 'pantalona', { flare: 0.82 }],
   ['m-camisa-linho', 'top', 'm', 'Camisa de linho branca', 190, 0xf8f6f0, 'linho', 'camisa'],
   ['m-camisa-palmeiras', 'top', 'm', 'Camisa de seda estampa palmeiras', 340, 0x0e6b5c, 'seda', 'camisa', { print: 0xf6e7c8 }],
   ['m-guayabera', 'top', 'm', 'Guayabera de linho areia', 260, 0xe9dcc0, 'linho', 'guayabera'],
@@ -57,7 +61,7 @@ export const ITEMS = {}; for (const [id, slot, sex, n, p, c, f, kind, x] of RAW)
 export const CIVIL = {
   ela: { sex: 'f', eq: { top: 'f-blusa-seda-coral', bottom: 'f-pantalona-off', shoes: 'u-espadrille', glasses: 'f-gatinho' } },
   ele: { sex: 'm', eq: { top: 'm-camisa-linho', bottom: 'm-calca-linho-areia', shoes: 'm-mocassim', hat: 'u-panama' } },
-  marisol: { sex: 'f', eq: { top: 'f-vest-envelope', shoes: 'f-sandalia-dourada', bag: 'f-clutch-perola' } },
+  marisol: { sex: 'f', eq: { top: 'f-blusa-seda-esmeralda', bottom: 'f-pantalona-marfim', shoes: 'f-sandalia-dourada', bag: 'f-clutch-perola' } }, // t426: calça elegante (pantalona) no lugar do vestido
   teia: { sex: 'f', skin: 0xc68642, hair: 0x10141c, eq: { top: 'f-top-hibisco', bottom: 'f-saia-longa-turquesa', shoes: 'u-tenis-branco', glasses: 'u-esportivo' } },
   solar: { sex: 'm', skin: 0xe0ac69, hair: 0x3b2314, eq: { top: 'm-blazer-creme', bottom: 'm-chino-branco', shoes: 'm-mocassim', glasses: 'u-aviador' } },
   colosso: { sex: 'm', hair: 0x14110e, eq: { top: 'm-guayabera', bottom: 'm-calca-linho-areia', shoes: 'u-espadrille' } },
@@ -163,6 +167,23 @@ function bagObj(it) {
   return grp(mesh(box(0.26, 0.32, 0.12), m), mesh(box(0.22, 0.12, 0.05), m, 0, -0.07, 0.07)); // mochila
 }
 
+// t426: calça comprida de alfaiataria (pantalona): tubos cônicos presos à coxa e à canela, alinhados aos ossos do modelo
+function legSeg(model, k, bone, next, r0, r1, m, extra, up = 0) {
+  model.updateMatrixWorld(true); const a = model.getObjectByName(bone), b = model.getObjectByName(next); if (!a || !b) return;
+  const pa = new THREE.Vector3().setFromMatrixPosition(a.matrixWorld), pb = new THREE.Vector3().setFromMatrixPosition(b.matrixWorld);
+  const ms = model.getWorldScale(new THREE.Vector3()).y || 1; const L = pa.distanceTo(pb) / (k || 1) * (1 + (extra || 0)) + up;
+  const dir = pb.clone().sub(pa).normalize().applyQuaternion(model.getWorldQuaternion(new THREE.Quaternion()).invert());
+  const g = new THREE.CylinderGeometry(r0, r1, L, 14, 2, true); g.translate(0, -L / 2 + up, 0);
+  const o = new THREE.Mesh(g, m); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); o.userData.ms = ms;
+  attach(model, bone, o, [0, 0, 0], k);
+}
+function trousers(model, k, it) {
+  const m = STD(it.c, it.f, { side: THREE.DoubleSide }); const fl = it.flare || 1;
+  for (const s of ['L', 'R']) { legSeg(model, k, 'UpperLeg' + s, 'LowerLeg' + s, 0.088, 0.068, m, 0.1); legSeg(model, k, 'LowerLeg' + s, 'Foot' + s, 0.07, 0.066 + 0.03 * fl, m, 0.02, 0.05); }
+  attach(model, 'Hips', mesh(new THREE.CylinderGeometry(0.16, 0.172, 0.16, 18, 1, true), m), [0, 0.04, 0], k); // cós/quadril
+  attach(model, 'Hips', mesh(new THREE.TorusGeometry(0.161, 0.008, 5, 22), STD(0xd9b45a, 'metal'), 0, 0, 0, Math.PI / 2), [0, 0.115, 0], k); // cinto fino dourado
+}
+
 // ---------------------------------------------------------------- aplicar um visual ao modelo
 // look = { mode: 'civil'|'suit', eq: {slot:id}, suit: id } ; mats: materiais já clonados do modelo
 export function applyLook(A, model, mats, k, look) {
@@ -188,6 +209,7 @@ export function applyLook(A, model, mats, k, look) {
     if (sk) { const len = sk.len || 0.55; const sm = STD(sk.c, sk.f, { side: THREE.DoubleSide }); attach(model, 'Hips', mesh(skirtGeo(len, 0.2 + len * 0.17), sm), [0, 0.13, 0.0], k);
       if (sk.print) attach(model, 'Hips', mesh(printGeo(3), STD(sk.print, 'seda'), 0, 0, 0), [0, -0.05, 0.2], k);
       if (sk.belt) attach(model, 'Hips', mesh(new THREE.TorusGeometry(0.168, 0.012, 6, 22), STD(sk.belt, 'couro'), 0, 0, 0, Math.PI / 2), [0, 0.13, 0], k); }
+    if (!dress && bot && bot.kind === 'pantalona') trousers(model, k, bot);
     if (top) {
       if (top.print) { const pm = STD(top.print, top.f); attach(model, 'Torso', mesh(printGeo(7), pm), [0, 0.06, 0.148], k); attach(model, 'Torso', mesh(printGeo(9, true), pm), [0, 0.06, -0.14], k); }
       if (top.kind === 'camisa' || top.kind === 'guayabera' || top.kind === 'blazer') { // gola em V
