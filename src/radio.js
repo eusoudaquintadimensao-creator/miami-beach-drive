@@ -33,7 +33,7 @@ export class Radio {
   // legenda logo abaixo do placar da ponte (a altura do placar muda com a quebra de linha no celular)
   place() {
     const el = $('radioSub'), hud = $('ponteHud'); if (!el) return;
-    if (hud && !hud.hidden) { const r = hud.getBoundingClientRect(); if (r.height > 0) { let b = r.bottom; const qb = $('ponteQuit'); if (qb && !qb.hidden) { const q = qb.getBoundingClientRect(); if (q.top >= r.bottom - 2) b = Math.max(b, q.bottom); } el.style.top = Math.round(b + 6) + 'px'; return; } }
+    if (hud && !hud.hidden) { const r = hud.getBoundingClientRect(); if (r.height > 0) { let b = r.bottom; const qb = $('ponteQuit'); if (qb && !qb.hidden) { const q = qb.getBoundingClientRect(); if (q.height > 0 && q.top < r.bottom + 60) b = Math.max(b, q.bottom); /* t437: botão Desistir ao lado e mais alto que o painel também conta (iPhone em pé) */ } el.style.top = Math.round(b + 6) + 'px'; return; } }
     el.style.top = '';
   }
   hide() { const el = $('radioSub'); if (el && !el.hidden) el.hidden = true; }
