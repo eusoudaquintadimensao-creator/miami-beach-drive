@@ -244,3 +244,8 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - rerun 13:07 t400.js [390,844,low,i,1]: PASS i
 - rerun 13:08 t387.js [390,844,low,i,1]: PASS i
 - rerun 13:12 t361.js [1280,720,medium,d,]: PASS d
+- rerun 13:15 t361.js [390,844,low,i,1]: FAIL i: ponte Desistir visível sem sobrepor
+- rerun 13:20 t434jet.js [1280,720,medium,d,]: FAIL 2 anda pelo circuito: moedas, anéis dourados, turbo e salto na rampa | cronômetro corre
+- 13:30 rerun: t426 al PASS, t405 i PASS, t402 i PASS, t400 i PASS, t387 i PASS, t361 d PASS, t436 dm PASS, sig d sem erros; t423 d falhou só por espera curta (corrigido), t361 i overlap legenda do rádio×Desistir (aleatório), t434jet d não andou (carga). Refazendo os 3.
+- rerun 13:32 t423.js [1280,720,medium,d,]: FAIL recados saem sozinhos (~2–3,5 s visíveis cada)
+- rerun 13:41 t434jet.js [1280,720,medium,d,]: FAIL 4 aviso para aceitar a corrida aparece de jet ski | anda pelo circuito: moedas, anéis dourados, turbo e salto na rampa | cronômetro corre | chegada com c

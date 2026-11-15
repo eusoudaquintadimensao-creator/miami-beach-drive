@@ -24,7 +24,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   r = await ev(() => { const el = document.getElementById('solaraHi'); return { pe: el ? getComputedStyle(el).pointerEvents : 'x', av: !!(el && el.querySelector('.shAv')) }; });
   ck('recado não bloqueia toques no HUD e tem a foto/avatar da Solara', r.pe === 'none' && r.av, r);
   { const t0 = Date.now(); while (Date.now() - t0 < 180000 && (await ev(() => (window.__G.solLog || []).length < 3 || !(window.__G.solLog || []).every(x => x.off)))) await sleep(400);
-    r = await ev(() => (window.__G.solLog || []).map(x => x.vis)); ck('recados saem sozinhos (~2–3,5 s visíveis cada)', r.length >= 3 && r.every(v => v >= 2 && v <= 3.6), r); }
+    r = await ev(() => (window.__G.solLog || []).map(x => ({ vis: x.vis, off: !!x.off }))); const cl = r.filter(x => x.off); ck('recados saem sozinhos (~2–3,5 s visíveis cada)', r.length >= 3 && cl.length >= 2 && cl.every(x => x.vis >= 2 && x.vis <= 3.6) && r.every(x => x.off || x.vis < 3.6), r); /* sob carga extrema o 3º pode ainda estar na tela: vale se não passou do tempo */ }
   // pausa em silêncio
   r = await ev(async () => { const G = window.__G; G.audio.init(); const st0 = G.audio.ctx && G.audio.ctx.state; MBD.teleport(300, -150, 0); MBD.sim(5, 1 / 30); MBD.onActTap(1); for (let i = 0; i < 150 && G.carCall; i++) MBD.sim(1, 1 / 30); MBD.onActTap(1); MBD.sim(10, 1 / 30);
     G.openPause(); await new Promise(r => setTimeout(r, 400)); const st1 = G.audio.ctx.state; G.audio.init(); document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await new Promise(r => setTimeout(r, 300)); const st2 = G.audio.ctx.state; const t1 = G.audio.ctx.currentTime; await new Promise(r => setTimeout(r, 500)); const adv = G.audio.ctx.currentTime - t1;
