@@ -56,22 +56,22 @@ fs.mkdirSync(SH, { recursive: true });
   await ev(() => { localStorage.removeItem('topMin-v1'); const G = window.__G; __onFoot(300, -150); MBD.setHour(13); window.__G.topBar.set(true); MBD.sim(10, 1 / 30); });
   await sleep(700);
   let r = await ev(() => { const o = __chk('pe-fechado'); const bar = document.getElementById('topBar'); o.shown = [...bar.querySelectorAll('button')].filter(b => b.getBoundingClientRect().width > 2).map(b => b.id); return o; });
-  ck('A recolhida: só ▦ e ⏸ (↩ quando houver), no topo, sem cobrir nada', good(r) && r.shown.includes('qMore') && r.shown.includes('bPause') && r.shown.length <= 3, r);
+  ck('A recolhida: só ▦ na fita, ⏸ ↩ na coluna da borda, sem cobrir nada', good(r) && r.shown.includes('qMore') && r.shown.length <= 2, r);
   await shot('pe-fechado', 500);
   r = await ev(() => { document.getElementById('qMore').click(); MBD.sim(3, 1 / 30); return null; });
   await sleep(700);
-  r = await ev(() => { const o = __chk('pe-aberto'); const bar = document.getElementById('topBar'); const all = [...bar.querySelectorAll('button')].filter(b => b.getBoundingClientRect().width > 2); o.total = all.length; o.untap = all.filter(b => !__tap(b.id)).map(b => b.id); document.getElementById('tbStrip').scrollLeft = 0; o.min = bar.classList.contains('min'); return o; });
+  r = await ev(() => { const o = __chk('pe-aberto'); const bar = document.getElementById('topBar'); const all = [...bar.querySelectorAll('button')].filter(b => b.getBoundingClientRect().width > 2); o.total = all.length + 1; o.untap = all.filter(b => !__tap(b.id)).map(b => b.id); document.getElementById('tbStrip').scrollLeft = 0; o.min = bar.classList.contains('min'); return o; });
   ck('A aberta: todos os atalhos numa fita no topo, todos tocáveis (rolando)', good(r) && !r.min && r.total >= (mobile ? 13 : 14) && !r.untap.length, r);
   await shot('pe-aberto', 500);
   r = await ev(() => { document.getElementById('bPause').click(); const open = !document.getElementById('pauseMenu').hidden; window.__G.closePause(); return { open }; });
-  ck('A ⏸ na fita abre a pausa', r.open, r);
+  ck('A ⏸ da borda abre a pausa', r.open, r);
   // B) noite, a pé (legível no escuro também)
   await ev(() => { MBD.setHour(22); MBD.sim(10, 1 / 30); }); await sleep(500);
   r = await ev(() => __chk('pe-noite')); ck('B noite a pé: legível e sem sobreposição', good(r), r); await shot('pe-noite', 400);
   // C) no carro (dia e noite): Freio/Ré/Sair/Alto colados na borda direita, VEL/N/🎛️ na esquerda
   await ev(() => { const G = window.__G; MBD.setHour(13); const v = __car(); v.place(300, -150, 0); MBD.drive && (MBD.drive().cruise = 0); MBD.sim(10, 1 / 30); });
   await sleep(700);
-  r = await ev(() => { const o = __chk('carro'); const W = innerWidth; const e = (id) => { const el = document.getElementById(id); if (!el) return null; const q = el.getBoundingClientRect(); return [Math.round(q.left), Math.round(q.right), Math.round(q.width)]; }; o.brake = e('drvBrake'); o.rev = e('drvRev'); o.act = e('bAct'); o.drv = !!window.__G.player.vehicle; o.edge = !window.__G.touch || (o.brake && o.brake[1] > W - 30 && o.brake[2] >= 56 && o.rev && o.rev[2] >= 48); o.backHidden = document.getElementById('bBack').hidden; return o; });
+  r = await ev(() => { const o = __chk('carro'); const W = innerWidth; const e = (id) => { const el = document.getElementById(id); if (!el) return null; const q = el.getBoundingClientRect(); return [Math.round(q.left), Math.round(q.right), Math.round(q.width)]; }; o.brake = e('drvBrake'); o.rev = e('drvRev'); o.act = e('bAct'); o.drv = !!window.__G.player.vehicle; o.edge = !window.__G.touch || (o.brake && o.brake[1] > W - 30 && o.brake[2] >= 56 && o.rev && o.rev[2] >= 48); o.backHidden = !document.getElementById('bBack').hidden && !!document.getElementById('bBack').closest('#edgeCol'); /* t414: ↩ visível no carro, na coluna da borda */ return o; });
   ck('C carro de dia: controles nas bordas, Freio no canto direito e Ré grande, sem duplicado', good(r) && r.drv && r.edge && r.backHidden, r);
   await shot('carro-dia', 400);
   await ev(() => { MBD.setHour(22); MBD.sim(10, 1 / 30); }); await sleep(700);

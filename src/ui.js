@@ -76,7 +76,8 @@ export class UI {
       if (key !== this.lastArea) { this.lastArea = key; $('area').innerHTML = `${dn}<small>${street}</small>`; $('area').classList.add('on'); this.areaT = 3.5; } }
     if (this.areaT <= 0) $('area').classList.remove('on');
     // balão do pedestre
-    if (this._sayP) { const p = this._sayP; const vpos = G.tmpV.set(p.x, (p.kind === 'talker' ? p.rig.model.position.y + 2.1 : 2.25), p.z).project(cam); const s = $('say'); if (vpos.z > 1) s.style.display = 'none'; else { s.style.display = ''; s.style.left = ((vpos.x + 1) / 2 * innerWidth) + 'px'; s.style.top = ((1 - vpos.y) / 2 * innerHeight) + 'px'; } }
+    if (this._sayP && G.player.vehicle) { const s = $('say'); if (!s.classList.contains('top')) { s.classList.add('top'); s.style.left = ''; s.style.top = ''; s.style.display = ''; } } // dirigindo: falas na faixa do topo (t413)
+    else if (this._sayP) { const p = this._sayP; const s0 = $('say'); if (s0.classList.contains('top') && s0.className !== 'talk') s0.classList.remove('top'); const vpos = G.tmpV.set(p.x, (p.kind === 'talker' ? p.rig.model.position.y + 2.1 : 2.25), p.z).project(cam); const s = $('say'); if (vpos.z > 1) s.style.display = 'none'; else { s.style.display = ''; s.style.left = ((vpos.x + 1) / 2 * innerWidth) + 'px'; s.style.top = ((1 - vpos.y) / 2 * innerHeight) + 'px'; } }
     this.drawMini(cam);
   }
   blips(ctx, X, Z, scale, mini) {

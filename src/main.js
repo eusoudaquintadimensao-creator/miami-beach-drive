@@ -55,6 +55,7 @@ import { Gifts } from './gifts.js';
 import { Street } from './street.js';
 import { DriveUI, respawnFade } from './driveui.js';
 import { setupTopBar } from './topbar.js';
+import { setupMsgGuard } from './msgguard.js';
 
 const SAVE_KEY = 'mbd-solara-v1';
 const $ = (id) => document.getElementById(id);
@@ -447,7 +448,7 @@ G.backInfo = backInfo;
   bP.addEventListener('pointerdown', e => e.stopPropagation()); bB.addEventListener('pointerdown', e => e.stopPropagation());
   bP.onclick = (e) => { e.stopPropagation(); G.audio.init(); G.pauseOpen ? G.closePause() : G.openPause(); };
   bB.onclick = (e) => { e.stopPropagation(); G.audio.init(); const bi = backInfo(); if (bi) bi.go(); };
-  setInterval(() => { const bi = G.started && !G.paused ? backInfo() : null; const want = !!bi && !bi.veh; if (bB.hidden === want) bB.hidden = !want; if (bi) bB.title = bi.label.replace(/^\S+\s/, ''); }, 400);
+  setInterval(() => { const bi = G.started && !G.paused ? backInfo() : null; const want = !!bi; /* t414: ↩ também no carro (sai do veículo) */ if (bB.hidden === want) bB.hidden = !want; if (bi) bB.title = bi.label.replace(/^\S+\s/, ''); }, 400);
 }
 { // t399: atalhos recolhíveis (paisagem começa recolhido para não cobrir a cidade); lembra a escolha
   const qk = 'quickMin-v1', qb = $('qMore'), qd = $('quick');
@@ -456,7 +457,7 @@ G.backInfo = backInfo;
   apply(pref()); addEventListener('resize', () => { if (!G.topBar && localStorage.getItem(qk) === null) apply(innerWidth > innerHeight); });
   qb.onclick = (e) => { e.stopPropagation(); const m = !qd.classList.contains('min'); localStorage.setItem(qk, m ? '1' : '0'); apply(m); };
 }
-setupTopBar(G); // t405: todos os atalhos numa fita de vidro no topo (substitui o recolher do t399)
+setupTopBar(G); setupMsgGuard(G); // t413/t416: textos nunca sobre o carro/estrada · t405: todos os atalhos numa fita de vidro no topo (substitui o recolher do t399)
 $('bPhone').onclick = () => G.phoneOpen ? G.ui.closePhone() : G.ui.openPhone(); $('bMap').onclick = () => G.ui.openMap(); $('bRadio').onclick = () => { G.audio.init(); G.radioSet(G.audio.station + 1); }; $('bCam').onclick = () => cycleCam();
 function cycleCam() { G.camMode = (G.camMode + 1) % 3; G.ui.toast(['Câmera normal', 'Câmera distante', 'Câmera próxima'][G.camMode], 1400); }
 G.radioSet = (i) => { const st = G.audio.setStation(i); save.station = G.audio.station; G.ui.radio(st); persist(); };
@@ -778,6 +779,7 @@ function updatePrompts() {
       const lb = `DRIFT ${v.dTime.toFixed(1)}s` + (v.dChain ? ` · PÊNDULO ×${v.dChain}` : ''); if (G._dl !== lb) { $('driftL').textContent = lb; G._dl = lb; } dw.classList.toggle('low', f < 0.28); }
   }
   if (input.neutral && !(v && !v.spec.air && !v.spec.boat)) { input.neutral = false; $('bNeutral').classList.remove('on'); }
+  if (!touch) { const nOk = !!(v && !v.spec.air && !v.spec.boat); const nb = $('bNeutral'); if (nb.hidden === nOk) nb.hidden = !nOk; } // t417: N também no computador
   const rc = G.race.active && v && v.race; if (document.body.classList.contains('racing') !== !!rc) document.body.classList.toggle('racing', !!rc);
   if (touch) {
     const act = $('bAct');

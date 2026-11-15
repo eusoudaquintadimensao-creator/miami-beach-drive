@@ -873,3 +873,35 @@ body.lojaOpen #topBar,body.lojaOpen #btns,body.lojaOpen #stick,body.lojaOpen #lo
 #lojaReact.pop{animation:lojaPop .5s ease-out}
 @keyframes lojaPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
 @media (orientation:portrait){#lojaReact{top:calc(var(--sat,0px) + 60px);left:50%;transform:translateX(-50%)}#lojaReact.pop{animation:none}}
+/* t413/t414/t417: coluna da borda (⏸ ↩), botão 👁 tela limpa, extras somem dirigindo, Freio no alto com Alto + Ré embaixo */
+#edgeCol{position:absolute;display:flex;flex-direction:column;gap:6px;z-index:7;pointer-events:auto}
+#edgeCol button,#bClean{width:40px;height:40px;border-radius:12px;font-size:17px;color:#fff;cursor:pointer;background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.10))!important;border:1.5px solid rgba(255,255,255,.92)!important;text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.9);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.55)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:0}
+#edgeCol button[hidden]{display:none!important}
+#bClean{position:absolute;width:32px;height:32px;border-radius:10px;font-size:15px;z-index:8;pointer-events:auto}
+body.touch #edgeCol button{width:38px;height:38px}
+body.touch.land #edgeCol button{width:34px;height:34px;font-size:15px}
+body.touch.land #edgeCol{gap:5px}
+/* tela limpa: só o essencial (dirigir: volante/acelerar/Freio/Ré/nitro/N; a pé: joystick, pular, ação) */
+body.clean #topBar,body.clean #note,body.clean #fol,body.clean #area,body.clean #radio,body.clean #giftHud,body.clean #bPhoto,body.clean #bHorn,body.clean #drvBeam,body.clean #drvCruise,body.clean #drvGear,body.clean #adCard,body.clean #spd{display:none!important}
+/* dirigindo rápido sem tocar: extras ficam quase transparentes (voltam no toque ou ao parar) */
+#topBar,#note,#fol,#area,#radio,#giftHud,#drvCruise,#drvGear,#drvBeam{transition:opacity .45s}
+body.autofade #topBar,body.autofade #note,body.autofade #fol,body.autofade #area,body.autofade #radio,body.autofade #giftHud,body.autofade #drvBeam{opacity:.12!important}
+body.autofade #drvCruise,body.autofade #drvGear{opacity:.35!important}
+/* t414: Freio mais alto; Alto e Ré embaixo, perto da borda (acima da barra de gestos) */
+body.driving.touch .drvRight{grid-template-columns:54px 64px!important;grid-template-areas:". act" ". brake" "beam rev"!important;align-items:center!important}
+body.driving.touch .drvRight #drvRev{width:58px!important;height:58px!important}
+body.driving.touch .drvRight #drvBeam{width:46px!important;height:46px!important}
+body.driving.touch.land .drvRight{grid-template-columns:50px 60px!important;gap:6px!important}
+body.driving.touch.land .drvRight #drvBrake{width:60px!important;height:60px!important}
+body.driving.touch.land .drvRight #drvRev{width:52px!important;height:52px!important}
+body.driving.touch.land .drvRight #bAct{width:42px!important;height:42px!important}
+body.driving.touch.land .drvRight #drvBeam{width:44px!important;height:44px!important}
+/* mensagens dirigindo: faixa do topo (a guarda src/msgguard.js ainda empurra o que cruzar o carro/estrada) */
+body.driving:not(.touch) #toast{top:calc(var(--sat) + 60px)}
+body.driving:not(.touch) #big{top:9%}
+body.driving #toast div{max-width:100%}
+body.touch.driving:not(.land) #toast{right:calc(var(--sar) + 58px)}
+#bNeutral.deskN{position:absolute;left:calc(var(--sal) + 252px);bottom:calc(var(--sab) + 18px);width:46px;height:46px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;font-size:18px;font-weight:900;color:#fff;cursor:pointer;z-index:7;background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.10));border:1.5px solid rgba(255,255,255,.92);text-shadow:0 0 2px #000,0 1px 3px rgba(0,0,0,.9);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#bNeutral.deskN small{font-size:8px;font-weight:800}
+#bNeutral.deskN.on{background:rgba(255,79,184,.55)}
+#bNeutral.deskN[hidden]{display:none}
