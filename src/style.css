@@ -991,3 +991,4 @@ body.menuIn #start{opacity:1}
 #start .avCard img{width:76px;height:100px}
 @media (orientation:landscape) and (max-height:500px){#start{flex-direction:row;align-items:center;justify-content:space-between;padding-left:calc(var(--sal) + 24px);padding-right:calc(var(--sar) + 16px)}#start .logo{text-align:left;margin:0}#start .menu{width:min(60vw,560px);max-height:calc(100vh - 24px);overflow-y:auto}#start .avCard{width:84px}#start .avCard img{width:60px;height:78px}}
 @media (orientation:landscape){#start{background:linear-gradient(90deg,rgba(8,10,13,.78) 0%,rgba(8,10,13,.45) 34%,rgba(8,10,13,0) 58%),linear-gradient(180deg,rgba(8,10,13,.35),rgba(8,10,13,0) 30%,rgba(8,10,13,0) 60%,rgba(8,10,13,.7))}#start .logo{text-shadow:0 2px 18px rgba(0,0,0,.85)}}
+body.menuOn #start{opacity:1;transition:none}

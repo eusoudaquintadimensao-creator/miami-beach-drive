@@ -104,7 +104,7 @@ function frame(now) {
 B.handoff = () => {
   B.ready = true; ui(1); B.handed = true; cancelAnimationFrame(raf); removeEventListener('resize', resize);
   if (scene) scene.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); scene = null;
-  const pl = $('play'); document.body.classList.add('ldDone'); setTimeout(() => document.body.classList.add('menuIn'), B.skipped ? 0 : 450);
+  const pl = $('play'); document.body.classList.add('ldDone'); setTimeout(() => document.body.classList.add('menuIn'), B.skipped ? 0 : 450); setTimeout(() => document.body.classList.add('menuOn'), B.skipped ? 0 : 1700); // garante o menu visível mesmo com quadros muito lentos
 };
 function skip() { B.skipped = true; try { localStorage.setItem(CFG.skipKey, '1'); } catch (e) { } document.body.classList.add('menuIn'); }
 // ---- início
