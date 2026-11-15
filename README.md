@@ -13,7 +13,9 @@ Abra o link do GitHub Pages no navegador (celular ou computador) e toque em **Jo
 - E: entrar/sair de veículo · Enter: iniciar missão perto de um ícone · F: foto · H: buzina
 - R: trocar rádio · M: mapa · P: celular · V: gravar vídeo · Shift no carro tunado: nitro
 - mouse: girar a câmera (clique para travar)
-- Carros de corrida: S/Espaço numa curva rápida = drift · Shift/N = nitro · T = volta para a pista
+- Carros de corrida: S/Espaço numa curva rápida = drift · Shift/N = nitro (aperte de novo logo depois = **nitro nível 2**, chama vermelha) · T = 🔄 desvirar/destravar (em corrida volta no último portão)
+- Olhos no canto do mapa: 👁 tela limpa · 👁² Recursos (✈️ avião, 🚁 helicóptero, 🎒 jato, 📣 buzina, 🔄 desvirar, 🔊 volume até 🔇) · 👁³ Mais funções (🏁 corridas, 🏎️ circuito, 🌉 ponte, 🏠 casa, 🌦️ clima, 🌗 dia/noite, 💡 desafio, 🎵 rádio, 🎥 câmera, 🔍 zoom do mapa)
+- Mesas e cadeiras dos cafés nas calçadas, postes, sinaleiras, guarda-sóis e passarelas quebram (com som) quando o carro passa — sem ninguém se machucar
 - J: mochila a jato (Espaço sobe, Q/Ctrl desce) · G: chamar o helicóptero · B: chamar o seu veículo
 - L: piscar o farol (desafia um rival da Liga da Madrugada, à noite)
 - K: ir ao Circuito Solara Bay (pista de drift ao lado da Casa Solara)
