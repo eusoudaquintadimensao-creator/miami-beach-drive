@@ -32,7 +32,7 @@ export function finishMat(hex, fid) {
 }
 export class PaintShop {
   constructor(G) {
-    this.G = G; const P = PINT; this.cx = (P.x0 + P.x1) / 2; this.cz = (P.z0 + P.z1) / 2; this.state = null; this.sel = { c: 0xff2d55, f: 'metal' };
+    this.G = G; const P = PINT; this.cx = (P.x0 + P.x1) / 2; this.cz = (P.z0 + P.z1) / 2; this.x0 = P.x0; this.x1 = P.x1; this.z0 = P.z0; this.z1 = P.z1; this.state = null; this.sel = { c: 0xff2d55, f: 'metal' };
     G.save.paint = G.save.paint || {};
     this.build(G.scene);
     HOOKS.map.push((g, X, Z) => { const k = X(1) - X(0); g.fillStyle = '#ffd1dc'; g.fillRect(X(P.x0), Z(P.z0), (P.x1 - P.x0) * k, (P.z1 - P.z0) * k); g.strokeStyle = P.neon; g.lineWidth = 2; g.strokeRect(X(P.x0), Z(P.z0), (P.x1 - P.x0) * k, (P.z1 - P.z0) * k); g.font = `${Math.max(10, 18 * k)}px sans-serif`; g.textAlign = 'center'; g.fillText('🎨', X(this.cx), Z(this.cz) + 6); });

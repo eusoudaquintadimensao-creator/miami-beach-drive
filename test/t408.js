@@ -86,17 +86,17 @@ fs.mkdirSync(SH, { recursive: true });
   await shot('mar-vadeando', 400);
   await ev(() => { const G = window.__G; __onFoot(500, 20); const I = MBD.input; for (let i = 0; i < 40; i++) { I.stick = [0, 1]; G.camYaw = Math.PI / 2 + 0.9; MBD.sim(1, 1 / 30); } I.stick = null; });
   await shot('mar-nadando', 400);
-  // 8) carro na areia por baixo do píer (x 330/342/352), sem travar; a pé sobe o píer pela rampa
-  r = await ev(() => { const G = window.__G; __onFoot(300, -150); const v = __car(); MBD.drive && (MBD.drive().cruise = 0); const out = [];
+  // 8) t419: carro atravessa as passarelas de madeira na areia (tábuas quebram), segue sem travar; a pé anda no píer baixo
+  r = await ev(() => { const G = window.__G; __onFoot(300, -150); const v = __car(); MBD.drive && (MBD.drive().cruise = 0); const out = []; const t0 = G.breaks.count.tabua;
     for (const x of [330, 342, 352]) { v.place(x, -360, 0); v.vf = v.vx = v.vz = 0; MBD.sim(3, 1 / 30); let lowT = 0, last = v.z, stuck = 0;
       for (let i = 0; i < 600 && v.z < -240; i++) { v.h = 0; v.vf = 16; v.vz = 16; v.vx = 0; MBD.sim(1, 1 / 30); if (v.z - last < 0.1) { if (++lowT === 10) stuck++; } else lowT = 0; last = v.z; }
       out.push([x, +v.z.toFixed(0), stuck]); }
-    return { out }; });
-  ck('8 carro passa na areia por baixo do píer em x 330/342/352', r.out.every(o => o[1] >= -241 && o[2] === 0), r);
-  await ev(() => { const v = window.__G.player.vehicle; v.place(340, -315, 0); v.vf = v.vz = 0; MBD.sim(5, 1 / 30); window.__G.snapCam(); MBD.sim(5, 1 / 30); });
-  await shot('pier-por-baixo', 400);
-  r = await ev(() => { const G = window.__G; __onFoot(300, -299); const I = MBD.input; const P = G.player; let maxY = 0; for (let i = 0; i < 400; i++) { I.stick = [0, 1]; G.camYaw = Math.PI / 2; MBD.sim(1, 1 / 30); maxY = Math.max(maxY, P.y); } I.stick = null; return { x: +P.x.toFixed(0), maxY: +maxY.toFixed(2) }; });
-  ck('8 a pé sobe a rampa e anda no píer alto', r.maxY > 3 && r.x > 330, r);
+    return { out, tabuas: G.breaks.count.tabua - t0 }; });
+  ck('8 carro atravessa a passarela na areia em x 330/342/352 quebrando as tábuas', r.out.every(o => o[1] >= -241 && o[2] === 0) && r.tabuas >= 3, r);
+  await ev(() => { const v = window.__G.player.vehicle; v.place(340, -312, 0); v.vf = v.vz = 0; MBD.sim(5, 1 / 30); window.__G.snapCam(); MBD.sim(5, 1 / 30); });
+  await shot('passarela-quebrada', 400);
+  r = await ev(() => { const G = window.__G; G.breaks.respawnAll(); __onFoot(300, -299); const I = MBD.input; const P = G.player; let maxY = 0; for (let i = 0; i < 400; i++) { I.stick = [0, 1]; G.camYaw = Math.PI / 2; MBD.sim(1, 1 / 30); maxY = Math.max(maxY, P.y); } I.stick = null; return { x: +P.x.toFixed(0), maxY: +maxY.toFixed(2) }; });
+  ck('8 a pé anda no píer baixo (passarelas restauradas)', r.maxY > 0.6 && r.x > 330, r);
   ck('sem erros no console', errs.length === 0, errs.slice(0, 5));
   console.log(fail.length ? 'FAIL ' + fail.join(' | ') : 'PASS ' + out); await browser.close(); process.exit(fail.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

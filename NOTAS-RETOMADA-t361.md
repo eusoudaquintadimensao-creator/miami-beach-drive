@@ -111,3 +111,5 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - Bloqueio conhecido: cerca do clube de tênis (x 336–370, z 446/482) — faixa livre na areia x 324–335.
 - 21:55 restauração do box: git intacto (Solara 7e23f75, Neon a0c8711, nada publicado). Neon t413 PASS d/i/il. Decisão: publicar FASE 7 inteira numa vez (HUD t413–t417 e lojas já estão misturados nos commits; separar arriscaria regressões) após varredura.
 - 22:25 t418 (pintura drive-through no lugar do bloco branco da marina x -293..-271 z -137..-123 + postes/sinaleiras quebram), t419 (NÃO elevar píer: passarelas de madeira na areia quebram, guarda-sóis tombam, NITRO não cobre o carro), t420 (carro no mar raso até ~metade, borrifos, parada suave). Feito no Solara: breakables.js, wadeable()/WADE_FLOOR, áudio crack/clang/splash/water/spray. Falta: paintshop.js, testes t418-t420, portar Neon, varredura, publicar.
+
+## 22:30 t418 cabine de pintura ligada (commit 41e4c57); test/t418.js escrito; t408 etapa 8 reescrita (píer baixo). NOVO t422: auditoria de duplo sentido em TODAS as falas (ambos jogos) -> /workspace/t422-falas-revisadas.md, regenerar mp3 com as mesmas vozes.
