@@ -20,10 +20,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const rs = els.map(e => [e.id || e.tagName, e.getBoundingClientRect()]); const o = [];
     for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const a = rs[i][1], b = rs[j][1]; if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) o.push(rs[i][0] + '×' + rs[j][0]); }
     const off = rs.filter(([, r]) => r.left < -1 || r.top < -1 || r.right > innerWidth + 2 || r.bottom > innerHeight + 2).map(([id]) => id);
-    return { tag, n: rs.length, overlap: o, offscreen: off, qSerp: !!document.getElementById('qSerp') && document.getElementById('qSerp').offsetWidth > 0 };
+    return { tag, n: rs.length, overlap: o, offscreen: off, qSerpGone: !document.getElementById('qSerp') };
   }, tag);
   R.layoutFoot = await layout('a pé');
-  ck('botão 🐍 visível', R.layoutFoot.qSerp, R.layoutFoot);
+  ck('t438: atalho 🐍 removido da tela', R.layoutFoot.qSerpGone, R.layoutFoot);
   ck('layout sem sobreposição (a pé)', R.layoutFoot.overlap.length === 0, R.layoutFoot);
   ck('nada fora da tela (a pé)', R.layoutFoot.offscreen.length === 0, R.layoutFoot);
 

@@ -1,4 +1,4 @@
-// Circuito Serpentina: pista de drift à beira da Casa Solara (curvas fechadas, neon, rivais que derrapam,
+// Circuito Solara Bay (t438: antes 'Circuito Serpentina'): pista de drift à beira da Casa Solara (curvas fechadas, neon, rivais que derrapam,
 // pontuação, Bar da Curva e espectadores com rotina). Nomes e visual originais; geometria fundida + instancing.
 import * as THREE from 'three';
 import { canvasTex, C, clamp, angDiff, rng, MeshBuilder } from './util.js';
@@ -11,7 +11,7 @@ const $ = (id) => document.getElementById(id);
 
 export const SERP_KEY = 'mbd-serpentina-v1';
 export const SERP = {
-  name: 'Circuito Serpentina', halfW: 8.2, curb: 1.15, wall: 12.2,
+  name: 'Circuito Solara Bay', halfW: 8.2, curb: 1.15, wall: 12.2,
   // pontos de controle (Catmull-Rom): serpenteia a oeste e ao sul da casa, sem entrar no quintal
   pts: [
     [-660, 618], [-720, 650], [-800, 690], [-900, 710], [-980, 760],
@@ -28,7 +28,7 @@ const DRIVERS = [
   { name: 'Lila Curva', skill: 0.96, type: 'rc_jdm', liv: 0 },
   { name: 'Leo Fumaça', skill: 0.92, type: 'rc_muscle', liv: 1 },
   { name: 'Nina Lateral', skill: 0.9, type: 'rc_gt', liv: 2 },
-  { name: 'Rafa Serpente', skill: 0.88, type: 'rc_hyper', liv: 3 },
+  { name: 'Rafa Faísca', skill: 0.88, type: 'rc_hyper', liv: 3 },
 ];
 
 function ribbonGeo(T, o0, o1, y) {
@@ -76,7 +76,7 @@ export class Serpentina {
       g.strokeStyle = '#ff9a3c'; g.lineWidth = (D.halfW * 2 + 4) * k; path(); g.stroke();
       g.strokeStyle = '#2a2c32'; g.lineWidth = D.halfW * 2 * k; path(); g.stroke();
       g.strokeStyle = '#fff6'; g.lineWidth = 3 * k; g.beginPath(); g.moveTo(X(D.entrance.x), Z(D.entrance.z)); g.lineTo(X(D.entrance.x), Z(D.gap.z1)); g.stroke();
-      g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffd23f'; g.fillText('🐍', X(-750), Z(740));
+      g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffd23f'; g.fillText('🏎️', X(-750), Z(740));
     });
     this.spawnAI(); this.buildBar(); this.spawnFans();
   }
@@ -149,7 +149,7 @@ export class Serpentina {
     }
     // pórtico de entrada
     { const p = this.at(2, 0); const g = new THREE.Group(); g.position.set(SERP.entrance.x, 0, SERP.gap.z1 - 2); g.rotation.y = 0;
-      const sign = canvasTex(512, 128, (c) => { c.fillStyle = '#111'; c.fillRect(0, 0, 512, 128); c.fillStyle = '#ff9a3c'; c.shadowColor = '#ff6a00'; c.shadowBlur = 16; c.font = 'bold 44px Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('CIRCUITO SERPENTINA', 256, 64); });
+      const sign = canvasTex(512, 128, (c) => { c.fillStyle = '#111'; c.fillRect(0, 0, 512, 128); c.fillStyle = '#ff9a3c'; c.shadowColor = '#ff6a00'; c.shadowBlur = 16; c.font = 'bold 44px Trebuchet MS, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('CIRCUITO SOLARA BAY', 256, 64); });
       const sm = new THREE.Mesh(new THREE.PlaneGeometry(18, 4), new THREE.MeshBasicMaterial({ map: sign, transparent: true, toneMapped: false, side: THREE.DoubleSide })); sm.position.set(0, 5.6, 0); sm.rotation.y = Math.PI;
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 0.4), archM); const p2 = post.clone(); post.position.set(-9, 3, 0); p2.position.set(9, 3, 0); g.add(sm, post, p2); this.group.add(g);
     }
@@ -229,7 +229,7 @@ export class Serpentina {
   go() {
     const G = this.G; if (G.player.vehicle) G.leaveCar(true);
     const p = this.at(8, 0); const entry = { x: SERP.entrance.x, z: SERP.entrance.z + 8, h: 0 };
-    G.placeOnFoot(entry.x, entry.z, 0); G.snapCam(); G.ui.toast('🐍 <b>Circuito Serpentina</b> · entre no seu carro (🚘) e derrape nas curvas! Os rivais já estão na pista.', 3600);
+    G.placeOnFoot(entry.x, entry.z, 0); G.snapCam(); G.ui.toast('🏎️ <b>Circuito Solara Bay</b> · entre no seu carro (🚘) e derrape nas curvas! Os rivais já estão na pista.', 3600);
     G.audio.chime && G.audio.chime('start');
   }
   update(dt, t, camera) {
@@ -250,7 +250,7 @@ export class Serpentina {
     // sessão de pontuação: começa ao entrar na pista de carro, fecha ao sair
     const v = G.player.vehicle; const loc = v && !v.spec.boat && !v.spec.air ? this.locate(v.x, v.z, this.hint) : null;
     const on = !!(loc && Math.abs(loc.lat) < D.wall + 4);
-    if (on) { this.hint = loc.i; this.leftT = 0; if (!this.on) { this.on = true; this.session = G.drift.total; this.stuckT = 0; G.ui.toast('🐍 Sessão de drift na Serpentina! Pontos valem o recorde da pista.', 2600); } }
+    if (on) { this.hint = loc.i; this.leftT = 0; if (!this.on) { this.on = true; this.session = G.drift.total; this.stuckT = 0; G.ui.toast('🏎️ Sessão de drift no Circuito Solara Bay! Pontos valem o recorde da pista.', 2600); } }
     else if (this.on) { this.leftT += dt; if (this.leftT > 6) this.endSession(); }
     if (this.on && v) this._maybeRespawn(dt, v, loc, on, D);
     this.hud();
@@ -280,7 +280,7 @@ export class Serpentina {
     this.on = false; this.leftT = 0;
     if (pts > 20) {
       this.data.runs++; this.data.last = pts; const rec = pts > this.data.best; if (rec) this.data.best = pts; saveData(this.data);
-      G.ui.toast(rec ? `🏆 Novo recorde na Serpentina: <b>${pts.toLocaleString('pt-BR')}</b>!` : `🐍 Sessão: <b>${pts.toLocaleString('pt-BR')}</b> · recorde ${this.data.best.toLocaleString('pt-BR')}`, 3400);
+      G.ui.toast(rec ? `🏆 Novo recorde no Circuito Solara Bay: <b>${pts.toLocaleString('pt-BR')}</b>!` : `🏎️ Sessão: <b>${pts.toLocaleString('pt-BR')}</b> · recorde ${this.data.best.toLocaleString('pt-BR')}`, 3400);
       if (rec) G.audio.chime('win'); G.addFollowers && G.addFollowers(Math.min(8, 1 + Math.floor(pts / 800)));
     }
     this.hud(true);
@@ -293,7 +293,7 @@ export class Serpentina {
         const top = r.spec.max * 0.62 * r.skill; const aLat = 9 * r.skill;
         let target = top;
         for (let d = 0; d <= 90; d += 6) { const k = Math.abs(T.at(r.total + d).k); if (k < 1e-4) continue; const vm = Math.sqrt(aLat / k); target = Math.min(target, Math.sqrt(vm * vm + 2 * 11 * d)); }
-        // na Serpentina a IA “procura” o drift: em curva fecha um pouco e entra de lado
+        // no circuito a IA “procura” o drift: em curva fecha um pouco e entra de lado
         const kNow = Math.abs(T.at(r.total + 8).k);
         if (kNow > 1 / 70) target = Math.min(target, top * 0.78);
         let latT = clamp(T.at(r.total + 10).k * 180, -4.6, 4.6);
@@ -335,7 +335,7 @@ export class Serpentina {
     el.hidden = false;
     const cur = Math.max(0, Math.round(this.G.drift.total - this.session));
     const chain = Math.round(this.G.drift.chain || 0); const comb = this.G.drift.combo || 1;
-    const h = `<b>🐍 SERPENTINA</b> <span>${cur.toLocaleString('pt-BR')}</span> · combo ×${comb}${chain > 5 ? ' · ' + chain + ' m' : ''}<small>recorde ${this.data.best.toLocaleString('pt-BR')}</small>`;
+    const h = `<b>🏎️ CIRCUITO SOLARA BAY</b> <span>${cur.toLocaleString('pt-BR')}</span> · combo ×${comb}${chain > 5 ? ' · ' + chain + ' m' : ''}<small>recorde ${this.data.best.toLocaleString('pt-BR')}</small>`;
     if (force || h !== this._h) { el.innerHTML = h; this._h = h; }
   }
 }

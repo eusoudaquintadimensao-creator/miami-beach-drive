@@ -44,6 +44,6 @@ nome ou visual de personagens de terceiros.
 - Tudo modelado em código (three.js) neste projeto: lugares, gaivotas, caixas de presente, prancha, planador, portões neon.
   Nomes de lugares, rivais, rotas e da liga são originais. Sem marcas de terceiros.
 
-## Circuito Serpentina e Bar da Curva
-- Pista, rivais, bar, espectadores e nomes (Lila Curva, Leo Fumaça, Nina Lateral, Rafa Serpente, Bar da Curva, Circuito Serpentina)
+## Circuito Solara Bay e Bar da Curva
+- Pista, rivais, bar, espectadores e nomes (Lila Curva, Leo Fumaça, Nina Lateral, Rafa Faísca, Bar da Curva, Circuito Solara Bay)
   criados em código para este jogo. Nenhuma marca real de carro, de jogo ou de filme.

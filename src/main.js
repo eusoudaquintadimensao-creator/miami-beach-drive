@@ -1074,11 +1074,11 @@ $('qPlane').onclick = () => { if (!G.started || G.paused) return; G.audio.init()
 $('qCar').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.callCar(); };
 $('qHome').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.home.go(); };
 $('qFlash').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.street.flash(); };
-$('qSerp').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.serp.go(); };
+// t438: atalho 🐍 saiu da tela; o Circuito Solara Bay segue no menu da Casa Solara e na tecla K
 $('ponteQuit').onclick = (e) => { e.stopPropagation(); if (G.ponte) G.ponte.quit(); };
 $('ponteQuit').addEventListener('pointerdown', (e) => e.stopPropagation());
 $('qPonte').onclick = () => { if (!G.started || G.paused) return; G.audio.init(); G.ponte.go(); };
-for (const id of ['qRace', 'qJet', 'qHeli', 'qPlane', 'qCar', 'qHome', 'qFlash', 'qSerp', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
+for (const id of ['qRace', 'qJet', 'qHeli', 'qPlane', 'qCar', 'qHome', 'qFlash', 'qPonte']) $(id).addEventListener('pointerdown', (e) => e.stopPropagation());
 addEventListener('visibilitychange', () => { if (document.hidden) { persist(); if (G.rec && G.rec.recording) G.rec.stop(); } });
 addEventListener('pagehide', persist);
 canvas.addEventListener('webglcontextlost', () => { G.ctxLost = (G.ctxLost || 0) + 1; persist(); }, false); // t433

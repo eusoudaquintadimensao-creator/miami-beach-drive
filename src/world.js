@@ -106,7 +106,7 @@ export function onPier(x, z) { for (const p of PIERS) if (x > p.x0 && x < p.x1 &
 function landBase(x, z) {
   if (x >= ISL.x0 && x < SHORE_X + 200 && z >= ISL.z0 && z <= ISL.z1) return true;
   if (x >= MAIN.x0 && x <= MAIN.x1 && z >= MAIN.z0 && z <= MAIN.z1) return true;
-  if (inSerpZone(x, z)) return true; // aterro do Circuito Serpentina, ao sul da Casa Solara
+  if (inSerpZone(x, z)) return true; // aterro do Circuito Solara Bay, ao sul da Casa Solara
   return false;
 }
 export function groundY(x, z) {
@@ -139,7 +139,7 @@ export function roadAt(x, z) { // via mais próxima (para o GPS e nomes de rua)
   return { seg: best, d: bd };
 }
 export function districtName(x, z) {
-  if (inSerpZone(x, z) && z > 718) return 'Circuito Serpentina';
+  if (inSerpZone(x, z) && z > 718) return 'Circuito Solara Bay';
   if (x > 322) return 'Praia de Solara';
   if (x > 25) return z > 560 ? 'Ponta Sul' : 'Solara Beach';
   if (x > -262) return 'Baía de Solara';
@@ -386,7 +386,7 @@ export function buildWorld(scene, Q) {
   groundMesh(ISL.x0, ISL.z0, 332, ISL.z1, M.plaza, 24, -0.01);
   groundMesh(-680, MAIN.z0, MAIN.x1, MAIN.z1, M.plaza, 24, -0.01);
   groundMesh(MAIN.x0, MAIN.z0, -680, MAIN.z1, M.swamp, 30, -0.01);
-  // aterro visual do Circuito Serpentina (ao sul de MAIN.z1; a altura já vem de landBase)
+  // aterro visual do Circuito Solara Bay (ao sul de MAIN.z1; a altura já vem de landBase)
   groundMesh(SERP_ZONE.x0, MAIN.z1 - 4, -680, SERP_ZONE.z1, M.swamp, 30, -0.01);
   groundMesh(-680, MAIN.z1 - 4, SERP_ZONE.x1, SERP_ZONE.z1, M.plaza, 24, -0.01);
   // praia inclinada
@@ -406,7 +406,7 @@ export function buildWorld(scene, Q) {
   sea.box(MAIN.x1 + 1, -1.5, 0, 2, 3, MAIN.z1 - MAIN.z0, wallC);
   sea.box((MAIN.x0 + MAIN.x1) / 2, -1.5, MAIN.z0 - 1, MAIN.x1 - MAIN.x0, 3, 2, wallC); sea.box((MAIN.x0 + MAIN.x1) / 2, -1.5, MAIN.z1 + 1, MAIN.x1 - MAIN.x0, 3, 2, wallC);
   sea.box(MAIN.x0 - 1, -1.5, 0, 2, 3, MAIN.z1 - MAIN.z0, wallC);
-  // mureta do aterro da Serpentina
+  // mureta do aterro do circuito
   sea.box((SERP_ZONE.x0 + SERP_ZONE.x1) / 2, -1.5, SERP_ZONE.z1 + 1, SERP_ZONE.x1 - SERP_ZONE.x0, 3, 2, wallC);
   sea.box(SERP_ZONE.x1 + 1, -1.5, (MAIN.z1 + SERP_ZONE.z1) / 2, 2, 3, SERP_ZONE.z1 - MAIN.z1 + 4, wallC);
   sea.box(SERP_ZONE.x0 - 1, -1.5, (MAIN.z1 + SERP_ZONE.z1) / 2, 2, 3, SERP_ZONE.z1 - MAIN.z1 + 4, wallC);
