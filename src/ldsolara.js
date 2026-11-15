@@ -20,7 +20,9 @@
   for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function (e) { e.stopPropagation(); lg = this.getAttribute('data-l'); try { localStorage.setItem('mbd-intro-lang', lg); } catch (x) { } paint(); play(); });
   el.addEventListener('click', function () { if (au && el.classList.contains('play')) stop(); else play(); });
   el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
-  document.getElementById('play') && document.getElementById('play').addEventListener('click', function () { if (au) { var a = au, v = 1, t = setInterval(function () { v -= 0.1; if (v <= 0) { clearInterval(t); a.pause(); } else a.volume = v; }, 60); } });
+  document.getElementById('play') && document.getElementById('play').addEventListener('click', function () { el.classList.add('gone'); setTimeout(function () { el.hidden = true; }, 700); if (au) { var a = au, v = 1, t = setInterval(function () { v -= 0.1; if (v <= 0) { clearInterval(t); a.pause(); } else a.volume = v; }, 60); } });
+  var st = document.getElementById('start'); // retomada automática (t433) chama o JOGAR sem clique: some também quando a tela inicial esconde
+  if (st && window.MutationObserver) new MutationObserver(function () { if (st.hidden && !el.hidden) { el.classList.add('gone'); setTimeout(function () { el.hidden = true; }, 700); } }).observe(st, { attributes: true, attributeFilter: ['hidden'] });
   window.__solaraIntroLang = function () { return lg; };
   paint();
 })();

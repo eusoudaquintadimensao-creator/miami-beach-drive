@@ -22,9 +22,13 @@ const waitJs = async (p, expr, ms, label) => { const t0 = Date.now(); while (Dat
   { const r2 = await p.evaluate(() => performance.getEntriesByType('resource').map(e => e.name.split('/').pop())); for (const u of r2) if (/intro-..\.mp3/.test(u) && !mp3.some(x => x.u === u)) mp3.push({ u }); }
   chk(mp3.some(x => x.u === 'intro-pt.mp3'), 'troca para PT não tocou o áudio PT');
   R.intro = await p.evaluate(() => window.__solaraIntro);
+  await waitJs(p, 'document.body.classList.contains("menuIn")', 240000, 'menuIn'); await sleep(1200);
+  R.menuBtn = await p.evaluate(() => { const e = document.getElementById('ldSol'); const r = e.getBoundingClientRect(); return { vis: !e.hidden && getComputedStyle(e).opacity > 0.5, w: Math.round(r.width), x: Math.round(r.x), y: Math.round(r.y) }; });
+  chk(R.menuBtn.vis && R.menuBtn.w < 80, 'Solara não ficou como botão redondo no menu');
+  await p.screenshot({ path: `/workspace/t435/t436-${tag}-menu.png` });
   await waitJs(p, 'window.MBD_READY === true', 240000, 'window.MBD_READY === true');
   await p.evaluate(() => document.getElementById('play').click()); await waitJs(p, 'MBD.flags.started', 60000, 'MBD.flags.started');
-  const tc = Date.now(); await sleep(1500); R.perf0 = await p.evaluate(() => MBD.perf());
+  const tc = Date.now(); await sleep(1500); chk(await p.evaluate(() => document.getElementById('ldSol').hidden), 'cartão da Solara ficou na tela durante o jogo'); R.perf0 = await p.evaluate(() => MBD.perf());
   const hi = await p.evaluate(() => { const e = document.getElementById('solaraHi'); if (!e) return null; window.__n1 = e; e.getAnimations().forEach(a => a.finish()); /* swiftshader trava o compositor: conclui a entrada para medir o lugar final */ const r = e.getBoundingClientRect(); return { img: !!e.querySelector('.shAv img'), name: (e.querySelector('.shHd b') || {}).textContent, txt: e.textContent.slice(0, 160), top: Math.round(r.top), bottom: Math.round(r.bottom), h: innerHeight }; });
   R.hi = hi; chk(hi && /arrastar para cima/.test(hi.txt) && hi.name === 'Solara', 'recado da Solara (notificação) não apareceu');
   chk(hi && hi.top >= -2 && hi.bottom < hi.h * 0.3, 'notificação não está no alto da tela');
