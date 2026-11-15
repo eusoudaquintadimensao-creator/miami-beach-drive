@@ -115,3 +115,21 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 ## 22:30 t418 cabine de pintura ligada (commit 41e4c57); test/t418.js escrito; t408 etapa 8 reescrita (píer baixo). NOVO t422: auditoria de duplo sentido em TODAS as falas (ambos jogos) -> /workspace/t422-falas-revisadas.md, regenerar mp3 com as mesmas vozes.
 - 22:45 t422 feito: 31 trocas de texto (ver T422-FALAS-REVISADAS.md), 23 falas regeneradas (Kokoro, mesmas vozes), test/t422.mjs PASS nos 2 jogos; site 'feito com dedicação'.
 - 22:50 Neon com t418-t420 + Cabine Cromo Neon (045b798..), SW solara-v26-2026-11-14-pintura / neon-dist-v18-2026-11-14-pintura; t418 PASS Solara d/i, Neon d. Varredura completa /workspace/t367/sweep2.sh -> /tmp/sweep2.txt. Depois: push + deploy MIAMI DRIVE.
+
+## FASE 7 — ESCOPO COMPLETO (checklist, 23:20 após 2ª restauração)
+- [x] t408 loja de roupas na orla (Boutique Brisa / Neon: Boutique Neblina), roupas Miami por gênero, personagens mais realistas, nova personagem original Marisol
+- [x] t410 loja de trajes de herói vizinha (Arsenal Aurora / Neon: Forja Prisma), trajes originais com poderes
+- [x] t412 a pé entra no mar (andar → nadar → voltar)  (a parte "elevar pontes" foi SUBSTITUÍDA pelo t419)
+- [x] t413 👁 tela limpa (lembra escolha) + extras somem dirigindo + mensagens no alto
+- [x] t414 Alto+Ré abaixo do Freio; Pausa/Voltar empilhados na borda; botões contornam as bordas; minimizar em todos os links
+- [x] t415 teste de todos os botões retrato+paisagem+desktop (carro/a pé/barco/heli), sem sobreposição (test/t413.js)
+- [x] t416 texto nunca sobre o carro/estrada (msgguard + teste bbox); NITRO sobre o carro (bugs-t388/0673d2.jpg) corrigido
+- [x] t417 N Neutro sempre no carro (não some no modo limpo), testado
+- [x] t418 cabine de pintura drive-through no bloco branco (bugs-t388/f742d4.jpg) + postes/semáforos quebram (test/t418.js)
+- [x] t419 passarelas de madeira + guarda-sóis quebram com som de madeira, carro segue, voltam depois
+- [x] t420 carro no mar raso até ~metade da altura, borrifos/rastro/som, parada suave no fundo, Freio-respawn ok
+- [x] t422 auditoria de duplo sentido (rádio da ponte primeiro), mp3 regenerados, /workspace/t422-falas-revisadas.md, test/t422.mjs
+- Releases: o pai pediu releases menores (A: t413-t417/t419/t420/t422; B: lojas/pintura/personagens). Os commits A e B estão
+  intercalados nos 2 repos e tudo já está pronto + testado, então separar agora exigiria reverter lojas/pintura (arriscado).
+  Decisão 23:20: UMA release (A+B juntos) assim que a varredura sweep2 passar; releases futuras menores.
+- Pendente: terminar varredura (/workspace/t367/sweep2.sh, logs log-<jogo>-<teste>-<cfg>.txt), refazer solara t413 i, push 2 repos, deploy MIAMI DRIVE, live check.
