@@ -650,7 +650,7 @@ function updatePlayer(dt) {
         const kk = out > 0 ? k : Math.max(k, 1 - dt * 0.6); v.vx *= kk; v.vz *= kk; if (v.vf !== undefined) v.vf *= kk;
         if (!v._inSea) { v._inSea = true; if (spd0 > 2) { G.audio.splash && G.audio.splash(spd0); if (G.breaks) G.breaks.splash(v.x, WATER_Y, v.z, v.vx, v.vz, 26); } if (!G._carSeaTip) { G._carSeaTip = true; G.ui.toast('🌊 Mar raso! O carro anda devagar na água — mais fundo ele para. É só voltar para a areia.', 4200); } }
         v._spl = (v._spl || 0) - dt; if (spd0 > 1.5 && v._spl <= 0) { v._spl = 0.12; if (G.breaks) G.breaks.splash(v.x + fx0 * 1.9, WATER_Y, v.z + fz0 * 1.9, v.vx, v.vz, Math.min(10, 2 + spd0 * 0.5)); if (G.powers) G.powers.ring(v.x - fx0 * 2.2, WATER_Y + 0.03, v.z - fz0 * 2.2, 0xe8fbff, 2.2 + spd0 * 0.12, 0.9); G.audio.water && Math.random() < 0.4 && G.audio.water(Math.min(0.16, 0.04 + spd0 * 0.006)); }
-        if (deep > 0.6 && out > 0) { G._deepT = (G._deepT || 0) - dt; if (G._deepT <= 0) { G._deepT = 6; G.ui.toast('🛑 Fundo demais para o carro — dê ré ou vire para a areia.', 3000); } }
+        if (deep > 0.4 && out > -0.2) { G._deepT = (G._deepT || 0) - dt; if (G._deepT <= 0) { G._deepT = 6; G.ui.toast('🛑 Fundo demais para o carro — dê ré ou vire para a areia.', 3000); } }
       } else v._inSea = false;
     }
     if (G.breaks) G.breaks.check(v, dt); // t418/t419: postes, sinaleiras, guarda-sóis e passarelas de madeira quebram
