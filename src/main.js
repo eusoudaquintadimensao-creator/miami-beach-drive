@@ -76,7 +76,7 @@ function detectQuality() {
   try { const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl'); const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); gpu = gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : ''; } catch (e) { }
   const weak = /swiftshader|llvmpipe|software|mali-[4t]|adreno \(tm\) [3-5]\d\d|powervr|intel\(r\) hd graphics [2-5]/i.test(gpu);
   const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
-  if (weak || (DEVICE.mobile && (cores <= 4 || mem <= 3))) return 'low';
+  if (weak || mem <= 2 || cores <= 2 || (DEVICE.mobile && (cores <= 4 || mem <= 3))) return 'low'; // t432: aparelho fraco = modo leve automático
   if (DEVICE.mobile) return 'medium';
   if (/apple m\d|rtx|gtx|radeon|nvidia|geforce|arc /i.test(gpu)) return 'high';
   return 'medium';
@@ -97,7 +97,9 @@ function forDevice(P) {
   return q;
 }
 const urlQ = new URLSearchParams(location.search).get('q');
-const qName = (urlQ && PRESETS[urlQ]) ? urlQ : save.quality !== 'auto' && PRESETS[save.quality] ? save.quality : detectQuality();
+const QORD = ['low', 'medium', 'high'];
+const qDetected = detectQuality(); // t432: se o FPS já obrigou a baixar antes, lembra disso na próxima abertura (save.autoQ)
+const qName = (urlQ && PRESETS[urlQ]) ? urlQ : save.quality !== 'auto' && PRESETS[save.quality] ? save.quality : (save.autoQ && PRESETS[save.autoQ] && QORD.indexOf(save.autoQ) < QORD.indexOf(qDetected)) ? save.autoQ : qDetected;
 const Q = forDevice(PRESETS[qName]);
 $('qsel').value = save.quality || 'auto';
 $('qsel').onchange = (e) => { save.quality = e.target.value; persist(); location.reload(); };
@@ -850,7 +852,7 @@ function updateAllLights() {
   }
 }
 
-let last = performance.now(), realLast = performance.now(), fpsAcc = 0, fpsN = 0, fpsT = 0, fps = 60, saveT = 0, slowT = 0;
+let last = performance.now(), realLast = performance.now(), fpsAcc = 0, fpsN = 0, fpsT = 0, fps = 60, saveT = 0, slowT = 0, fastT = 0;
 const fpsHist = [];
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -880,7 +882,9 @@ function adapt() { // resolução dinâmica para manter fluido
   adLo = fps < 40 ? adLo + 1 : 0; adHi = fps > 57 ? adHi + 1 : 0;
   if (adCool > 0) { } else if (adLo >= 2 && pr > (G.recording ? 0.9 : Q.prMin) + 0.01) { setPR(pr - 0.1); adCool = 3; adLo = 0; adDropT = nowS; }
   else if (adHi >= 6 && nowS - adDropT > 25 && pr < Math.min(Q.prMax, devicePixelRatio || 1, recCap()) - 0.01) { setPR(pr + 0.05); adCool = 5; adHi = 0; }
-  if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low') { slowT++; if (slowT >= 6 && !sessionStorage.getItem('mbd-down')) { sessionStorage.setItem('mbd-down', '1'); G.ui.toast('Deixando os gráficos mais leves para ficar fluido…'); persist(); const nq = Q.level === 'high' ? 'medium' : 'low'; setTimeout(() => { location.search = '?q=' + nq; }, 900); } } else slowT = 0;
+  if (save.quality === 'auto' && !urlQ && fps < 22 && pr <= Q.prMin + 0.01 && Q.level !== 'low') { slowT++; if (slowT >= 6 && !sessionStorage.getItem('mbd-down')) { sessionStorage.setItem('mbd-down', '1'); G.ui.toast('Deixando os gráficos mais leves para ficar fluido…'); const nq = Q.level === 'high' ? 'medium' : 'low'; save.autoQ = nq; persist(); setTimeout(() => { location.reload(); }, 900); } } else slowT = 0;
+  // t432: aparelho forte de verdade (60 s fluido na resolução máxima) volta a poder usar o modo caprichado na próxima abertura
+  if (save.autoQ && save.quality === 'auto' && !urlQ && fps > 55 && pr >= Math.min(Q.prMax, devicePixelRatio || 1) - 0.01) { fastT++; if (fastT >= 60 && QORD.indexOf(qDetected) > QORD.indexOf(Q.level)) { save.autoQ = null; persist(); fastT = -1e9; } } else if (fastT > 0) fastT = 0;
 }
 const stepMs = [];
 function recordStep(ms) { stepMs.push(ms); if (stepMs.length > 600) stepMs.shift(); }
@@ -1045,6 +1049,7 @@ window.MBD = {
   cam: () => camera, jet: () => G.jet, home: () => G.home, voice: () => G.voice, callHeli: () => G.callHeli(), callPlane: () => G.callPlane(), plane: () => G.plane, race: () => G.race, track: () => G.track, fx: () => G.fx, drift: () => G.drift,
   life: () => G.life, crowd: () => G.crowd, birds: () => G.birds, gifts: () => G.gifts, street: () => G.street, serp: () => G.serp, ponte: () => G.ponte, ilhas: () => G.ilhas, boatRace: () => G.boatRace, mega: () => G.mega, gps: () => G.gps, beach: () => G.beach, orla: () => G.orla, enterCar: (v) => G.enterCar(v), vehicles: () => G.vehicles,
   leaveCar: (s) => G.leaveCar(s), drive: () => DriveUI, respawnFade, onActTap, enterNearest, MOTOR, input,
+  perf: () => ({ q: Q.level, detected: qDetected, autoQ: save.autoQ || null, pr: +pr.toFixed(2), prMax: Q.prMax, fps: +fps.toFixed(1), shadows: renderer.shadowMap.enabled, bloom: !!bloom, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null }), // t432
   avatar: (id) => G.setAvatar(id), power: () => G.powers.trigger(), powers: () => G.powers, talk: () => G.talk, heli: () => G.heli, helis: () => G.helis, input,
 };
 
