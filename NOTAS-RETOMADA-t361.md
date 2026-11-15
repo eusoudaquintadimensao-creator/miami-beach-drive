@@ -133,3 +133,4 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
   intercalados nos 2 repos e tudo já está pronto + testado, então separar agora exigiria reverter lojas/pintura (arriscado).
   Decisão 23:20: UMA release (A+B juntos) assim que a varredura sweep2 passar; releases futuras menores.
 - Pendente: terminar varredura (/workspace/t367/sweep2.sh, logs log-<jogo>-<teste>-<cfg>.txt), refazer solara t413 i, push 2 repos, deploy MIAMI DRIVE, live check.
+- 23:55 VARREDURA sweep2 COMPLETA: t422 PASS x2; t418 PASS 4 cfgs x2 jogos; t413/t408/t405 PASS 4x2 (falta só refazer solara t413 i, log foi sobrescrito); t402/t400/t393/t387/t361/t394/t396 PASS d+i x2. Próximo: solara t413 i -> push -> deploy.
