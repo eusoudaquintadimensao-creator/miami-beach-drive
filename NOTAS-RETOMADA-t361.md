@@ -144,3 +144,10 @@ Plano: src/wardrobe.js (catálogo roupas m/f + acessórios presos aos ossos + tr
 - 01:07 sweep3 COMPLETO PASS (29). sweep4: t423 solara 4cfg PASS; neon em andamento. NOVO t426 (próxima release): menu/heróis mais maduros (grafite/teal/dourado), cards cinematográficos, Marisol de calça, carregamento mais leve + barra de progresso real, medir antes/depois.
 - 01:18 sweep4 PASS (t423 4cfg x2, t413/t405 d+i x2). Push + deploy.
 - 01:25 Pages Solara falhou (deploy-pages: artifact não encontrado, transitório) -> rerun OK. 4 sw.js no ar: solara-v27 / neon-v19 praia-livre. RELEASE t423 NO AR. Começando t426+t428 (sobrevoo de carregamento, ideia 1).
+- 02:30 t426/t428 (Solara, commits locais, NÃO publicado ainda):
+  - Marisol de pantalona marfim + blusa esmeralda (novo tipo 'pantalona': tubos presos aos ossos da perna; wardrobe.js trousers()).
+  - Heróis com armadura tática (heroes.js tacArmor/limbTube/helmet), nomes: Vértice (ex-Teia Neon), Colosso, Sentinela (escudo hexagonal), Férreo, Titã; cores sem pele verde/roxa. Miniaturas re-renderizadas com luz de cinema (test/thumbs.js).
+  - Boot 2x mais rápido (normalFrom sem hypot, noiseFast em util.js, canvasTex willReadFrequently). G.bootT = tempos por etapa.
+  - t428: src/flyover.js (sobrevoo + barra real; cria o renderer e main.js reaproveita), src/loadman.js gerado por tools/loadman.py (RODAR de novo se mudar imports!), index.html carrega flyover.js (não main.js), #loader, Pular lembrado (mbd-fly-skip / nd-fly-skip), menu de vidro grafite/petróleo/dourado, botão Controles.
+  - test/t426.js PASS Solara i; medição: test/t426load.js -> /workspace/t426/load-*.txt (antes live: Pages ~11,1 s pronto, DCL 4,2 s).
+  - Falta: Neon (portar), site MIAMI DRIVE (tema), SW CORE + bump, varredura, publicar.
