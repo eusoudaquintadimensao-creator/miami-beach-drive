@@ -186,7 +186,7 @@ export class Boutique {
       <div class="lojaSub">${who} · <span class="lojaMoney">${LOJAS.money}${money}</span> <small>(dinheiro das corridas)</small></div>
       <div class="lojaTabs">${tabs}</div><div class="lojaList">${list}</div>
       <div class="lojaPoses">${POSES.map(([k, e, n]) => `<button data-pose="${k}" title="${n}">${e}<small>${n}</small></button>`).join('')}</div>
-      <p class="small lojaNote">Fica salvo para <b>${A.name || A.label}</b> neste aparelho. Toque numa peça que você já tem para vestir${hero ? '' : ' (chapéu, óculos e bolsa: toque de novo para tirar)'}.</p>`;
+      <p class="small lojaNote">Fica salvo para <b>${A.hero ? A.label : (A.name || A.label)}</b> neste aparelho. Toque numa peça que você já tem para vestir${hero ? '' : ' (chapéu, óculos e bolsa: toque de novo para tirar)'}.</p>`;
   }
   itemHtml(id, it, sw, desc) {
     const W = this.G.wardrobe, own = W.owns(id, it.id), on = W.equipped(id, it), can = this.G.save.money >= it.p;
