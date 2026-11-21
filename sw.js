@@ -1,5 +1,5 @@
 // Service worker do Solara Bay: deixa o jogo instalável e jogável offline.
-const VERSION = 'solara-v33-2026-11-15-olhos-rotulos';
+const VERSION = 'solara-v34-2026-11-21-godot';
 const FAM = VERSION.replace(/v\d.*$/, ''); // só apaga caches antigos DESTE jogo (o domínio é dividido com outros apps/jogos)
 const CORE = [
   './', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',

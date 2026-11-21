@@ -3,6 +3,7 @@
 export const VERSIONS = [
   { id: 'solara', name: 'Solara Bay', emoji: '🌴', desc: 'Cidade de praia ensolarada · dia e pôr do sol', url: 'https://eusoudaquintadimensao-creator.github.io/miami-beach-drive/', copy: 'solara-bay/', col: '#ff8a3c' },
   { id: 'neon', name: 'Neon Distrito', emoji: '🌃', desc: 'Metrópole cyberpunk · noite neon', url: 'https://eusoudaquintadimensao-creator.github.io/neon-distrito/', copy: 'neon-distrito/', col: '#b45cff' },
+  { id: 'godot', name: 'Solara Bay · Godot (NOVO)', emoji: '🏖️', desc: 'Nova versão no motor Godot · praia viva, aves e banhistas', url: 'https://eusoudaquintadimensao-creator.github.io/solara-bay-godot/', col: '#ffd23f' },
   { id: 'sky', name: 'SOLARA SKY 2088', emoji: '🛸', desc: 'Miami do futuro · voe pelos céus de 2088', url: 'https://oasis-berry-horizon-kite.grok.me', site: 'https://solara-sky-2088.conhecimento-solar.workers.dev', col: '#29f0ff' },
 ];
 export function versionLink(v, loc = location) {
