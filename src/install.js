@@ -15,17 +15,13 @@ export function initInstall(opts = {}) {
   $('isX').onclick = () => { $('installSheet').hidden = true; };
   $('installSheet').addEventListener('click', (e) => { if (e.target.id === 'installSheet') $('installSheet').hidden = true; });
   refresh();
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    // t439: versão nova assumiu (skipWaiting+claim) → ainda carregando: recarrega na hora; já jogando: a Solara oferece "Atualizar"
-    const had = !!navigator.serviceWorker.controller; let done = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || done) return; done = true; installState.updated = true;
-      const hud = document.getElementById('hud'); if (!hud || hud.hidden) { location.reload(); return; } if (opts.onUpdate) opts.onUpdate(); });
-    addEventListener('load', () => {
-      // t439: sw.js nunca vem do cache HTTP; checa versão nova ao abrir e ao voltar para o jogo (app instalado fica aberto dias)
-      navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).then((r) => { installState.sw = true; const up = () => r.update && r.update().catch(() => { }); up();
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') up(); }); }).catch(() => { });
-    });
+  // 21/11/2026: sem service worker (o antigo quebrava a abertura na Cloudflare com ERR_FAILED).
+  // Desregistra qualquer SW deste jogo e apaga os caches 'solara-' que tenham ficado no aparelho.
+  if ('serviceWorker' in navigator) {
+    const base = new URL('./', location.href).href;
+    navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => { if (r.scope === base) r.unregister(); })).catch(() => { });
   }
+  if (self.caches) caches.keys().then((ks) => ks.forEach((k) => { if (k.startsWith('solara-')) caches.delete(k); })).catch(() => { });
 }
 function refresh() { const b = $('installBtn'); if (!b) return; b.hidden = isStandalone() || installState.installed; }
 export async function promptInstall() {
